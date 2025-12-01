@@ -43,7 +43,7 @@ export const useStore = create<CampaignState>()(
       })),
     }),
     {
-      name: 'sharelot-storage',
+      name: 'sharelor-storage',
     }
   )
 );

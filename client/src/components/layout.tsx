@@ -21,9 +21,9 @@ export function Layout({ children, isAdmin = false }: { children: React.ReactNod
       <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={sharelotLogo} alt="Sharelot" className="h-8 w-8 rounded-lg" />
+            <img src={sharelotLogo} alt="ShareLor" className="h-8 w-8 rounded-lg" />
             <span className="font-heading font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-              Sharelot
+              ShareLor
             </span>
           </div>
 
@@ -89,7 +89,7 @@ export function Layout({ children, isAdmin = false }: { children: React.ReactNod
 
       <footer className="border-t py-6 bg-muted/30">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2025 Sharelot for Regrow Group. All rights reserved.</p>
+          <p>© 2025 ShareLor for Regrow Group. All rights reserved.</p>
         </div>
       </footer>
     </div>
