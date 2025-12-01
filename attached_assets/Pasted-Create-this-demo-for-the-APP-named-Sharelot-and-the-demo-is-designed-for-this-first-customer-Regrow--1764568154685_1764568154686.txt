@@ -1,0 +1,41 @@
+Create this demo for the APP named Sharelot and the demo is designed for this first customer Regrow Group
+
+1. Purpose
+* Helps a business (Regrow Group) manage and deploy review-sharing campaigns.
+* Customers can select AI-generated reviews and before/after photos, then post them to social platforms via QR codes.
+* Owners can track QR code scans, optimize campaigns, and download print-ready assets.
+
+2. Main Features
+Customer Flow:
+1. Drafting Page
+    * Select a review snippet (AI-generated) and a photo.
+    * Continue to platform selection once both are selected.
+2. Platform Selection
+    * Choose where to post the review: Google, Facebook, Instagram, XiaoHongShu.
+    * Clicking a platform copies the review content to the clipboard.
+    * Simulated redirection or QR scan workflow.
+3. AI Optimization
+    * Tracks total clicks per platform.
+    * Generates recommendations based on click-through rates.
+
+Owner/Admin Flow:
+1. Dashboard
+    * View all QR codes for different placement types (Counter, Table Tent, Receipt, Business Card).
+    * Track total scans and highest performing platforms.
+    * AI-generated summary and recommendations.
+    * External review URL finder with AI suggestions.
+    * Download traffic reports and print-ready PDF kits.
+
+3. Other Functionalities
+* Language toggle (English/Chinese) with translations for all text.
+* QR code approval modal for verifying links before deployment.
+* Persistent state saved in localStorage:
+    * Selected review/photo
+    * QR links
+    * Click statistics
+* Platform detection: recognizes URLs for supported platforms automatically.
+* Styling: TailwindCSS and custom CSS for cards, modals, grids, buttons, and animations.
+
+In short, this is a multi-view interactive web app that lets businesses generate, deploy, track, and optimize review-sharing campaigns via QR codes, with an AI-assisted recommendation system and multi-language support.
+
+If you want, I can also make a diagram showing the customer and admin flows for this app—it would make the logic much easier to visualize. Do you want me to do that?
