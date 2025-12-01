@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Download, QrCode, Share2, TrendingUp, Users, MessageSquare, RefreshCw, ExternalLink, ImagePlus, Trash2 } from "lucide-react";
+import { Download, QrCode, Share2, TrendingUp, Users, MessageSquare, RefreshCw, ExternalLink, ImagePlus, Trash2, Globe, Search, CheckCircle, Loader2 } from "lucide-react";
 import regrowLogo from "@assets/generated_images/regrow_group_corporate_logo.png";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -17,6 +17,11 @@ export default function AdminDashboard() {
   const t = translations[language];
   const { toast } = useToast();
   const [shopPhotos, setShopPhotos] = useState<string[]>([]);
+  
+  // Social Link Finder State
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [foundLinks, setFoundLinks] = useState<{platform: string, url: string}[]>([]);
 
   const data = [
     { name: 'Google', value: stats.google, color: '#4285F4' },
@@ -35,6 +40,34 @@ export default function AdminDashboard() {
         title: "Demo Reset",
         description: "Selection state has been cleared.",
     });
+  };
+  
+  const handleSocialSearch = () => {
+    if (!websiteUrl) {
+        toast({
+            title: "URL Required",
+            description: "Please enter a website URL to scan.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    setIsSearching(true);
+    setFoundLinks([]);
+
+    // Simulate AI Search
+    setTimeout(() => {
+        setIsSearching(false);
+        setFoundLinks([
+            { platform: "Facebook", url: "https://facebook.com/regrowgroup" },
+            { platform: "Instagram", url: "https://instagram.com/regrow_official" },
+            { platform: "Google Maps", url: "https://g.page/regrow-group-salon" }
+        ]);
+        toast({
+            title: "Links Found",
+            description: "AI successfully identified 3 social media links.",
+        });
+    }, 2000);
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,8 +130,70 @@ export default function AdminDashboard() {
         <Tabs defaultValue="analytics" className="space-y-8">
             <TabsList>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="socials">Social Links AI</TabsTrigger>
                 <TabsTrigger value="photos">Shop Photos</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="socials" className="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Find Social Media Links</CardTitle>
+                        <CardDescription>Enter your website URL and let AI find your social media profiles automatically.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex gap-4 items-end">
+                            <div className="grid w-full max-w-md items-center gap-1.5">
+                                <Label htmlFor="website">Website URL</Label>
+                                <Input 
+                                    type="url" 
+                                    id="website" 
+                                    placeholder="https://your-business.com" 
+                                    value={websiteUrl}
+                                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                                />
+                            </div>
+                            <Button onClick={handleSocialSearch} disabled={isSearching}>
+                                {isSearching ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Scanning...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Search className="mr-2 h-4 w-4" />
+                                        Find Links
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+
+                        {foundLinks.length > 0 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Found Profiles</h3>
+                                <div className="grid gap-4">
+                                    {foundLinks.map((link, index) => (
+                                        <div key={index} className="flex items-center justify-between p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-2 rounded-full bg-primary/10 text-primary">
+                                                    <Globe className="h-4 w-4" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium">{link.platform}</p>
+                                                    <p className="text-xs text-muted-foreground">{link.url}</p>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                                <CheckCircle className="mr-2 h-4 w-4" />
+                                                Confirm
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </TabsContent>
 
             <TabsContent value="analytics" className="space-y-8">
                 {/* Key Metrics */}
