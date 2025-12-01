@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Facebook, Instagram, MapPin, ScanLine, MessageCircle } from "lucide-react";
+import { Facebook, Instagram, MapPin, ScanLine, MessageCircle, ThumbsUp, UserPlus } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 
@@ -49,6 +49,20 @@ const platforms = [
     icon: <MessageCircle className="w-6 h-6 text-green-600" />,
     color: 'bg-green-50 border-green-100 text-green-700',
     description: 'Scan to share on WhatsApp'
+  },
+  {
+    id: 'follow-facebook',
+    name: 'Follow Us',
+    icon: <ThumbsUp className="w-6 h-6 text-blue-700" />,
+    color: 'bg-blue-50 border-blue-100 text-blue-800',
+    description: 'Follow us on Facebook'
+  },
+  {
+    id: 'follow-instagram',
+    name: 'Follow Us',
+    icon: <UserPlus className="w-6 h-6 text-pink-700" />,
+    color: 'bg-pink-50 border-pink-100 text-pink-800',
+    description: 'Follow us on Instagram'
   }
 ];
 
@@ -79,7 +93,8 @@ export default function Landing() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Updated Grid: 2 cols on mobile (default), 3 cols on md/lg */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
           {platforms.map((platform, index) => (
             <motion.div
               key={platform.id}
@@ -91,26 +106,26 @@ export default function Landing() {
                 className="h-full hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
                 onClick={handleScan}
               >
-                <CardContent className="p-6 flex flex-col items-center text-center h-full">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${platform.color} bg-opacity-50`}>
+                <CardContent className="p-4 md:p-6 flex flex-col items-center text-center h-full">
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center mb-3 md:mb-4 ${platform.color} bg-opacity-50`}>
                     {platform.icon}
                   </div>
                   
-                  <h3 className="font-heading font-bold text-lg mb-2">{platform.name}</h3>
+                  <h3 className="font-heading font-bold text-base md:text-lg mb-2 leading-tight">{platform.name}</h3>
                   
-                  <div className="relative w-40 h-40 my-4 bg-white p-2 rounded-xl border shadow-sm group-hover:scale-105 transition-transform duration-300">
+                  <div className="relative w-full aspect-square max-w-[160px] my-2 md:my-4 bg-white p-2 rounded-xl border shadow-sm group-hover:scale-105 transition-transform duration-300">
                     {shareUrl && (
                         <QRCodeSVG 
                             value={shareUrl}
-                            size={140}
+                            width="100%"
+                            height="100%"
                             level="M"
                             includeMargin={true}
-                            className="w-full h-full"
                         />
                     )}
                   </div>
                   
-                  <p className="text-sm text-muted-foreground mt-auto">
+                  <p className="text-xs md:text-sm text-muted-foreground mt-auto">
                     {platform.description}
                   </p>
                 </CardContent>

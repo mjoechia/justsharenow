@@ -13,14 +13,17 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 
 export default function AdminDashboard() {
-  const { language, stats, setSelectedPhoto, setSelectedReview } = useStore();
+  const { language, stats, setSelectedPhoto, setSelectedReview, shopPhotos, addShopPhoto, removeShopPhoto, socialLinks, updateSocialLink } = useStore();
   const t = translations[language];
   const { toast } = useToast();
-  const [shopPhotos, setShopPhotos] = useState<string[]>([]);
-  
-    const [websiteUrl, setWebsiteUrl] = useState("");
 
-    const data = [
+  const [websiteUrl, setWebsiteUrl] = useState(socialLinks.website);
+  const [googleUrl, setGoogleUrl] = useState(socialLinks.google);
+  const [fbUrl, setFbUrl] = useState(socialLinks.facebook);
+  const [igUrl, setIgUrl] = useState(socialLinks.instagram);
+  const [xhsUrl, setXhsUrl] = useState(socialLinks.xiaohongshu);
+
+  const data = [
     { name: 'Google', value: stats.google, color: '#4285F4' },
     { name: 'Facebook', value: stats.facebook, color: '#1877F2' },
     { name: 'Instagram', value: stats.instagram, color: '#E1306C' },
@@ -39,6 +42,16 @@ export default function AdminDashboard() {
     });
   };
 
+  const handleSaveSocials = () => {
+    updateSocialLink('website', websiteUrl);
+    updateSocialLink('google', googleUrl);
+    updateSocialLink('facebook', fbUrl);
+    updateSocialLink('instagram', igUrl);
+    updateSocialLink('xiaohongshu', xhsUrl);
+    
+    toast({ title: "Saved", description: "Social links updated successfully." });
+  };
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -52,7 +65,7 @@ export default function AdminDashboard() {
         }
         const reader = new FileReader();
         reader.onloadend = () => {
-            setShopPhotos([...shopPhotos, reader.result as string]);
+            addShopPhoto(reader.result as string);
             toast({
                 title: "Photo Added",
                 description: "New shop photo has been uploaded.",
@@ -63,9 +76,7 @@ export default function AdminDashboard() {
   };
 
   const removePhoto = (index: number) => {
-    const newPhotos = [...shopPhotos];
-    newPhotos.splice(index, 1);
-    setShopPhotos(newPhotos);
+    removeShopPhoto(index);
   };
 
   return (
@@ -99,7 +110,7 @@ export default function AdminDashboard() {
         <Tabs defaultValue="analytics" className="space-y-8">
             <TabsList>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                <TabsTrigger value="socials">Social Links AI</TabsTrigger>
+                <TabsTrigger value="socials">Social Links</TabsTrigger>
                 <TabsTrigger value="photos">Shop Photos</TabsTrigger>
             </TabsList>
 
@@ -124,25 +135,49 @@ export default function AdminDashboard() {
                             
                             <div className="grid gap-2">
                                 <Label htmlFor="google">Google Maps URL</Label>
-                                <Input type="url" id="google" placeholder="https://maps.google.com/..." />
+                                <Input 
+                                    type="url" 
+                                    id="google" 
+                                    placeholder="https://maps.google.com/..."
+                                    value={googleUrl}
+                                    onChange={(e) => setGoogleUrl(e.target.value)} 
+                                />
                             </div>
 
                             <div className="grid gap-2">
                                 <Label htmlFor="facebook">Facebook URL</Label>
-                                <Input type="url" id="facebook" placeholder="https://facebook.com/..." />
+                                <Input 
+                                    type="url" 
+                                    id="facebook" 
+                                    placeholder="https://facebook.com/..."
+                                    value={fbUrl}
+                                    onChange={(e) => setFbUrl(e.target.value)} 
+                                />
                             </div>
 
                             <div className="grid gap-2">
                                 <Label htmlFor="instagram">Instagram URL</Label>
-                                <Input type="url" id="instagram" placeholder="https://instagram.com/..." />
+                                <Input 
+                                    type="url" 
+                                    id="instagram" 
+                                    placeholder="https://instagram.com/..." 
+                                    value={igUrl}
+                                    onChange={(e) => setIgUrl(e.target.value)}
+                                />
                             </div>
 
                             <div className="grid gap-2">
                                 <Label htmlFor="xhs">XiaoHongShu URL</Label>
-                                <Input type="url" id="xhs" placeholder="https://xiaohongshu.com/..." />
+                                <Input 
+                                    type="url" 
+                                    id="xhs" 
+                                    placeholder="https://xiaohongshu.com/..."
+                                    value={xhsUrl}
+                                    onChange={(e) => setXhsUrl(e.target.value)} 
+                                />
                             </div>
 
-                            <Button onClick={() => toast({ title: "Saved", description: "Social links updated successfully." })}>
+                            <Button onClick={handleSaveSocials}>
                                 Save Changes
                             </Button>
                         </div>

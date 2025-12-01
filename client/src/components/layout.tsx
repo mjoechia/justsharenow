@@ -5,15 +5,26 @@ import { useState } from "react";
 import sharelotLogo from "@assets/generated_images/modern_abstract_logo_for_sharelot.png";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 
 export function Layout({ children, isAdmin = false }: { children: React.ReactNode, isAdmin?: boolean }) {
-  const { language, setLanguage } = useStore();
+  const { language, setLanguage, shopPhotos } = useStore();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'zh' : 'en');
   };
+
+  // Only show carousel on non-admin pages if there are photos
+  const showCarousel = !isAdmin && shopPhotos.length > 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
@@ -83,13 +94,46 @@ export function Layout({ children, isAdmin = false }: { children: React.ReactNod
         </div>
       </header>
 
+      {/* Shop Photos Carousel */}
+      {showCarousel && (
+        <div className="w-full bg-muted/10">
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+            plugins={[
+              Autoplay({
+                delay: 4000,
+              }),
+            ]}
+            className="w-full max-w-screen-2xl mx-auto"
+          >
+            <CarouselContent>
+              {shopPhotos.map((photo, index) => (
+                <CarouselItem key={index} className="basis-full md:basis-1/2 lg:basis-1/3 pl-0">
+                  <div className="relative aspect-video md:aspect-[21/9] overflow-hidden">
+                    <img 
+                      src={photo} 
+                      alt={`Shop photo ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        </div>
+      )}
+
       <main className="flex-1">
         {children}
       </main>
 
+
       <footer className="border-t py-6 bg-muted/30">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2025 ShareLor for Regrow Group. All rights reserved.</p>
+          <p>© 2025 ShareLor. All rights reserved.</p>
         </div>
       </footer>
     </div>

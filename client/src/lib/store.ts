@@ -16,6 +16,20 @@ interface CampaignState {
   // Admin/Stats State
   stats: Record<string, number>;
   incrementStat: (platform: string) => void;
+
+  // Shop Configuration
+  shopPhotos: string[];
+  addShopPhoto: (photo: string) => void;
+  removeShopPhoto: (index: number) => void;
+  
+  socialLinks: {
+    google: string;
+    facebook: string;
+    instagram: string;
+    xiaohongshu: string;
+    website: string;
+  };
+  updateSocialLink: (platform: keyof CampaignState['socialLinks'], url: string) => void;
 }
 
 export const useStore = create<CampaignState>()(
@@ -40,6 +54,23 @@ export const useStore = create<CampaignState>()(
           ...state.stats,
           [platform]: (state.stats[platform] || 0) + 1
         }
+      })),
+
+      shopPhotos: [],
+      addShopPhoto: (photo) => set((state) => ({ shopPhotos: [...state.shopPhotos, photo] })),
+      removeShopPhoto: (index) => set((state) => ({
+        shopPhotos: state.shopPhotos.filter((_, i) => i !== index)
+      })),
+
+      socialLinks: {
+        google: "",
+        facebook: "",
+        instagram: "",
+        xiaohongshu: "",
+        website: ""
+      },
+      updateSocialLink: (platform, url) => set((state) => ({
+        socialLinks: { ...state.socialLinks, [platform]: url }
       })),
     }),
     {
