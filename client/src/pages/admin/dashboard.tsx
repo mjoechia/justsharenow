@@ -10,24 +10,57 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getStoreConfig, updateStoreConfig, getAnalytics } from "@/lib/api";
 
 export default function AdminDashboard() {
-  const { language, stats, setSelectedPhoto, setSelectedReview, shopPhotos, addShopPhoto, removeShopPhoto, socialLinks, updateSocialLink } = useStore();
+  const { language, setSelectedPhoto, setSelectedReview } = useStore();
   const t = translations[language];
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const [websiteUrl, setWebsiteUrl] = useState(socialLinks.website);
-  const [googleUrl, setGoogleUrl] = useState(socialLinks.google);
-  const [fbUrl, setFbUrl] = useState(socialLinks.facebook);
-  const [igUrl, setIgUrl] = useState(socialLinks.instagram);
-  const [xhsUrl, setXhsUrl] = useState(socialLinks.xiaohongshu);
+  // Fetch config and analytics from API
+  const { data: config, isLoading: configLoading } = useQuery({
+    queryKey: ['storeConfig'],
+    queryFn: getStoreConfig,
+  });
+
+  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['analytics'],
+    queryFn: getAnalytics,
+  });
+
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [googleUrl, setGoogleUrl] = useState("");
+  const [fbUrl, setFbUrl] = useState("");
+  const [igUrl, setIgUrl] = useState("");
+  const [xhsUrl, setXhsUrl] = useState("");
+  const [shopPhotos, setShopPhotos] = useState<string[]>([]);
+
+  // Update local state when config loads
+  useEffect(() => {
+    if (config) {
+      setWebsiteUrl(config.websiteUrl || "");
+      setGoogleUrl(config.googleUrl || "");
+      setFbUrl(config.facebookUrl || "");
+      setIgUrl(config.instagramUrl || "");
+      setXhsUrl(config.xiaohongshuUrl || "");
+      setShopPhotos(config.shopPhotos || []);
+    }
+  }, [config]);
+
+  // Prepare chart data from analytics
+  const stats = analyticsData?.reduce((acc, item) => {
+    acc[item.platform] = item.clicks;
+    return acc;
+  }, {} as Record<string, number>) || {};
 
   const data = [
-    { name: 'Google', value: stats.google, color: '#4285F4' },
-    { name: 'Facebook', value: stats.facebook, color: '#1877F2' },
-    { name: 'Instagram', value: stats.instagram, color: '#E1306C' },
-    { name: 'XHS', value: stats.xiaohongshu, color: '#FF2442' },
+    { name: 'Google', value: stats.google || 0, color: '#4285F4' },
+    { name: 'Facebook', value: stats.facebook || 0, color: '#1877F2' },
+    { name: 'Instagram', value: stats.instagram || 0, color: '#E1306C' },
+    { name: 'XHS', value: stats.xiaohongshu || 0, color: '#FF2442' },
   ];
 
   const totalScans = Object.values(stats).reduce((a, b) => a + b, 0);
@@ -42,14 +75,26 @@ export default function AdminDashboard() {
     });
   };
 
+  const updateConfigMutation = useMutation({
+    mutationFn: updateStoreConfig,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
+      toast({ title: "Saved", description: "Configuration updated successfully." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save configuration.", variant: "destructive" });
+    },
+  });
+
   const handleSaveSocials = () => {
-    updateSocialLink('website', websiteUrl);
-    updateSocialLink('google', googleUrl);
-    updateSocialLink('facebook', fbUrl);
-    updateSocialLink('instagram', igUrl);
-    updateSocialLink('xiaohongshu', xhsUrl);
-    
-    toast({ title: "Saved", description: "Social links updated successfully." });
+    updateConfigMutation.mutate({
+      websiteUrl,
+      googleUrl,
+      facebookUrl: fbUrl,
+      instagramUrl: igUrl,
+      xiaohongshuUrl: xhsUrl,
+      shopPhotos,
+    });
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,10 +110,15 @@ export default function AdminDashboard() {
         }
         const reader = new FileReader();
         reader.onloadend = () => {
-            addShopPhoto(reader.result as string);
-            toast({
-                title: "Photo Added",
-                description: "New shop photo has been uploaded.",
+            const newPhotos = [...shopPhotos, reader.result as string];
+            setShopPhotos(newPhotos);
+            updateConfigMutation.mutate({
+              websiteUrl,
+              googleUrl,
+              facebookUrl: fbUrl,
+              instagramUrl: igUrl,
+              xiaohongshuUrl: xhsUrl,
+              shopPhotos: newPhotos,
             });
         };
         reader.readAsDataURL(file);
@@ -76,7 +126,16 @@ export default function AdminDashboard() {
   };
 
   const removePhoto = (index: number) => {
-    removeShopPhoto(index);
+    const newPhotos = shopPhotos.filter((_, i) => i !== index);
+    setShopPhotos(newPhotos);
+    updateConfigMutation.mutate({
+      websiteUrl,
+      googleUrl,
+      facebookUrl: fbUrl,
+      instagramUrl: igUrl,
+      xiaohongshuUrl: xhsUrl,
+      shopPhotos: newPhotos,
+    });
   };
 
   return (

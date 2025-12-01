@@ -13,11 +13,20 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
+import { useQuery } from "@tanstack/react-query";
+import { getStoreConfig } from "@/lib/api";
 
 export function Layout({ children, isAdmin = false }: { children: React.ReactNode, isAdmin?: boolean }) {
-  const { language, setLanguage, shopPhotos } = useStore();
+  const { language, setLanguage } = useStore();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  const { data: config } = useQuery({
+    queryKey: ['storeConfig'],
+    queryFn: getStoreConfig,
+  });
+  
+  const shopPhotos = config?.shopPhotos || [];
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'zh' : 'en');

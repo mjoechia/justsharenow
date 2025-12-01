@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { getStoreConfig, trackPlatformClick } from "@/lib/api";
 
 import hairImage from "@assets/generated_images/before_and_after_hair_treatment_comparison.png";
 import skinImage from "@assets/generated_images/before_and_after_skin_treatment_comparison.png";
@@ -53,10 +55,22 @@ const platforms = [
 
 
 export default function CustomerDrafting() {
-  const { language, setSelectedReview, setSelectedPhoto, selectedPhoto, selectedReview, selectedPlatform, socialLinks, incrementStat } = useStore();
+  const { language, setSelectedReview, setSelectedPhoto, selectedPhoto, selectedReview, selectedPlatform } = useStore();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const { data: config } = useQuery({
+    queryKey: ['storeConfig'],
+    queryFn: getStoreConfig,
+  });
+  
+  const socialLinks = {
+    google: config?.googleUrl || "",
+    facebook: config?.facebookUrl || "",
+    instagram: config?.instagramUrl || "",
+    xiaohongshu: config?.xiaohongshuUrl || "",
+  };
   
   const t = translations[language];
   const activePlatform = platforms.find(p => p.id === selectedPlatform);
@@ -75,15 +89,18 @@ export default function CustomerDrafting() {
     setIsModalOpen(false);
   };
 
-  const handleReviewAction = () => {
+  const handleReviewAction = async () => {
     if (activePlatform?.id === 'google') {
         const url = socialLinks.google || "https://www.google.com/maps"; // Fallback if not set
         window.open(url, '_blank');
     }
-    incrementStat(activePlatform?.id || 'unknown');
+    // Track analytics
+    if (activePlatform?.id) {
+      await trackPlatformClick(activePlatform.id);
+    }
   };
 
-  const handleShareAction = () => {
+  const handleShareAction = async () => {
     // Copy text
     if (selectedReview) {
       navigator.clipboard.writeText(selectedReview);
@@ -92,7 +109,10 @@ export default function CustomerDrafting() {
         description: "Review text copied. Ready to paste!",
       });
     }
-    incrementStat(activePlatform?.id || 'unknown');
+    // Track analytics
+    if (activePlatform?.id) {
+      await trackPlatformClick(activePlatform.id);
+    }
   };
 
   return (
