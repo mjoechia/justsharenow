@@ -6,6 +6,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import sharelorAiLogo from "@assets/generated_images/sharelor_ai_logo_with_qr_code.png";
+import { Facebook, Instagram, MapPin, MessageCircle } from "lucide-react";
 
 export default function QuickView() {
   const { language } = useStore();
@@ -20,6 +21,15 @@ export default function QuickView() {
     setLocation('/drafting');
   };
 
+  const socialIcons = [
+    { icon: <MapPin className="w-5 h-5" />, color: "text-blue-600 bg-blue-50" }, // Google
+    { icon: <span className="font-bold text-sm">小</span>, color: "text-red-600 bg-red-50" }, // XHS
+    { icon: <Instagram className="w-5 h-5" />, color: "text-pink-600 bg-pink-50" }, // Instagram
+    { icon: <Facebook className="w-5 h-5" />, color: "text-indigo-600 bg-indigo-50" }, // Facebook
+    { icon: <span className="font-bold text-sm">Tk</span>, color: "text-black bg-gray-100" }, // TikTok
+    { icon: <MessageCircle className="w-5 h-5" />, color: "text-green-600 bg-green-50" }, // WhatsApp
+  ];
+
   return (
     <Layout>
       <div className="container max-w-md mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[80vh]">
@@ -32,7 +42,7 @@ export default function QuickView() {
             <CardContent className="p-8 flex flex-col items-center text-center">
               
               {/* Header */}
-              <div className="mb-8 flex flex-col items-center gap-3">
+              <div className="mb-6 flex flex-col items-center gap-3">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px]">
                    <div className="w-full h-full bg-white rounded-xl flex items-center justify-center overflow-hidden">
                       <img src={sharelorAiLogo} alt="ShareLor AI" className="w-full h-full object-cover" />
@@ -57,11 +67,13 @@ export default function QuickView() {
                 />
               </div>
 
-              {/* URL Display (Truncated) */}
-              <div className="bg-muted/30 p-2 rounded-lg w-full mb-6 flex items-center justify-center">
-                 <code className="text-[10px] text-muted-foreground break-all line-clamp-2 font-mono px-2">
-                   {shareUrl}
-                 </code>
+              {/* Social Icons Strip */}
+              <div className="flex gap-3 justify-center mb-8">
+                {socialIcons.map((item, i) => (
+                    <div key={i} className={`w-10 h-10 rounded-full flex items-center justify-center ${item.color}`}>
+                        {item.icon}
+                    </div>
+                ))}
               </div>
 
               {/* CTA */}

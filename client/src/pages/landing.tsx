@@ -4,7 +4,11 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import qrCodeImage from "@assets/generated_images/generic_qr_code_for_sharelor_app.png";
-import { Facebook, Instagram, MapPin, ScanLine } from "lucide-react";
+import { Facebook, Instagram, MapPin, ScanLine, MessageCircle } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+
+// The URL provided by the user
+const shareUrl = "https://sharelah.asia/app/#/user-share?store_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJtZW1iZXIiLCJpZCI6MTEsInFyY29kZSI6Im0xbGxhIn0.HlcaO2Av0-IihziMEODLJks786cf4VrNg0jlrE_SKnkdyI7dRNriqsB4mT9WXXba";
 
 const platforms = [
   {
@@ -15,11 +19,11 @@ const platforms = [
     description: 'Scan to review on Google Maps'
   },
   {
-    id: 'facebook',
-    name: 'Facebook',
-    icon: <Facebook className="w-6 h-6 text-indigo-600" />,
-    color: 'bg-indigo-50 border-indigo-100 text-indigo-700',
-    description: 'Scan to share on Facebook'
+    id: 'xiaohongshu',
+    name: 'XiaoHongShu',
+    icon: <span className="text-lg font-bold text-red-600">小</span>,
+    color: 'bg-red-50 border-red-100 text-red-700',
+    description: 'Scan to share on Red'
   },
   {
     id: 'instagram',
@@ -29,11 +33,25 @@ const platforms = [
     description: 'Scan to post on Instagram'
   },
   {
-    id: 'xiaohongshu',
-    name: 'XiaoHongShu',
-    icon: <span className="text-lg font-bold text-red-600">小</span>,
-    color: 'bg-red-50 border-red-100 text-red-700',
-    description: 'Scan to share on Red'
+    id: 'facebook',
+    name: 'Facebook',
+    icon: <Facebook className="w-6 h-6 text-indigo-600" />,
+    color: 'bg-indigo-50 border-indigo-100 text-indigo-700',
+    description: 'Scan to share on Facebook'
+  },
+  {
+    id: 'tiktok',
+    name: 'TikTok',
+    icon: <span className="text-lg font-bold text-black">Tk</span>,
+    color: 'bg-gray-50 border-gray-200 text-black',
+    description: 'Scan to share on TikTok'
+  },
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp',
+    icon: <MessageCircle className="w-6 h-6 text-green-600" />,
+    color: 'bg-green-50 border-green-100 text-green-700',
+    description: 'Scan to share on WhatsApp'
   }
 ];
 
@@ -43,13 +61,13 @@ export default function Landing() {
   const t = translations[language];
 
   const handleScan = () => {
-    // Simulate scanning a QR code which redirects to the drafting page
+    // Simulate scanning a QR code which activates the review process
     setLocation('/drafting');
   };
 
   return (
     <Layout>
-      <div className="container max-w-4xl mx-auto px-4 py-12 pb-24">
+      <div className="container max-w-6xl mx-auto px-4 py-12 pb-24">
         <div className="text-center mb-12 animate-in-slide-up">
           <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
             Scan to Share Your Experience
@@ -59,7 +77,7 @@ export default function Landing() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {platforms.map((platform, index) => (
             <motion.div
               key={platform.id}
@@ -79,10 +97,12 @@ export default function Landing() {
                   <h3 className="font-heading font-bold text-lg mb-2">{platform.name}</h3>
                   
                   <div className="relative w-40 h-40 my-4 bg-white p-2 rounded-xl border shadow-sm group-hover:scale-105 transition-transform duration-300">
-                    <img 
-                      src={qrCodeImage} 
-                      alt={`QR code for ${platform.name}`} 
-                      className="w-full h-full object-contain" 
+                    <QRCodeSVG 
+                        value={shareUrl}
+                        size={140}
+                        level="M"
+                        includeMargin={true}
+                        className="w-full h-full"
                     />
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/5 rounded-xl backdrop-blur-[1px]">
                       <div className="bg-white text-foreground px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">

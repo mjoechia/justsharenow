@@ -3,10 +3,9 @@ import { Layout } from "@/components/layout";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Check, ChevronRight, Image as ImageIcon } from "lucide-react";
+import { Check, ChevronRight, RefreshCw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 import hairImage from "@assets/generated_images/before_and_after_hair_treatment_comparison.png";
 import skinImage from "@assets/generated_images/before_and_after_skin_treatment_comparison.png";
@@ -29,9 +28,16 @@ export default function CustomerDrafting() {
     }
   };
 
+  const handleSwitch = () => {
+    // Clear selection to allow user to "switch" or re-select
+    setSelectedPhoto("");
+    setSelectedReview("");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <Layout>
-      <div className="container max-w-md mx-auto px-4 py-8 pb-24">
+      <div className="container max-w-md mx-auto px-4 py-8 pb-32">
         <div className="text-center mb-8 animate-in-slide-up">
           <img src={regrowLogo} alt="Regrow" className="h-12 mx-auto mb-4" />
           <h1 className="text-2xl font-heading font-bold text-foreground mb-2">{t.customer.drafting.title}</h1>
@@ -90,16 +96,25 @@ export default function CustomerDrafting() {
         </section>
       </div>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent z-10">
-        <div className="container max-w-md mx-auto">
+      {/* Floating Action Button Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t z-10">
+        <div className="container max-w-md mx-auto flex gap-3">
           <Button 
-            className="w-full h-12 text-lg font-medium shadow-lg shadow-primary/20" 
+            variant="outline"
+            className="flex-1 h-12 text-base font-medium"
+            onClick={handleSwitch}
+          >
+            <RefreshCw className="mr-2 w-4 h-4" />
+            Switch
+          </Button>
+          
+          <Button 
+            className="flex-1 h-12 text-base font-medium shadow-lg shadow-primary/20" 
             onClick={handleNext}
             disabled={!selectedPhoto || !selectedReview}
           >
-            {t.common.next}
-            <ChevronRight className="ml-2 w-5 h-5" />
+            Share
+            <Share2 className="ml-2 w-4 h-4" />
           </Button>
         </div>
       </div>
