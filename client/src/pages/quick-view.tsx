@@ -19,22 +19,13 @@ export default function QuickView() {
   const { toast } = useToast();
   const qrRef = useRef<SVGSVGElement>(null);
 
-  // State to toggle between external production URL and internal demo URL
-  const [useDemoUrl, setUseDemoUrl] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState("");
-
-  // The URL provided by the user
-  const productionUrl = "https://sharelah.asia/app/#/user-share?store_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJtZW1iZXIiLCJpZCI6MTEsInFyY29kZSI6Im0xbGxhIn0.HlcaO2Av0-IihziMEODLJks786cf4VrNg0jlrE_SKnkdyI7dRNriqsB4mT9WXXba";
+  // Use the current window location for the QR code to point to the internal demo
+  // In a real app, this would be a specific campaign URL
+  const [shareUrl, setShareUrl] = useState("");
 
   useEffect(() => {
-    if (useDemoUrl) {
-      // Use the current window location origin + /drafting
-      // Note: This works best when the app is deployed/published
-      setCurrentUrl(`${window.location.origin}/drafting`);
-    } else {
-      setCurrentUrl(productionUrl);
-    }
-  }, [useDemoUrl]);
+    setShareUrl(`${window.location.origin}/drafting`);
+  }, []);
 
   const handleScan = () => {
     // Simulate scanning the QR code -> goes to drafting page
@@ -60,7 +51,7 @@ export default function QuickView() {
         
         const pngFile = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
-        downloadLink.download = `ShareLor-QR-${useDemoUrl ? 'Demo' : 'Production'}.png`;
+        downloadLink.download = `ShareLor-QR.png`;
         downloadLink.href = pngFile;
         downloadLink.click();
         
@@ -111,7 +102,7 @@ export default function QuickView() {
                 className="bg-white p-4 rounded-2xl shadow-lg border border-indigo-100 mb-8 transition-transform duration-300 relative group"
               >
                 <QRCodeSVG 
-                  value={currentUrl || productionUrl}
+                  value={shareUrl}
                   size={200}
                   level="H"
                   includeMargin={true}
@@ -125,15 +116,10 @@ export default function QuickView() {
               </div>
 
               {/* Controls */}
-              <div className="w-full flex items-center justify-between bg-muted/30 p-3 rounded-lg mb-6">
-                <div className="flex items-center space-x-2">
-                  <Switch id="demo-mode" checked={useDemoUrl} onCheckedChange={setUseDemoUrl} />
-                  <Label htmlFor="demo-mode" className="text-xs cursor-pointer">
-                    {useDemoUrl ? 'Linking to: Demo App' : 'Linking to: Production'}
-                  </Label>
-                </div>
-                <Button variant="ghost" size="icon" onClick={handleDownload} title="Download QR Code">
-                   <Download className="w-4 h-4" />
+              <div className="w-full flex items-center justify-center bg-muted/30 p-3 rounded-lg mb-6">
+                <Button variant="ghost" size="sm" onClick={handleDownload} className="text-xs text-muted-foreground hover:text-primary">
+                   <Download className="w-4 h-4 mr-2" />
+                   Download QR Code
                 </Button>
               </div>
 

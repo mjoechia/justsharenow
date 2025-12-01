@@ -3,12 +3,9 @@ import { Layout } from "@/components/layout";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import qrCodeImage from "@assets/generated_images/generic_qr_code_for_sharelor_app.png";
 import { Facebook, Instagram, MapPin, ScanLine, MessageCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-
-// The URL provided by the user
-const shareUrl = "https://sharelah.asia/app/#/user-share?store_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJtZW1iZXIiLCJpZCI6MTEsInFyY29kZSI6Im0xbGxhIn0.HlcaO2Av0-IihziMEODLJks786cf4VrNg0jlrE_SKnkdyI7dRNriqsB4mT9WXXba";
+import { useEffect, useState } from "react";
 
 const platforms = [
   {
@@ -59,6 +56,11 @@ export default function Landing() {
   const { language } = useStore();
   const [_, setLocation] = useLocation();
   const t = translations[language];
+  const [shareUrl, setShareUrl] = useState("");
+
+  useEffect(() => {
+    setShareUrl(`${window.location.origin}/drafting`);
+  }, []);
 
   const handleScan = () => {
     // Simulate scanning a QR code which activates the review process
@@ -97,13 +99,15 @@ export default function Landing() {
                   <h3 className="font-heading font-bold text-lg mb-2">{platform.name}</h3>
                   
                   <div className="relative w-40 h-40 my-4 bg-white p-2 rounded-xl border shadow-sm group-hover:scale-105 transition-transform duration-300">
-                    <QRCodeSVG 
-                        value={shareUrl}
-                        size={140}
-                        level="M"
-                        includeMargin={true}
-                        className="w-full h-full"
-                    />
+                    {shareUrl && (
+                        <QRCodeSVG 
+                            value={shareUrl}
+                            size={140}
+                            level="M"
+                            includeMargin={true}
+                            className="w-full h-full"
+                        />
+                    )}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/5 rounded-xl backdrop-blur-[1px]">
                       <div className="bg-white text-foreground px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
                         <ScanLine className="w-3 h-3" />
