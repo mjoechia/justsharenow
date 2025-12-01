@@ -99,7 +99,8 @@ export default function QuickView() {
 
               {/* QR Code */}
               <div 
-                className="bg-white p-4 rounded-2xl shadow-lg border border-indigo-100 mb-8 transition-transform duration-300 relative group"
+                className="bg-white p-4 rounded-2xl shadow-lg border border-indigo-100 mb-8 transition-transform duration-300 relative group cursor-pointer"
+                onClick={handleScan}
               >
                 <QRCodeSVG 
                   value={shareUrl}
@@ -109,10 +110,6 @@ export default function QuickView() {
                   fgColor="#4F46E5"
                   ref={qrRef}
                 />
-                {/* Hover Overlay for Quick Action */}
-                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center cursor-pointer" onClick={handleScan}>
-                    <span className="bg-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Simulate Scan</span>
-                </div>
               </div>
 
               {/* Controls */}
@@ -142,7 +139,7 @@ export default function QuickView() {
                 className="mt-8 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-200"
                 onClick={handleScan}
               >
-                Simulate Scan
+                Start Review Process
               </Button>
 
             </CardContent>

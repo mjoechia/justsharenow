@@ -18,12 +18,9 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [shopPhotos, setShopPhotos] = useState<string[]>([]);
   
-  // Social Link Finder State
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [foundLinks, setFoundLinks] = useState<{platform: string, url: string}[]>([]);
+    const [websiteUrl, setWebsiteUrl] = useState("");
 
-  const data = [
+    const data = [
     { name: 'Google', value: stats.google, color: '#4285F4' },
     { name: 'Facebook', value: stats.facebook, color: '#1877F2' },
     { name: 'Instagram', value: stats.instagram, color: '#E1306C' },
@@ -40,34 +37,6 @@ export default function AdminDashboard() {
         title: "Demo Reset",
         description: "Selection state has been cleared.",
     });
-  };
-  
-  const handleSocialSearch = () => {
-    if (!websiteUrl) {
-        toast({
-            title: "URL Required",
-            description: "Please enter a website URL to scan.",
-            variant: "destructive"
-        });
-        return;
-    }
-
-    setIsSearching(true);
-    setFoundLinks([]);
-
-    // Simulate AI Search
-    setTimeout(() => {
-        setIsSearching(false);
-        setFoundLinks([
-            { platform: "Facebook", url: "https://facebook.com/regrowgroup" },
-            { platform: "Instagram", url: "https://instagram.com/regrow_official" },
-            { platform: "Google Maps", url: "https://g.page/regrow-group-salon" }
-        ]);
-        toast({
-            title: "Links Found",
-            description: "AI successfully identified 3 social media links.",
-        });
-    }, 2000);
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,12 +106,12 @@ export default function AdminDashboard() {
             <TabsContent value="socials" className="space-y-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Find Social Media Links</CardTitle>
-                        <CardDescription>Enter your website URL and let AI find your social media profiles automatically.</CardDescription>
+                        <CardTitle>Social Media Links</CardTitle>
+                        <CardDescription>Manage the social media links for your store.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="flex gap-4 items-end">
-                            <div className="grid w-full max-w-md items-center gap-1.5">
+                        <div className="grid gap-4">
+                            <div className="grid gap-2">
                                 <Label htmlFor="website">Website URL</Label>
                                 <Input 
                                     type="url" 
@@ -152,45 +121,31 @@ export default function AdminDashboard() {
                                     onChange={(e) => setWebsiteUrl(e.target.value)}
                                 />
                             </div>
-                            <Button onClick={handleSocialSearch} disabled={isSearching}>
-                                {isSearching ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Scanning...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Search className="mr-2 h-4 w-4" />
-                                        Find Links
-                                    </>
-                                )}
+                            
+                            <div className="grid gap-2">
+                                <Label htmlFor="google">Google Maps URL</Label>
+                                <Input type="url" id="google" placeholder="https://maps.google.com/..." />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="facebook">Facebook URL</Label>
+                                <Input type="url" id="facebook" placeholder="https://facebook.com/..." />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="instagram">Instagram URL</Label>
+                                <Input type="url" id="instagram" placeholder="https://instagram.com/..." />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="xhs">XiaoHongShu URL</Label>
+                                <Input type="url" id="xhs" placeholder="https://xiaohongshu.com/..." />
+                            </div>
+
+                            <Button onClick={() => toast({ title: "Saved", description: "Social links updated successfully." })}>
+                                Save Changes
                             </Button>
                         </div>
-
-                        {foundLinks.length > 0 && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Found Profiles</h3>
-                                <div className="grid gap-4">
-                                    {foundLinks.map((link, index) => (
-                                        <div key={index} className="flex items-center justify-between p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-2 rounded-full bg-primary/10 text-primary">
-                                                    <Globe className="h-4 w-4" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium">{link.platform}</p>
-                                                    <p className="text-xs text-muted-foreground">{link.url}</p>
-                                                </div>
-                                            </div>
-                                            <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-50">
-                                                <CheckCircle className="mr-2 h-4 w-4" />
-                                                Confirm
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </CardContent>
                 </Card>
             </TabsContent>
