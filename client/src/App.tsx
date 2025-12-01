@@ -9,12 +9,16 @@ import Landing from "@/pages/landing";
 import CustomerDrafting from "@/pages/customer/drafting";
 import CustomerPlatform from "@/pages/customer/platform";
 import AdminDashboard from "@/pages/admin/dashboard";
+import QuickView from "@/pages/quick-view";
 
 function Router() {
   return (
     <Switch>
-      {/* Landing / QR Code Preview */}
+      {/* Landing / Shop View (QR Code Preview) */}
       <Route path="/" component={Landing} />
+      
+      {/* Quick View (User Scan) */}
+      <Route path="/quick-view" component={QuickView} />
 
       {/* Customer Flow */}
       <Route path="/drafting" component={CustomerDrafting} />

@@ -55,8 +55,7 @@ export default function Landing() {
             Scan to Share Your Experience
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            This screen represents the physical QR codes placed at your location (Counter, Table Tents, etc.).
-            Click any QR code below to simulate a customer scanning it.
+            Shop View: This screen represents the physical QR codes placed at your location.
           </p>
         </div>
 

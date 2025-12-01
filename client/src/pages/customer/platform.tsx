@@ -31,11 +31,18 @@ const platforms = [
     iconColor: 'text-pink-600' 
   },
   { 
-    id: 'xiaohongshu', 
-    name: 'XiaoHongShu', 
-    color: 'bg-red-50 hover:bg-red-100 border-red-200', 
-    textColor: 'text-red-700',
-    iconColor: 'text-red-600' 
+    id: 'tiktok', 
+    name: 'TikTok', 
+    color: 'bg-black hover:bg-gray-900 border-gray-800', 
+    textColor: 'text-white',
+    iconColor: 'text-black' 
+  },
+  { 
+    id: 'whatsapp', 
+    name: 'WhatsApp', 
+    color: 'bg-green-50 hover:bg-green-100 border-green-200', 
+    textColor: 'text-green-700',
+    iconColor: 'text-green-600' 
   },
 ];
 
