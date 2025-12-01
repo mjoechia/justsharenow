@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Facebook, Instagram, MapPin, ScanLine, MessageCircle, ThumbsUp, UserPlus } from "lucide-react";
+import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 
@@ -37,20 +37,6 @@ const platforms = [
     description: 'Scan to share on Facebook'
   },
   {
-    id: 'tiktok',
-    name: 'TikTok',
-    icon: <span className="text-lg font-bold text-black">Tk</span>,
-    color: 'bg-gray-50 border-gray-200 text-black',
-    description: 'Scan to share on TikTok'
-  },
-  {
-    id: 'whatsapp',
-    name: 'WhatsApp',
-    icon: <MessageCircle className="w-6 h-6 text-green-600" />,
-    color: 'bg-green-50 border-green-100 text-green-700',
-    description: 'Scan to share on WhatsApp'
-  },
-  {
     id: 'follow-facebook',
     name: 'Follow Us',
     icon: <ThumbsUp className="w-6 h-6 text-blue-700" />,
@@ -67,7 +53,7 @@ const platforms = [
 ];
 
 export default function Landing() {
-  const { language } = useStore();
+  const { language, setSelectedPlatform } = useStore();
   const [_, setLocation] = useLocation();
   const t = translations[language];
   const [shareUrl, setShareUrl] = useState("");
@@ -76,8 +62,9 @@ export default function Landing() {
     setShareUrl(`${window.location.origin}/drafting`);
   }, []);
 
-  const handleScan = () => {
-    // Simulate scanning a QR code which activates the review process
+  const handleScan = (platformId: string) => {
+    // Set the selected platform and go to drafting
+    setSelectedPlatform(platformId);
     setLocation('/drafting');
   };
 
@@ -104,7 +91,7 @@ export default function Landing() {
             >
               <Card 
                 className="h-full hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
-                onClick={handleScan}
+                onClick={() => handleScan(platform.id)}
               >
                 <CardContent className="p-4 md:p-6 flex flex-col items-center text-center h-full">
                   <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center mb-3 md:mb-4 ${platform.color} bg-opacity-50`}>

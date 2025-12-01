@@ -3,9 +3,11 @@ import { Layout } from "@/components/layout";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Check, ChevronRight, RefreshCw, Share2 } from "lucide-react";
+import { Check, ChevronRight, RefreshCw, Share2, ExternalLink, Copy, X, ThumbsUp, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 import hairImage from "@assets/generated_images/before_and_after_hair_treatment_comparison.png";
 import skinImage from "@assets/generated_images/before_and_after_skin_treatment_comparison.png";
@@ -16,15 +18,52 @@ const photos = [
   { id: 'skin', src: skinImage, label: 'Skin Treatment' },
 ];
 
+const platforms = [
+  { 
+    id: 'google', 
+    name: 'Google Reviews', 
+    actionType: 'review'
+  },
+  { 
+    id: 'xiaohongshu', 
+    name: 'XiaoHongShu', 
+    actionType: 'share'
+  },
+  { 
+    id: 'facebook', 
+    name: 'Facebook', 
+    actionType: 'share'
+  },
+  { 
+    id: 'instagram', 
+    name: 'Instagram', 
+    actionType: 'share'
+  },
+  {
+    id: 'follow-facebook',
+    name: 'Follow Us on Facebook',
+    actionType: 'follow'
+  },
+  {
+    id: 'follow-instagram',
+    name: 'Follow Us on Instagram',
+    actionType: 'follow'
+  }
+];
+
+
 export default function CustomerDrafting() {
-  const { language, setSelectedReview, setSelectedPhoto, selectedPhoto, selectedReview } = useStore();
+  const { language, setSelectedReview, setSelectedPhoto, selectedPhoto, selectedReview, selectedPlatform, socialLinks, incrementStat } = useStore();
   const [_, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const t = translations[language];
+  const activePlatform = platforms.find(p => p.id === selectedPlatform);
   
   const handleNext = () => {
     if (selectedPhoto && selectedReview) {
-      setLocation('/platform');
+      setIsModalOpen(true);
     }
   };
 
@@ -33,6 +72,27 @@ export default function CustomerDrafting() {
     setSelectedPhoto("");
     setSelectedReview("");
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsModalOpen(false);
+  };
+
+  const handleReviewAction = () => {
+    if (activePlatform?.id === 'google') {
+        const url = socialLinks.google || "https://www.google.com/maps"; // Fallback if not set
+        window.open(url, '_blank');
+    }
+    incrementStat(activePlatform?.id || 'unknown');
+  };
+
+  const handleShareAction = () => {
+    // Copy text
+    if (selectedReview) {
+      navigator.clipboard.writeText(selectedReview);
+      toast({
+        title: t.common.copied,
+        description: "Review text copied. Ready to paste!",
+      });
+    }
+    incrementStat(activePlatform?.id || 'unknown');
   };
 
   return (
@@ -118,6 +178,86 @@ export default function CustomerDrafting() {
           </Button>
         </div>
       </div>
+
+      {/* Interaction Modal - Directly in Drafting Page now */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader className="flex flex-row items-center justify-between">
+                    <DialogTitle>{activePlatform?.name}</DialogTitle>
+                    <DialogClose asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsModalOpen(false)}>
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </DialogClose>
+                </DialogHeader>
+
+                <div className="flex flex-col gap-4 py-4">
+                    
+                    {/* Google Specific Layout */}
+                    {activePlatform?.id === 'google' && (
+                        <div className="flex flex-col gap-3">
+                            <p className="text-sm text-muted-foreground text-center mb-4">
+                                We'd love to hear your feedback on Google!
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Button variant="outline" onClick={handleSwitch} className="h-12">
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Switch
+                                </Button>
+                                <Button onClick={handleReviewAction} className="h-12 bg-blue-600 hover:bg-blue-700 text-white">
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    Review
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* XHS Specific Layout */}
+                    {activePlatform?.id === 'xiaohongshu' && (
+                         <div className="flex flex-col gap-3">
+                            <p className="text-sm text-muted-foreground text-center mb-4">
+                                Copy your text and share your photo on XiaoHongShu!
+                            </p>
+                            <Button onClick={handleShareAction} className="h-12 bg-red-600 hover:bg-red-700 text-white w-full">
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copy & Open XHS
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Facebook/Instagram Specific Layout */}
+                    {(activePlatform?.id === 'facebook' || activePlatform?.id === 'instagram') && (
+                        <div className="flex flex-col gap-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <Button variant="outline" onClick={handleSwitch} className="h-12">
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Switch
+                                </Button>
+                                <Button onClick={handleShareAction} className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white">
+                                    <Share2 className="mr-2 h-4 w-4" />
+                                    Share
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Follow Actions */}
+                    {activePlatform?.actionType === 'follow' && (
+                        <div className="flex flex-col gap-3">
+                            <p className="text-sm text-muted-foreground text-center mb-4">
+                                Stay updated with our latest news!
+                            </p>
+                            <Button className="h-12 w-full">
+                                {activePlatform.id === 'follow-facebook' ? <ThumbsUp className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                                Follow Now
+                            </Button>
+                        </div>
+                    )}
+
+                </div>
+            </DialogContent>
+        </Dialog>
+
     </Layout>
   );
 }

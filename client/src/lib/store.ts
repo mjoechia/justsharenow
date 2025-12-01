@@ -10,8 +10,10 @@ interface CampaignState {
   // Customer Flow State
   selectedReview: string | null;
   selectedPhoto: string | null;
+  selectedPlatform: string | null;
   setSelectedReview: (review: string) => void;
   setSelectedPhoto: (photo: string) => void;
+  setSelectedPlatform: (platform: string) => void;
   
   // Admin/Stats State
   stats: Record<string, number>;
@@ -40,8 +42,10 @@ export const useStore = create<CampaignState>()(
       
       selectedReview: null,
       selectedPhoto: null,
+      selectedPlatform: null,
       setSelectedReview: (review) => set({ selectedReview: review }),
       setSelectedPhoto: (photo) => set({ selectedPhoto: photo }),
+      setSelectedPlatform: (platform) => set({ selectedPlatform: platform }),
       
       stats: {
         google: 124,
