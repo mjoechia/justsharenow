@@ -16,7 +16,7 @@ import Autoplay from "embla-carousel-autoplay";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig } from "@/lib/api";
 
-export function Layout({ children, isAdmin = false }: { children: React.ReactNode, isAdmin?: boolean }) {
+export function Layout({ children, isAdmin = false, hideCarousel = false }: { children: React.ReactNode, isAdmin?: boolean, hideCarousel?: boolean }) {
   const { language, setLanguage } = useStore();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -32,8 +32,8 @@ export function Layout({ children, isAdmin = false }: { children: React.ReactNod
     setLanguage(language === 'en' ? 'zh' : 'en');
   };
 
-  // Only show carousel on non-admin pages if there are photos
-  const showCarousel = !isAdmin && shopPhotos.length > 0;
+  // Only show carousel on non-admin pages if there are photos and not hidden
+  const showCarousel = !isAdmin && !hideCarousel && shopPhotos.length > 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">

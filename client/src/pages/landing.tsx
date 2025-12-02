@@ -4,51 +4,65 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getStoreConfig } from "@/lib/api";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 
 const platforms = [
   {
     id: 'google',
     name: 'Google Reviews',
-    icon: <MapPin className="w-6 h-6 text-blue-600" />,
-    color: 'bg-blue-50 border-blue-100 text-blue-700',
-    description: 'Scan to review on Google Maps'
+    icon: <MapPin className="w-8 h-8 text-blue-600" />,
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+    hoverBg: 'hover:bg-blue-100',
   },
   {
     id: 'xiaohongshu',
     name: 'XiaoHongShu',
-    icon: <span className="text-lg font-bold text-red-600">小</span>,
-    color: 'bg-red-50 border-red-100 text-red-700',
-    description: 'Scan to share on Red'
+    icon: <span className="text-2xl font-bold text-red-600">小红书</span>,
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
+    hoverBg: 'hover:bg-red-100',
   },
   {
     id: 'instagram',
     name: 'Instagram',
-    icon: <Instagram className="w-6 h-6 text-pink-600" />,
-    color: 'bg-pink-50 border-pink-100 text-pink-700',
-    description: 'Scan to post on Instagram'
+    icon: <Instagram className="w-8 h-8 text-pink-600" />,
+    bgColor: 'bg-pink-50',
+    borderColor: 'border-pink-200',
+    hoverBg: 'hover:bg-pink-100',
   },
   {
     id: 'facebook',
     name: 'Facebook',
-    icon: <Facebook className="w-6 h-6 text-indigo-600" />,
-    color: 'bg-indigo-50 border-indigo-100 text-indigo-700',
-    description: 'Scan to share on Facebook'
+    icon: <Facebook className="w-8 h-8 text-indigo-600" />,
+    bgColor: 'bg-indigo-50',
+    borderColor: 'border-indigo-200',
+    hoverBg: 'hover:bg-indigo-100',
   },
   {
     id: 'follow-facebook',
-    name: 'Follow Us',
-    icon: <ThumbsUp className="w-6 h-6 text-blue-700" />,
-    color: 'bg-blue-50 border-blue-100 text-blue-800',
-    description: 'Follow us on Facebook'
+    name: 'Follow Facebook',
+    icon: <ThumbsUp className="w-8 h-8 text-blue-700" />,
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+    hoverBg: 'hover:bg-blue-100',
   },
   {
     id: 'follow-instagram',
-    name: 'Follow Us',
-    icon: <UserPlus className="w-6 h-6 text-pink-700" />,
-    color: 'bg-pink-50 border-pink-100 text-pink-800',
-    description: 'Follow us on Instagram'
+    name: 'Follow Instagram',
+    icon: <UserPlus className="w-8 h-8 text-pink-700" />,
+    bgColor: 'bg-pink-50',
+    borderColor: 'border-pink-200',
+    hoverBg: 'hover:bg-pink-100',
   }
 ];
 
@@ -56,69 +70,103 @@ export default function Landing() {
   const { language, setSelectedPlatform } = useStore();
   const [_, setLocation] = useLocation();
   const t = translations[language];
-  const [shareUrl, setShareUrl] = useState("");
 
-  useEffect(() => {
-    setShareUrl(`${window.location.origin}/drafting`);
-  }, []);
+  const { data: config } = useQuery({
+    queryKey: ['storeConfig'],
+    queryFn: getStoreConfig,
+  });
 
-  const handleScan = (platformId: string) => {
-    // Set the selected platform and go to drafting
+  const shopPhotos = config?.shopPhotos || [];
+
+  const handlePlatformClick = (platformId: string) => {
     setSelectedPlatform(platformId);
     setLocation('/drafting');
   };
 
   return (
-    <Layout>
-      <div className="container max-w-6xl mx-auto px-4 py-12 pb-24">
-        <div className="text-center mb-12 animate-in-slide-up">
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
-            Scan to Share Your Experience
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Shop View: This screen represents the physical QR codes placed at your location.
-          </p>
+    <Layout hideCarousel>
+      <div className="flex-1 flex flex-col lg:flex-row min-h-[calc(100vh-8rem)]">
+        
+        {/* Mobile: Top Slider (1/3 height) */}
+        {/* Desktop: Left Slider (2/3 width) */}
+        <div className="h-[33vh] lg:h-auto lg:w-2/3 bg-muted/20 relative overflow-hidden">
+          {shopPhotos.length > 0 ? (
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              plugins={[
+                Autoplay({
+                  delay: 4000,
+                }),
+              ]}
+              className="w-full h-full"
+            >
+              <CarouselContent className="h-full -ml-0">
+                {shopPhotos.map((photo, index) => (
+                  <CarouselItem key={index} className="h-full pl-0 basis-full">
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={photo} 
+                        alt={`Shop photo ${index + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-4" />
+              <CarouselNext className="right-4" />
+            </Carousel>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-100">
+              <div className="text-center text-muted-foreground p-8">
+                <p className="text-lg font-medium mb-2">Welcome to ShareLor</p>
+                <p className="text-sm">Upload photos in Admin Dashboard to display here</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Updated Grid: 2 cols on mobile (default), 3 cols on md/lg */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-          {platforms.map((platform, index) => (
-            <motion.div
-              key={platform.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card 
-                className="h-full hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
-                onClick={() => handleScan(platform.id)}
+        {/* Mobile: Bottom Buttons (2/3 height) */}
+        {/* Desktop: Right Buttons (1/3 width) */}
+        <div className="flex-1 lg:w-1/3 p-4 lg:p-6 flex flex-col">
+          <div className="text-center mb-4 lg:mb-6">
+            <h1 className="text-xl lg:text-2xl font-heading font-bold text-foreground">
+              Share Your Experience
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Tap a platform to get started
+            </p>
+          </div>
+
+          {/* 2 Column Grid for Platform Buttons */}
+          <div className="grid grid-cols-2 gap-3 lg:gap-4 flex-1 content-start">
+            {platforms.map((platform, index) => (
+              <motion.div
+                key={platform.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
               >
-                <CardContent className="p-4 md:p-6 flex flex-col items-center text-center h-full">
-                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center mb-3 md:mb-4 ${platform.color} bg-opacity-50`}>
-                    {platform.icon}
-                  </div>
-                  
-                  <h3 className="font-heading font-bold text-base md:text-lg mb-2 leading-tight">{platform.name}</h3>
-                  
-                  <div className="relative w-full aspect-square max-w-[160px] my-2 md:my-4 bg-white p-2 rounded-xl border shadow-sm group-hover:scale-105 transition-transform duration-300">
-                    {shareUrl && (
-                        <QRCodeSVG 
-                            value={shareUrl}
-                            width="100%"
-                            height="100%"
-                            level="M"
-                            includeMargin={true}
-                        />
-                    )}
-                  </div>
-                  
-                  <p className="text-xs md:text-sm text-muted-foreground mt-auto">
-                    {platform.description}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                <Card 
+                  className={`h-full cursor-pointer transition-all duration-200 border-2 ${platform.borderColor} ${platform.bgColor} ${platform.hoverBg} hover:shadow-md hover:scale-[1.02] active:scale-[0.98]`}
+                  onClick={() => handlePlatformClick(platform.id)}
+                  data-testid={`button-platform-${platform.id}`}
+                >
+                  <CardContent className="p-4 lg:p-5 flex flex-col items-center justify-center text-center h-full min-h-[100px] lg:min-h-[120px]">
+                    <div className="mb-2 lg:mb-3">
+                      {platform.icon}
+                    </div>
+                    <h3 className="font-medium text-sm lg:text-base text-foreground leading-tight">
+                      {platform.name}
+                    </h3>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </Layout>
