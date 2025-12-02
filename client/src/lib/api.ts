@@ -52,3 +52,30 @@ export async function trackPlatformClick(platform: string): Promise<void> {
   });
   if (!response.ok) throw new Error('Failed to track click');
 }
+
+// Discover social links from website
+export interface DiscoveredLinks {
+  google: string | null;
+  facebook: string | null;
+  instagram: string | null;
+  xiaohongshu: string | null;
+}
+
+export interface DiscoverResponse {
+  success: boolean;
+  websiteUrl: string;
+  discoveredLinks: DiscoveredLinks;
+}
+
+export async function discoverSocialLinks(websiteUrl: string): Promise<DiscoverResponse> {
+  const response = await fetch('/api/discover-social-links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ websiteUrl }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to discover social links');
+  }
+  return response.json();
+}

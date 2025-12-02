@@ -3,6 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertStoreConfigSchema } from "@shared/schema";
 import { z } from "zod";
+import * as cheerio from "cheerio";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -68,6 +75,134 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error tracking click:", error);
       res.status(500).json({ error: "Failed to track click" });
+    }
+  });
+
+  // Social Link Discovery Endpoint
+  app.post("/api/discover-social-links", async (req, res) => {
+    try {
+      const { websiteUrl } = req.body;
+      
+      if (!websiteUrl || typeof websiteUrl !== 'string') {
+        res.status(400).json({ error: "Website URL is required" });
+        return;
+      }
+
+      // Validate URL format
+      let url: URL;
+      try {
+        url = new URL(websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`);
+      } catch {
+        res.status(400).json({ error: "Invalid URL format" });
+        return;
+      }
+
+      // Fetch the website content
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let html: string;
+      try {
+        const response = await fetch(url.toString(), {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ShareLor/1.0; Social Link Discovery)',
+          },
+        });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          res.status(400).json({ error: `Failed to fetch website: ${response.statusText}` });
+          return;
+        }
+        
+        html = await response.text();
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          res.status(408).json({ error: "Request timeout - website took too long to respond" });
+        } else {
+          res.status(400).json({ error: "Failed to fetch website" });
+        }
+        return;
+      }
+
+      // Parse HTML and extract links
+      const $ = cheerio.load(html);
+      const links: string[] = [];
+      
+      $('a[href]').each((_, el) => {
+        const href = $(el).attr('href');
+        if (href) links.push(href);
+      });
+
+      // Also check for meta tags and footer content
+      const pageText = $('body').text().substring(0, 5000);
+
+      // Use AI to analyze and find social links
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are a helpful assistant that extracts social media URLs from website content.
+Given a list of links and page content from a website, identify and return the social media profile URLs.
+
+Return a JSON object with these exact keys (use null if not found):
+- google: Google Maps or Google Business URL (e.g., maps.google.com, g.page, google.com/maps)
+- facebook: Facebook page URL (e.g., facebook.com/pagename, fb.com)
+- instagram: Instagram profile URL (e.g., instagram.com/username)
+- xiaohongshu: XiaoHongShu/RED profile URL (e.g., xiaohongshu.com, red, xhs)
+
+Only return valid, complete URLs. Do not make up URLs.`
+          },
+          {
+            role: "user",
+            content: `Website: ${url.toString()}
+
+Links found on page:
+${links.slice(0, 100).join('\n')}
+
+Page content excerpt:
+${pageText}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+      });
+
+      const aiResponse = completion.choices[0]?.message?.content;
+      
+      let discoveredLinks = {
+        google: null as string | null,
+        facebook: null as string | null,
+        instagram: null as string | null,
+        xiaohongshu: null as string | null,
+      };
+
+      if (aiResponse) {
+        try {
+          const parsed = JSON.parse(aiResponse);
+          discoveredLinks = {
+            google: parsed.google || null,
+            facebook: parsed.facebook || null,
+            instagram: parsed.instagram || null,
+            xiaohongshu: parsed.xiaohongshu || null,
+          };
+        } catch {
+          console.error("Failed to parse AI response:", aiResponse);
+        }
+      }
+
+      res.json({
+        success: true,
+        websiteUrl: url.toString(),
+        discoveredLinks,
+      });
+
+    } catch (error) {
+      console.error("Error discovering social links:", error);
+      res.status(500).json({ error: "Failed to discover social links" });
     }
   });
 
