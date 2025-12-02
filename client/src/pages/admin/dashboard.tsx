@@ -3,16 +3,14 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Download, QrCode, Share2, TrendingUp, Users, MessageSquare, RefreshCw, ExternalLink, ImagePlus, Trash2, Globe, Search, CheckCircle, Loader2, Sparkles } from "lucide-react";
-import regrowLogo from "@assets/generated_images/regrow_group_corporate_logo.png";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStoreConfig, updateStoreConfig, getAnalytics, discoverSocialLinks } from "@/lib/api";
+import { getStoreConfig, updateStoreConfig, discoverSocialLinks } from "@/lib/api";
 
 export default function AdminDashboard() {
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
@@ -20,14 +18,9 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: config, isLoading: configLoading } = useQuery({
+  const { data: config } = useQuery({
     queryKey: ['storeConfig'],
     queryFn: getStoreConfig,
-  });
-
-  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
-    queryKey: ['analytics'],
-    queryFn: getAnalytics,
   });
 
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -48,21 +41,6 @@ export default function AdminDashboard() {
       setShopPhotos(config.shopPhotos || []);
     }
   }, [config]);
-
-  const stats = analyticsData?.reduce((acc, item) => {
-    acc[item.platform] = item.clicks;
-    return acc;
-  }, {} as Record<string, number>) || {};
-
-  const data = [
-    { name: 'Google', value: stats.google || 0, color: '#4285F4' },
-    { name: 'Facebook', value: stats.facebook || 0, color: '#1877F2' },
-    { name: 'Instagram', value: stats.instagram || 0, color: '#E1306C' },
-    { name: 'XHS', value: stats.xiaohongshu || 0, color: '#FF2442' },
-  ];
-
-  const totalScans = Object.values(stats).reduce((a, b) => a + b, 0);
-  const topPlatform = data.reduce((prev, current) => (prev.value > current.value) ? prev : current);
 
   const handleReset = () => {
     setSelectedPhoto("");
@@ -211,9 +189,8 @@ export default function AdminDashboard() {
             </div>
         </div>
 
-        <Tabs defaultValue="analytics" className="space-y-8">
+        <Tabs defaultValue="socials" className="space-y-8">
             <TabsList>
-                <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="socials">Social Links</TabsTrigger>
                 <TabsTrigger value="photos">Shop Photos</TabsTrigger>
             </TabsList>
@@ -322,92 +299,6 @@ export default function AdminDashboard() {
                         </div>
                     </CardContent>
                 </Card>
-            </TabsContent>
-
-            <TabsContent value="analytics" className="space-y-8">
-                {/* Key Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="bg-gradient-to-br from-white to-indigo-50/50 border-indigo-100">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                                <Users className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">{t.admin.dashboard.totalScans}</p>
-                                <p className="text-3xl font-bold text-foreground">{totalScans}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-gradient-to-br from-white to-purple-50/50 border-purple-100">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
-                                <TrendingUp className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">{t.admin.dashboard.topPlatform}</p>
-                                <p className="text-3xl font-bold text-foreground">{topPlatform.name}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-gradient-to-br from-white to-emerald-50/50 border-emerald-100">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                <MessageSquare className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Active Campaigns</p>
-                                <p className="text-3xl font-bold text-foreground">3</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Chart */}
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle>Platform Performance</CardTitle>
-                            <CardDescription>Click-through rates by social platform</CardDescription>
-                        </CardHeader>
-                        <CardContent className="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                                    <Tooltip 
-                                        cursor={{ fill: 'transparent' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                    />
-                                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                                        {data.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-
-                    {/* AI Recommendations */}
-                    <Card className="lg:col-span-1 bg-muted/10">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">AI Insights</span>
-                                <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] uppercase font-bold">Beta</span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="p-4 rounded-lg bg-white border shadow-sm">
-                                <h4 className="font-medium text-sm mb-1">Boost XiaoHongShu</h4>
-                                <p className="text-xs text-muted-foreground">Engagement on XHS is 40% higher than average. Consider adding a dedicated QR code at the front desk.</p>
-                            </div>
-                            <div className="p-4 rounded-lg bg-white border shadow-sm">
-                                <h4 className="font-medium text-sm mb-1">Photo Update</h4>
-                                <p className="text-xs text-muted-foreground">The "Hair Treatment" photo has a 15% higher selection rate. Add more hair transformation examples.</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
             </TabsContent>
 
             <TabsContent value="photos" className="space-y-6">

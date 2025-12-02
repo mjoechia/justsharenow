@@ -59,6 +59,7 @@ export default function CustomerDrafting() {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [reviewSetIndex, setReviewSetIndex] = useState(0);
   
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
@@ -74,6 +75,7 @@ export default function CustomerDrafting() {
   
   const t = translations[language];
   const activePlatform = platforms.find(p => p.id === selectedPlatform);
+  const currentReviews = t.customer.drafting.reviewSets[reviewSetIndex];
   
   const handleNext = () => {
     if (selectedPhoto && selectedReview) {
@@ -84,6 +86,9 @@ export default function CustomerDrafting() {
   const handleSwitch = () => {
     setSelectedPhoto("");
     setSelectedReview("");
+    // Rotate to next review set
+    const totalSets = t.customer.drafting.reviewSets.length;
+    setReviewSetIndex((prev) => (prev + 1) % totalSets);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setIsModalOpen(false);
   };
@@ -171,9 +176,9 @@ export default function CustomerDrafting() {
             {t.customer.drafting.selectReview}
           </h2>
           <div className="space-y-3">
-            {t.customer.drafting.reviews.map((review, idx) => (
+            {currentReviews.map((review, idx) => (
               <Card 
-                key={idx}
+                key={`${reviewSetIndex}-${idx}`}
                 onClick={() => setSelectedReview(review)}
                 className={`p-4 cursor-pointer transition-all duration-200 hover:shadow-md ${
                   selectedReview === review 

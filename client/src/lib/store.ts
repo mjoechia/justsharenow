@@ -99,11 +99,31 @@ export const translations = {
         subtitle: "Select a photo and a review snippet to get started.",
         selectPhoto: "Select a Photo",
         selectReview: "Select a Review",
-        reviews: [
-          "Absolutely loved the treatment! My hair feels so healthy and shiny. Highly recommend Regrow Group!",
-          "Professional service and amazing results. The staff was very attentive to my needs.",
-          "Best salon experience I've had in years. The before and after difference is incredible!",
-          "Regrow Group transformed my look completely. So happy with the results!"
+        reviewSets: [
+          [
+            "Absolutely loved the treatment! My hair feels so healthy and shiny. Highly recommend Regrow Group!",
+            "Professional service and amazing results. The staff was very attentive to my needs.",
+            "Best salon experience I've had in years. The before and after difference is incredible!",
+            "Regrow Group transformed my look completely. So happy with the results!"
+          ],
+          [
+            "The team at Regrow Group truly understands hair care. My hair has never looked better!",
+            "Amazing transformation! The stylists are so talented and really listen to what you want.",
+            "Five stars all the way! From consultation to final result, everything was perfect.",
+            "Can't believe the difference after just one session. Will definitely be coming back!"
+          ],
+          [
+            "Regrow Group exceeded all my expectations. The quality of service is unmatched!",
+            "My friends keep asking what I did to my hair. So grateful I found this place!",
+            "The staff made me feel so comfortable. Professional, friendly, and incredibly skilled.",
+            "Worth every penny! The results speak for themselves. Highly recommend to everyone!"
+          ],
+          [
+            "Life-changing experience at Regrow Group! My confidence has skyrocketed since my visit.",
+            "I've been to many salons but none compare to the expertise at Regrow Group.",
+            "The attention to detail is outstanding. They really care about their clients.",
+            "Incredible results and wonderful service. This is my new go-to salon!"
+          ]
         ]
       },
       platform: {
@@ -139,11 +159,31 @@ export const translations = {
         subtitle: "选择一张照片和一段评论以开始。",
         selectPhoto: "选择照片",
         selectReview: "选择评论",
-        reviews: [
-          "非常喜欢这次的护理！我的头发感觉非常健康有光泽。强烈推荐 Regrow Group！",
-          "专业的服务和惊人的效果。工作人员非常关注我的需求。",
-          "这是我几年来最好的沙龙体验。前后对比简直不可思议！",
-          "Regrow Group 完全改变了我的造型。对结果非常满意！"
+        reviewSets: [
+          [
+            "非常喜欢这次的护理！我的头发感觉非常健康有光泽。强烈推荐 Regrow Group！",
+            "专业的服务和惊人的效果。工作人员非常关注我的需求。",
+            "这是我几年来最好的沙龙体验。前后对比简直不可思议！",
+            "Regrow Group 完全改变了我的造型。对结果非常满意！"
+          ],
+          [
+            "Regrow Group 的团队真正了解护发。我的头发从未如此好看过！",
+            "惊人的转变！造型师非常有才华，真的会倾听你的需求。",
+            "五星好评！从咨询到最终结果，一切都很完美。",
+            "一次疗程后就看到如此大的变化，简直不敢相信。一定会再来！"
+          ],
+          [
+            "Regrow Group 超出了我所有的期望。服务质量无与伦比！",
+            "我的朋友们一直问我头发做了什么。很感激找到了这个地方！",
+            "员工让我感到非常舒适。专业、友好，技术精湛。",
+            "物超所值！效果不言自明。强烈推荐给所有人！"
+          ],
+          [
+            "在 Regrow Group 的体验改变了我的生活！自从来过之后，我的自信心大增。",
+            "我去过很多沙龙，但没有一家能比得上 Regrow Group 的专业水平。",
+            "对细节的关注令人印象深刻。他们真的很关心客户。",
+            "效果惊人，服务周到。这是我新的首选沙龙！"
+          ]
         ]
       },
       platform: {
