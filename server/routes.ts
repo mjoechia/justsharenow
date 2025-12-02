@@ -6,10 +6,45 @@ import { z } from "zod";
 import * as cheerio from "cheerio";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-});
+function getOpenAIClient(): OpenAI | null {
+  if (!process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || !process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+    return null;
+  }
+  return new OpenAI({
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  });
+}
+
+function isValidExternalUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return false;
+    }
+    const hostname = url.hostname.toLowerCase();
+    const blockedPatterns = [
+      /^localhost$/,
+      /^127\./,
+      /^10\./,
+      /^192\.168\./,
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+      /^0\./,
+      /^169\.254\./,
+      /\.local$/,
+      /^metadata\./,
+      /^169\.254\.169\.254$/,
+    ];
+    for (const pattern of blockedPatterns) {
+      if (pattern.test(hostname)) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -88,18 +123,34 @@ export async function registerRoutes(
         return;
       }
 
-      // Validate URL format
-      let url: URL;
+      // Validate URL format and security
+      let urlString: string;
       try {
-        url = new URL(websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`);
+        urlString = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`;
       } catch {
         res.status(400).json({ error: "Invalid URL format" });
         return;
       }
 
-      // Fetch the website content
+      // SSRF Protection: Block internal/local URLs
+      if (!isValidExternalUrl(urlString)) {
+        res.status(400).json({ error: "Invalid URL - only public websites are allowed" });
+        return;
+      }
+
+      const url = new URL(urlString);
+
+      // Check OpenAI credentials
+      const openai = getOpenAIClient();
+      if (!openai) {
+        res.status(503).json({ error: "AI service is not configured. Please enter social links manually." });
+        return;
+      }
+
+      // Fetch the website content with timeout and size limit
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const MAX_RESPONSE_SIZE = 1024 * 1024; // 1MB limit
 
       let html: string;
       try {
@@ -115,8 +166,20 @@ export async function registerRoutes(
           res.status(400).json({ error: `Failed to fetch website: ${response.statusText}` });
           return;
         }
+
+        // Check content length
+        const contentLength = response.headers.get('content-length');
+        if (contentLength && parseInt(contentLength) > MAX_RESPONSE_SIZE) {
+          res.status(400).json({ error: "Website content too large" });
+          return;
+        }
         
         html = await response.text();
+        
+        // Enforce size limit on actual content
+        if (html.length > MAX_RESPONSE_SIZE) {
+          html = html.substring(0, MAX_RESPONSE_SIZE);
+        }
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         if (fetchError.name === 'AbortError') {

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Download, QrCode, Share2, TrendingUp, Users, MessageSquare, RefreshCw, ExternalLink, ImagePlus, Trash2, Globe, Search, CheckCircle, Loader2 } from "lucide-react";
+import { Download, QrCode, Share2, TrendingUp, Users, MessageSquare, RefreshCw, ExternalLink, ImagePlus, Trash2, Globe, Search, CheckCircle, Loader2, Sparkles } from "lucide-react";
 import regrowLogo from "@assets/generated_images/regrow_group_corporate_logo.png";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStoreConfig, updateStoreConfig, getAnalytics } from "@/lib/api";
+import { getStoreConfig, updateStoreConfig, getAnalytics, discoverSocialLinks } from "@/lib/api";
 
 export default function AdminDashboard() {
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
@@ -20,7 +20,6 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch config and analytics from API
   const { data: config, isLoading: configLoading } = useQuery({
     queryKey: ['storeConfig'],
     queryFn: getStoreConfig,
@@ -37,8 +36,8 @@ export default function AdminDashboard() {
   const [igUrl, setIgUrl] = useState("");
   const [xhsUrl, setXhsUrl] = useState("");
   const [shopPhotos, setShopPhotos] = useState<string[]>([]);
+  const [isDiscovering, setIsDiscovering] = useState(false);
 
-  // Update local state when config loads
   useEffect(() => {
     if (config) {
       setWebsiteUrl(config.websiteUrl || "");
@@ -50,7 +49,6 @@ export default function AdminDashboard() {
     }
   }, [config]);
 
-  // Prepare chart data from analytics
   const stats = analyticsData?.reduce((acc, item) => {
     acc[item.platform] = item.clicks;
     return acc;
@@ -95,6 +93,53 @@ export default function AdminDashboard() {
       xiaohongshuUrl: xhsUrl,
       shopPhotos,
     });
+  };
+
+  const handleDiscoverLinks = async () => {
+    if (!websiteUrl) {
+      toast({ title: "Error", description: "Please enter your website URL first.", variant: "destructive" });
+      return;
+    }
+
+    setIsDiscovering(true);
+    try {
+      const result = await discoverSocialLinks(websiteUrl);
+      
+      if (result.discoveredLinks.google) {
+        setGoogleUrl(result.discoveredLinks.google);
+      }
+      if (result.discoveredLinks.facebook) {
+        setFbUrl(result.discoveredLinks.facebook);
+      }
+      if (result.discoveredLinks.instagram) {
+        setIgUrl(result.discoveredLinks.instagram);
+      }
+      if (result.discoveredLinks.xiaohongshu) {
+        setXhsUrl(result.discoveredLinks.xiaohongshu);
+      }
+
+      const foundCount = Object.values(result.discoveredLinks).filter(Boolean).length;
+      if (foundCount > 0) {
+        toast({ 
+          title: "Links Found!", 
+          description: `AI discovered ${foundCount} social media link${foundCount > 1 ? 's' : ''} from your website.` 
+        });
+      } else {
+        toast({ 
+          title: "No Links Found", 
+          description: "No social media links were found on your website. Please enter them manually.", 
+          variant: "destructive" 
+        });
+      }
+    } catch (error: any) {
+      toast({ 
+        title: "Discovery Failed", 
+        description: error.message || "Failed to discover social links. Please enter them manually.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsDiscovering(false);
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,21 +222,49 @@ export default function AdminDashboard() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Social Media Links</CardTitle>
-                        <CardDescription>Manage the social media links for your store.</CardDescription>
+                        <CardDescription>Enter your website URL and let AI find your social media links automatically.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="grid gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="website">Website URL</Label>
+                        {/* Website URL with AI Discovery */}
+                        <div className="p-4 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Sparkles className="w-5 h-5 text-indigo-600" />
+                                <span className="font-semibold text-indigo-900">AI-Powered Discovery</span>
+                            </div>
+                            <div className="flex gap-2">
                                 <Input 
                                     type="url" 
-                                    id="website" 
                                     placeholder="https://your-business.com" 
                                     value={websiteUrl}
                                     onChange={(e) => setWebsiteUrl(e.target.value)}
+                                    className="flex-1"
+                                    data-testid="input-website-url"
                                 />
+                                <Button 
+                                    onClick={handleDiscoverLinks}
+                                    disabled={isDiscovering || !websiteUrl}
+                                    className="bg-indigo-600 hover:bg-indigo-700"
+                                    data-testid="button-discover-links"
+                                >
+                                    {isDiscovering ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Searching...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Search className="w-4 h-4 mr-2" />
+                                            Find Links
+                                        </>
+                                    )}
+                                </Button>
                             </div>
-                            
+                            <p className="text-xs text-muted-foreground mt-2">
+                                AI will scan your website and automatically find your social media profile links.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="google">Google Maps URL</Label>
                                 <Input 
@@ -236,8 +309,15 @@ export default function AdminDashboard() {
                                 />
                             </div>
 
-                            <Button onClick={handleSaveSocials}>
-                                Save Changes
+                            <Button onClick={handleSaveSocials} disabled={updateConfigMutation.isPending}>
+                                {updateConfigMutation.isPending ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    "Save Changes"
+                                )}
                             </Button>
                         </div>
                     </CardContent>
