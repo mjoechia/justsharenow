@@ -3,9 +3,11 @@ import { Layout } from "@/components/layout";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus } from "lucide-react";
+import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus, QrCode } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig } from "@/lib/api";
+import { QRCodeSVG } from "qrcode.react";
+import { useEffect, useState } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -70,6 +72,11 @@ export default function Landing() {
   const { language, setSelectedPlatform } = useStore();
   const [_, setLocation] = useLocation();
   const t = translations[language];
+  const [quickViewUrl, setQuickViewUrl] = useState("");
+
+  useEffect(() => {
+    setQuickViewUrl(`${window.location.origin}/quick-view`);
+  }, []);
 
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
@@ -167,6 +174,38 @@ export default function Landing() {
               </motion.div>
             ))}
           </div>
+
+          {/* QR Code Section - Links to Quick View */}
+          <motion.div 
+            className="mt-4 lg:mt-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="bg-white p-2 rounded-lg shadow-sm border">
+                  {quickViewUrl && (
+                    <QRCodeSVG 
+                      value={quickViewUrl}
+                      size={80}
+                      level="M"
+                      fgColor="#4F46E5"
+                    />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <QrCode className="w-4 h-4 text-primary" />
+                    <h4 className="font-semibold text-sm text-foreground">Quick View</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Scan this QR code to access the mobile sharing experience
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
     </Layout>
