@@ -13,6 +13,7 @@ export interface IStorage {
   // Store Configuration
   getStoreConfig(): Promise<StoreConfig | undefined>;
   updateStoreConfig(config: InsertStoreConfig): Promise<StoreConfig>;
+  addShopPhoto(photoBase64: string): Promise<StoreConfig>;
   
   // Analytics
   getAllAnalytics(): Promise<Analytics[]>;
@@ -44,6 +45,37 @@ export class DatabaseStorage implements IStorage {
       const [created] = await db
         .insert(storeConfig)
         .values(configData as any)
+        .returning();
+      return created;
+    }
+  }
+
+  async addShopPhoto(photoBase64: string): Promise<StoreConfig> {
+    const existing = await this.getStoreConfig();
+    const currentPhotos = existing?.shopPhotos || [];
+    
+    if (currentPhotos.length >= 9) {
+      throw new Error("Maximum of 9 photos allowed");
+    }
+    
+    const newPhotos = [...currentPhotos, photoBase64];
+    
+    if (existing) {
+      // Only update shopPhotos field, preserve everything else
+      const [updated] = await db
+        .update(storeConfig)
+        .set({ 
+          shopPhotos: newPhotos,
+          updatedAt: sql`NOW()` 
+        })
+        .where(eq(storeConfig.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new config with just the photo
+      const [created] = await db
+        .insert(storeConfig)
+        .values({ shopPhotos: newPhotos } as any)
         .returning();
       return created;
     }

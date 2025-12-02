@@ -61,10 +61,16 @@ export interface DiscoveredLinks {
   xiaohongshu: string | null;
 }
 
+export interface SuggestedPhoto {
+  url: string;
+  reason: string;
+}
+
 export interface DiscoverResponse {
   success: boolean;
   websiteUrl: string;
   discoveredLinks: DiscoveredLinks;
+  suggestedPhotos: SuggestedPhoto[];
 }
 
 export async function discoverSocialLinks(websiteUrl: string): Promise<DiscoverResponse> {
@@ -76,6 +82,26 @@ export async function discoverSocialLinks(websiteUrl: string): Promise<DiscoverR
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Failed to discover social links');
+  }
+  return response.json();
+}
+
+// Approve and add photo to shop photos
+export interface ApprovePhotoResponse {
+  success: boolean;
+  shopPhotos: string[];
+  photoCount: number;
+}
+
+export async function approvePhoto(imageUrl: string): Promise<ApprovePhotoResponse> {
+  const response = await fetch('/api/photos/approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageUrl }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to approve photo');
   }
   return response.json();
 }
