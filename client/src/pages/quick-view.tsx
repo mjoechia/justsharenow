@@ -19,17 +19,16 @@ export default function QuickView() {
   const { toast } = useToast();
   const qrRef = useRef<SVGSVGElement>(null);
 
-  // Use the current window location for the QR code to point to the internal demo
-  // In a real app, this would be a specific campaign URL
+  // QR code links to the Shop View (landing page)
   const [shareUrl, setShareUrl] = useState("");
 
   useEffect(() => {
-    setShareUrl(`${window.location.origin}/drafting`);
+    setShareUrl(`${window.location.origin}/`);
   }, []);
 
   const handleScan = () => {
-    // Simulate scanning the QR code -> goes to drafting page
-    setLocation('/drafting');
+    // Navigate to Shop View when QR code is clicked
+    setLocation('/');
   };
 
   const handleDownload = () => {
