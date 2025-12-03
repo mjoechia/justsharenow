@@ -11,6 +11,7 @@ export const storeConfig = pgTable("store_config", {
   instagramUrl: text("instagram_url"),
   xiaohongshuUrl: text("xiaohongshu_url"),
   shopPhotos: jsonb("shop_photos").$type<string[]>().default([]),
+  sliderPhotos: jsonb("slider_photos").$type<string[]>().default([]),
   reviewHashtags: jsonb("review_hashtags").$type<string[]>().default([]),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -14,6 +14,7 @@ export interface IStorage {
   getStoreConfig(): Promise<StoreConfig | undefined>;
   updateStoreConfig(config: InsertStoreConfig): Promise<StoreConfig>;
   addShopPhoto(photoBase64: string): Promise<StoreConfig>;
+  addSliderPhoto(photoBase64: string): Promise<StoreConfig>;
   setReviewHashtags(hashtags: string[]): Promise<StoreConfig>;
   
   // Analytics
@@ -62,7 +63,6 @@ export class DatabaseStorage implements IStorage {
     const newPhotos = [...currentPhotos, photoBase64];
     
     if (existing) {
-      // Only update shopPhotos field, preserve everything else
       const [updated] = await db
         .update(storeConfig)
         .set({ 
@@ -73,10 +73,38 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return updated;
     } else {
-      // Create new config with just the photo
       const [created] = await db
         .insert(storeConfig)
         .values({ shopPhotos: newPhotos } as any)
+        .returning();
+      return created;
+    }
+  }
+
+  async addSliderPhoto(photoBase64: string): Promise<StoreConfig> {
+    const existing = await this.getStoreConfig();
+    const currentPhotos = existing?.sliderPhotos || [];
+    
+    if (currentPhotos.length >= 3) {
+      throw new Error("Maximum of 3 slider photos allowed");
+    }
+    
+    const newPhotos = [...currentPhotos, photoBase64];
+    
+    if (existing) {
+      const [updated] = await db
+        .update(storeConfig)
+        .set({ 
+          sliderPhotos: newPhotos,
+          updatedAt: sql`NOW()` 
+        })
+        .where(eq(storeConfig.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(storeConfig)
+        .values({ sliderPhotos: newPhotos } as any)
         .returning();
       return created;
     }
