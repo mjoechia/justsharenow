@@ -86,11 +86,10 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getStoreConfig();
     
     // Normalize hashtags: ensure # prefix, dedupe, limit to 12
-    const normalized = [...new Set(
-      hashtags
-        .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
-        .slice(0, 12)
-    )];
+    const withPrefix = hashtags
+      .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
+      .slice(0, 12);
+    const normalized = Array.from(new Set(withPrefix));
     
     if (existing) {
       const [updated] = await db

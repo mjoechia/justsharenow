@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Check, ChevronRight, RefreshCw, Share2, ExternalLink, Copy, X, ThumbsUp, UserPlus } from "lucide-react";
+import { Check, ChevronRight, RefreshCw, Share2, ExternalLink, Copy, X, ThumbsUp, UserPlus, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -60,6 +60,7 @@ export default function CustomerDrafting() {
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reviewSetIndex, setReviewSetIndex] = useState(0);
+  const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
   
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
@@ -71,6 +72,22 @@ export default function CustomerDrafting() {
     facebook: config?.facebookUrl || "",
     instagram: config?.instagramUrl || "",
     xiaohongshu: config?.xiaohongshuUrl || "",
+  };
+  
+  const availableHashtags = config?.reviewHashtags || [];
+  
+  const toggleHashtag = (hashtag: string) => {
+    setSelectedHashtags(prev => 
+      prev.includes(hashtag) 
+        ? prev.filter(h => h !== hashtag)
+        : [...prev, hashtag]
+    );
+  };
+  
+  const getReviewWithHashtags = () => {
+    if (!selectedReview) return "";
+    if (selectedHashtags.length === 0) return selectedReview;
+    return `${selectedReview}\n\n${selectedHashtags.join(' ')}`;
   };
   
   const t = translations[language];
@@ -105,11 +122,14 @@ export default function CustomerDrafting() {
   };
 
   const handleShareAction = async () => {
-    if (selectedReview) {
-      navigator.clipboard.writeText(selectedReview);
+    const textToCopy = getReviewWithHashtags();
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy);
       toast({
         title: t.common.copied,
-        description: "Review text copied. Ready to paste!",
+        description: selectedHashtags.length > 0 
+          ? "Review text with hashtags copied. Ready to paste!"
+          : "Review text copied. Ready to paste!",
       });
     }
     if (activePlatform?.id) {
@@ -191,6 +211,37 @@ export default function CustomerDrafting() {
             ))}
           </div>
         </section>
+
+        {/* Hashtags Section */}
+        {availableHashtags.length > 0 && (
+          <section className="mb-8 animate-in-slide-up" style={{ animationDelay: '300ms' }}>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 ml-1 flex items-center gap-2">
+              <Hash className="w-4 h-4" />
+              Add Hashtags (Optional)
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {availableHashtags.map((hashtag, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => toggleHashtag(hashtag)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                    selectedHashtags.includes(hashtag)
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-700 hover:bg-purple-100 hover:text-purple-700'
+                  }`}
+                  data-testid={`button-hashtag-${idx}`}
+                >
+                  {hashtag}
+                </button>
+              ))}
+            </div>
+            {selectedHashtags.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {selectedHashtags.length} hashtag{selectedHashtags.length > 1 ? 's' : ''} will be added to your review
+              </p>
+            )}
+          </section>
+        )}
       </div>
 
       {/* Floating Action Button Bar */}

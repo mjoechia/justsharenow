@@ -77,6 +77,7 @@ export default function AdminDashboard() {
       instagramUrl: igUrl,
       xiaohongshuUrl: xhsUrl,
       shopPhotos,
+      reviewHashtags: selectedHashtags,
     });
   };
 
@@ -277,6 +278,7 @@ export default function AdminDashboard() {
               instagramUrl: igUrl,
               xiaohongshuUrl: xhsUrl,
               shopPhotos: newPhotos,
+              reviewHashtags: selectedHashtags,
             });
         };
         reader.readAsDataURL(file);
@@ -293,6 +295,7 @@ export default function AdminDashboard() {
       instagramUrl: igUrl,
       xiaohongshuUrl: xhsUrl,
       shopPhotos: newPhotos,
+      reviewHashtags: selectedHashtags,
     });
   };
 
