@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Check, ChevronRight, RefreshCw, Share2, ExternalLink, Copy, X, ThumbsUp, UserPlus, Hash } from "lucide-react";
+import { Check, ChevronRight, RefreshCw, Share2, ExternalLink, Copy, X, Hash, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -47,36 +47,42 @@ const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): stri
   return templateSet.map(review => `${review}\n\n${allTags}`);
 };
 
-const platforms = [
+const allPlatforms = [
   { 
-    id: 'google', 
+    id: 'google-reviews', 
     name: 'Google Reviews', 
-    actionType: 'review'
+    actionType: 'review',
+    configKey: 'googleReviewsUrl' as const
   },
   { 
     id: 'xiaohongshu', 
     name: 'XiaoHongShu', 
-    actionType: 'share'
-  },
-  { 
-    id: 'facebook', 
-    name: 'Facebook', 
-    actionType: 'share'
+    actionType: 'share',
+    configKey: 'xiaohongshuUrl' as const
   },
   { 
     id: 'instagram', 
     name: 'Instagram', 
-    actionType: 'share'
+    actionType: 'share',
+    configKey: 'instagramUrl' as const
+  },
+  { 
+    id: 'facebook', 
+    name: 'Facebook', 
+    actionType: 'share',
+    configKey: 'facebookUrl' as const
   },
   {
-    id: 'follow-facebook',
-    name: 'Follow Us on Facebook',
-    actionType: 'follow'
+    id: 'tiktok',
+    name: 'TikTok',
+    actionType: 'share',
+    configKey: 'tiktokUrl' as const
   },
   {
-    id: 'follow-instagram',
-    name: 'Follow Us on Instagram',
-    actionType: 'follow'
+    id: 'whatsapp',
+    name: 'WhatsApp',
+    actionType: 'contact',
+    configKey: 'whatsappUrl' as const
   }
 ];
 
@@ -96,10 +102,12 @@ export default function CustomerDrafting() {
   });
   
   const socialLinks = {
-    google: config?.googleUrl || "",
+    googleReviews: config?.googleReviewsUrl || "",
     facebook: config?.facebookUrl || "",
     instagram: config?.instagramUrl || "",
     xiaohongshu: config?.xiaohongshuUrl || "",
+    tiktok: config?.tiktokUrl || "",
+    whatsapp: config?.whatsappUrl || "",
   };
   
   const availableHashtags = config?.reviewHashtags || [];
@@ -145,7 +153,16 @@ export default function CustomerDrafting() {
   };
   
   const t = translations[language];
-  const activePlatform = platforms.find(p => p.id === selectedPlatform);
+  
+  const availablePlatforms = useMemo(() => {
+    if (!config) return [];
+    return allPlatforms.filter(platform => {
+      const url = config[platform.configKey];
+      return url && url.trim() !== '';
+    });
+  }, [config]);
+  
+  const activePlatform = allPlatforms.find(p => p.id === selectedPlatform);
   const currentReviews = generatedReviews.length > 0 
     ? generatedReviews 
     : t.customer.drafting.reviewSets[reviewSetIndex];
@@ -187,8 +204,8 @@ export default function CustomerDrafting() {
   };
 
   const handleReviewAction = async () => {
-    if (activePlatform?.id === 'google') {
-        const url = socialLinks.google || "https://www.google.com/maps";
+    if (activePlatform?.id === 'google-reviews') {
+        const url = socialLinks.googleReviews || "https://www.google.com/maps";
         window.open(url, '_blank');
     }
     if (activePlatform?.id) {
@@ -214,12 +231,10 @@ export default function CustomerDrafting() {
     setIsModalOpen(false);
   };
 
-  const handleFollowAction = async () => {
+  const handleContactAction = async () => {
     let url = "";
-    if (activePlatform?.id === 'follow-facebook') {
-      url = socialLinks.facebook || "https://facebook.com";
-    } else if (activePlatform?.id === 'follow-instagram') {
-      url = socialLinks.instagram || "https://instagram.com";
+    if (activePlatform?.id === 'whatsapp') {
+      url = socialLinks.whatsapp || "";
     }
     if (url) window.open(url, '_blank');
     if (activePlatform?.id) {
@@ -361,12 +376,12 @@ export default function CustomerDrafting() {
             <DialogTitle className="text-xl font-bold text-center">{activePlatform?.name}</DialogTitle>
             
             {/* Google Review */}
-            {activePlatform?.id === 'google' && (
+            {activePlatform?.id === 'google-reviews' && (
               <>
                 <p className="text-sm text-muted-foreground text-center">
                   We'd love to hear your feedback on Google!
                 </p>
-                <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white">
+                <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Leave a Review
                 </Button>
@@ -379,7 +394,7 @@ export default function CustomerDrafting() {
                 <p className="text-sm text-muted-foreground text-center">
                   Copy your text and share your photo on XiaoHongShu!
                 </p>
-                <Button onClick={handleShareAction} className="h-12 w-full bg-red-600 hover:bg-red-700 text-white">
+                <Button onClick={handleShareAction} className="h-12 w-full bg-red-600 hover:bg-red-700 text-white" data-testid="button-share-xhs">
                   <Copy className="mr-2 h-4 w-4" />
                   Copy & Share
                 </Button>
@@ -392,7 +407,7 @@ export default function CustomerDrafting() {
                 <p className="text-sm text-muted-foreground text-center">
                   Share your experience on Facebook!
                 </p>
-                <Button onClick={handleShareAction} className="h-12 w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                <Button onClick={handleShareAction} className="h-12 w-full bg-indigo-600 hover:bg-indigo-700 text-white" data-testid="button-share-fb">
                   <Share2 className="mr-2 h-4 w-4" />
                   Share on Facebook
                 </Button>
@@ -405,35 +420,35 @@ export default function CustomerDrafting() {
                 <p className="text-sm text-muted-foreground text-center">
                   Share your experience on Instagram!
                 </p>
-                <Button onClick={handleShareAction} className="h-12 w-full bg-pink-600 hover:bg-pink-700 text-white">
+                <Button onClick={handleShareAction} className="h-12 w-full bg-pink-600 hover:bg-pink-700 text-white" data-testid="button-share-ig">
                   <Share2 className="mr-2 h-4 w-4" />
                   Share on Instagram
                 </Button>
               </>
             )}
 
-            {/* Follow Facebook */}
-            {activePlatform?.id === 'follow-facebook' && (
+            {/* TikTok Share */}
+            {activePlatform?.id === 'tiktok' && (
               <>
                 <p className="text-sm text-muted-foreground text-center">
-                  Stay updated with our latest news!
+                  Share your transformation on TikTok!
                 </p>
-                <Button onClick={handleFollowAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white">
-                  <ThumbsUp className="mr-2 h-4 w-4" />
-                  Follow on Facebook
+                <Button onClick={handleShareAction} className="h-12 w-full bg-slate-800 hover:bg-slate-900 text-white" data-testid="button-share-tiktok">
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share on TikTok
                 </Button>
               </>
             )}
 
-            {/* Follow Instagram */}
-            {activePlatform?.id === 'follow-instagram' && (
+            {/* WhatsApp Contact */}
+            {activePlatform?.id === 'whatsapp' && (
               <>
                 <p className="text-sm text-muted-foreground text-center">
-                  Stay updated with our latest news!
+                  Chat with us on WhatsApp!
                 </p>
-                <Button onClick={handleFollowAction} className="h-12 w-full bg-pink-600 hover:bg-pink-700 text-white">
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Follow on Instagram
+                <Button onClick={handleContactAction} className="h-12 w-full bg-green-600 hover:bg-green-700 text-white" data-testid="button-contact-whatsapp">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Open WhatsApp
                 </Button>
               </>
             )}

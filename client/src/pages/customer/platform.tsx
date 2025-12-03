@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getStoreConfig, trackClick } from "@/lib/api";
+import { getStoreConfig, trackPlatformClick } from "@/lib/api";
 
 const allPlatforms = [
   { 
@@ -129,7 +129,7 @@ export default function CustomerPlatform() {
     }
     incrementStat(activePlatform?.id || 'unknown');
     try {
-      await trackClick(activePlatform?.id || 'unknown');
+      await trackPlatformClick(activePlatform?.id || 'unknown');
     } catch (e) {
       console.error("Failed to track click:", e);
     }
@@ -151,7 +151,7 @@ export default function CustomerPlatform() {
     
     incrementStat(activePlatform?.id || 'unknown');
     try {
-      await trackClick(activePlatform?.id || 'unknown');
+      await trackPlatformClick(activePlatform?.id || 'unknown');
     } catch (e) {
       console.error("Failed to track click:", e);
     }
@@ -165,7 +165,7 @@ export default function CustomerPlatform() {
     
     incrementStat(activePlatform?.id || 'unknown');
     try {
-      await trackClick(activePlatform?.id || 'unknown');
+      await trackPlatformClick(activePlatform?.id || 'unknown');
     } catch (e) {
       console.error("Failed to track click:", e);
     }
