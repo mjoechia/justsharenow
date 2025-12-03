@@ -8,6 +8,7 @@ export interface StoreConfig {
   instagramUrl?: string | null;
   xiaohongshuUrl?: string | null;
   shopPhotos?: string[];
+  sliderPhotos?: string[];
   reviewHashtags?: string[];
   updatedAt?: string;
 }
@@ -72,6 +73,7 @@ export interface DiscoverResponse {
   websiteUrl: string;
   discoveredLinks: DiscoveredLinks;
   suggestedPhotos: SuggestedPhoto[];
+  suggestedSliderPhotos: SuggestedPhoto[];
   suggestedHashtags: string[];
 }
 
@@ -104,6 +106,26 @@ export async function approvePhoto(imageUrl: string): Promise<ApprovePhotoRespon
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Failed to approve photo');
+  }
+  return response.json();
+}
+
+// Approve and add photo to slider photos
+export interface ApproveSliderPhotoResponse {
+  success: boolean;
+  sliderPhotos: string[];
+  photoCount: number;
+}
+
+export async function approveSliderPhoto(imageUrl: string): Promise<ApproveSliderPhotoResponse> {
+  const response = await fetch('/api/slider-photos/approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageUrl }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to approve slider photo');
   }
   return response.json();
 }

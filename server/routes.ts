@@ -65,6 +65,8 @@ export async function registerRoutes(
         instagramUrl: null,
         xiaohongshuUrl: null,
         shopPhotos: [],
+        sliderPhotos: [],
+        reviewHashtags: [],
       });
     } catch (error) {
       console.error("Error fetching config:", error);

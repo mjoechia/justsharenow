@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, saveHashtags, SuggestedPhoto } from "@/lib/api";
+import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto } from "@/lib/api";
 
 export default function AdminDashboard() {
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
@@ -29,9 +29,12 @@ export default function AdminDashboard() {
   const [igUrl, setIgUrl] = useState("");
   const [xhsUrl, setXhsUrl] = useState("");
   const [shopPhotos, setShopPhotos] = useState<string[]>([]);
+  const [sliderPhotos, setSliderPhotos] = useState<string[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [suggestedPhotos, setSuggestedPhotos] = useState<SuggestedPhoto[]>([]);
+  const [suggestedSliderPhotos, setSuggestedSliderPhotos] = useState<SuggestedPhoto[]>([]);
   const [approvingPhoto, setApprovingPhoto] = useState<string | null>(null);
+  const [approvingSliderPhoto, setApprovingSliderPhoto] = useState<string | null>(null);
   const [suggestedHashtags, setSuggestedHashtags] = useState<string[]>([]);
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
   const [newHashtag, setNewHashtag] = useState("");
@@ -45,6 +48,7 @@ export default function AdminDashboard() {
       setIgUrl(config.instagramUrl || "");
       setXhsUrl(config.xiaohongshuUrl || "");
       setShopPhotos(config.shopPhotos || []);
+      setSliderPhotos(config.sliderPhotos || []);
       setSelectedHashtags(config.reviewHashtags || []);
     }
   }, [config]);
@@ -80,6 +84,7 @@ export default function AdminDashboard() {
 
     setIsDiscovering(true);
     setSuggestedPhotos([]);
+    setSuggestedSliderPhotos([]);
     setSuggestedHashtags([]);
     try {
       const result = await discoverSocialLinks(websiteUrl);
@@ -97,9 +102,14 @@ export default function AdminDashboard() {
         setXhsUrl(result.discoveredLinks.xiaohongshu);
       }
 
-      // Store suggested photos
+      // Store suggested shop photos
       if (result.suggestedPhotos && result.suggestedPhotos.length > 0) {
         setSuggestedPhotos(result.suggestedPhotos);
+      }
+
+      // Store suggested slider photos
+      if (result.suggestedSliderPhotos && result.suggestedSliderPhotos.length > 0) {
+        setSuggestedSliderPhotos(result.suggestedSliderPhotos);
       }
 
       // Store suggested hashtags (filter out already selected ones)
@@ -111,13 +121,15 @@ export default function AdminDashboard() {
       }
 
       const foundCount = Object.values(result.discoveredLinks).filter(Boolean).length;
-      const photoCount = result.suggestedPhotos?.length || 0;
+      const shopPhotoCount = result.suggestedPhotos?.length || 0;
+      const sliderPhotoCount = result.suggestedSliderPhotos?.length || 0;
       const hashtagCount = result.suggestedHashtags?.length || 0;
       
-      if (foundCount > 0 || photoCount > 0 || hashtagCount > 0) {
+      if (foundCount > 0 || shopPhotoCount > 0 || sliderPhotoCount > 0 || hashtagCount > 0) {
         let parts = [];
         if (foundCount > 0) parts.push(`${foundCount} social link${foundCount > 1 ? 's' : ''}`);
-        if (photoCount > 0) parts.push(`${photoCount} photo${photoCount > 1 ? 's' : ''}`);
+        if (shopPhotoCount > 0) parts.push(`${shopPhotoCount} shop photo${shopPhotoCount > 1 ? 's' : ''}`);
+        if (sliderPhotoCount > 0) parts.push(`${sliderPhotoCount} slider photo${sliderPhotoCount > 1 ? 's' : ''}`);
         if (hashtagCount > 0) parts.push(`${hashtagCount} hashtag${hashtagCount > 1 ? 's' : ''}`);
         
         toast({ 
@@ -175,6 +187,41 @@ export default function AdminDashboard() {
 
   const handleDismissPhoto = (photo: SuggestedPhoto) => {
     setSuggestedPhotos(prev => prev.filter(p => p.url !== photo.url));
+  };
+
+  const handleApproveSliderPhoto = async (photo: SuggestedPhoto) => {
+    if (sliderPhotos.length >= 3) {
+      toast({ 
+        title: "Limit Reached", 
+        description: "Maximum 3 slider photos allowed. Remove some photos first.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setApprovingSliderPhoto(photo.url);
+    try {
+      const result = await approveSliderPhoto(photo.url);
+      setSliderPhotos(result.sliderPhotos);
+      setSuggestedSliderPhotos(prev => prev.filter(p => p.url !== photo.url));
+      queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
+      toast({ 
+        title: "Photo Added!", 
+        description: `Photo added to your slider (${result.photoCount}/3).` 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "Failed to Add Photo", 
+        description: error.message || "Could not add this photo. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setApprovingSliderPhoto(null);
+    }
+  };
+
+  const handleDismissSliderPhoto = (photo: SuggestedPhoto) => {
+    setSuggestedSliderPhotos(prev => prev.filter(p => p.url !== photo.url));
   };
 
   const handleApproveHashtag = (hashtag: string) => {
@@ -286,6 +333,52 @@ export default function AdminDashboard() {
       instagramUrl: igUrl,
       xiaohongshuUrl: xhsUrl,
       shopPhotos: newPhotos,
+      sliderPhotos,
+      reviewHashtags: selectedHashtags,
+    });
+  };
+
+  const handleSliderPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (sliderPhotos.length >= 3) {
+        toast({
+          title: "Limit Reached",
+          description: "You can only upload up to 3 slider photos.",
+          variant: "destructive"
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newPhotos = [...sliderPhotos, reader.result as string];
+        setSliderPhotos(newPhotos);
+        updateConfigMutation.mutate({
+          websiteUrl,
+          googleUrl,
+          facebookUrl: fbUrl,
+          instagramUrl: igUrl,
+          xiaohongshuUrl: xhsUrl,
+          shopPhotos,
+          sliderPhotos: newPhotos,
+          reviewHashtags: selectedHashtags,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeSliderPhoto = (index: number) => {
+    const newPhotos = sliderPhotos.filter((_, i) => i !== index);
+    setSliderPhotos(newPhotos);
+    updateConfigMutation.mutate({
+      websiteUrl,
+      googleUrl,
+      facebookUrl: fbUrl,
+      instagramUrl: igUrl,
+      xiaohongshuUrl: xhsUrl,
+      shopPhotos,
+      sliderPhotos: newPhotos,
       reviewHashtags: selectedHashtags,
     });
   };
@@ -318,6 +411,7 @@ export default function AdminDashboard() {
             <TabsList>
                 <TabsTrigger value="socials">Social Links</TabsTrigger>
                 <TabsTrigger value="photos">Shop Photos</TabsTrigger>
+                <TabsTrigger value="slider">Slider Photos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="socials" className="space-y-6">
@@ -659,6 +753,113 @@ export default function AdminDashboard() {
                             </CardContent>
                         </Card>
                     ))}
+                </div>
+            </TabsContent>
+
+            <TabsContent value="slider" className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-bold">Slider Photos</h2>
+                        <p className="text-muted-foreground">Manage hero carousel photos for your landing page. Max 3 photos.</p>
+                    </div>
+                    <div className="relative">
+                        <Input 
+                            type="file" 
+                            className="hidden" 
+                            id="slider-upload" 
+                            accept="image/*"
+                            onChange={handleSliderPhotoUpload}
+                            disabled={sliderPhotos.length >= 3}
+                        />
+                        <Button asChild disabled={sliderPhotos.length >= 3}>
+                            <Label htmlFor="slider-upload" className="cursor-pointer">
+                                <ImagePlus className="w-4 h-4 mr-2" />
+                                Upload Photo ({sliderPhotos.length}/3)
+                            </Label>
+                        </Button>
+                    </div>
+                </div>
+
+                {/* AI Suggested Slider Photos */}
+                {suggestedSliderPhotos.length > 0 && (
+                    <div className="p-4 rounded-lg bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-200">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Sparkles className="w-5 h-5 text-violet-600" />
+                            <span className="font-semibold text-violet-900">AI Suggested Slider Photos</span>
+                            <span className="text-xs text-muted-foreground ml-auto">
+                                {sliderPhotos.length}/3 photos used
+                            </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-4">
+                            These eye-catching photos are perfect for your hero carousel. Click approve to add them.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {suggestedSliderPhotos.map((photo, idx) => (
+                                <div key={idx} className="relative group rounded-lg overflow-hidden border border-violet-200 bg-white">
+                                    <img 
+                                        src={photo.url} 
+                                        alt={photo.reason}
+                                        className="w-full aspect-video object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                        data-testid={`img-suggested-slider-${idx}`}
+                                    />
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                                        <p className="text-white text-xs text-center line-clamp-2">{photo.reason}</p>
+                                        <div className="flex gap-2">
+                                            <Button 
+                                                size="sm" 
+                                                className="bg-green-600 hover:bg-green-700 h-8"
+                                                onClick={() => handleApproveSliderPhoto(photo)}
+                                                disabled={approvingSliderPhoto === photo.url || sliderPhotos.length >= 3}
+                                                data-testid={`button-approve-slider-${idx}`}
+                                            >
+                                                {approvingSliderPhoto === photo.url ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <Check className="w-4 h-4" />
+                                                )}
+                                            </Button>
+                                            <Button 
+                                                size="sm" 
+                                                variant="destructive"
+                                                className="h-8"
+                                                onClick={() => handleDismissSliderPhoto(photo)}
+                                                data-testid={`button-dismiss-slider-${idx}`}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Current Slider Photos */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {sliderPhotos.length === 0 ? (
+                        <div className="col-span-3 text-center py-12 border-2 border-dashed rounded-lg">
+                            <Image className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                            <p className="text-muted-foreground">No slider photos yet.</p>
+                            <p className="text-sm text-muted-foreground">Upload photos or use AI discovery to add photos for your carousel.</p>
+                        </div>
+                    ) : (
+                        sliderPhotos.map((photo, index) => (
+                            <Card key={index} className="group relative overflow-hidden">
+                                <CardContent className="p-0">
+                                    <img src={photo} alt={`Slider ${index + 1}`} className="w-full aspect-video object-cover" />
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Button variant="destructive" size="icon" onClick={() => removeSliderPhoto(index)} data-testid={`button-remove-slider-${index}`}>
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
                 </div>
             </TabsContent>
         </Tabs>
