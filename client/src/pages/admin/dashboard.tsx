@@ -3,14 +3,14 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image } from "lucide-react";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, SuggestedPhoto } from "@/lib/api";
+import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, saveHashtags, SuggestedPhoto } from "@/lib/api";
 
 export default function AdminDashboard() {
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
@@ -32,6 +32,10 @@ export default function AdminDashboard() {
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [suggestedPhotos, setSuggestedPhotos] = useState<SuggestedPhoto[]>([]);
   const [approvingPhoto, setApprovingPhoto] = useState<string | null>(null);
+  const [suggestedHashtags, setSuggestedHashtags] = useState<string[]>([]);
+  const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
+  const [newHashtag, setNewHashtag] = useState("");
+  const [savingHashtags, setSavingHashtags] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -41,6 +45,7 @@ export default function AdminDashboard() {
       setIgUrl(config.instagramUrl || "");
       setXhsUrl(config.xiaohongshuUrl || "");
       setShopPhotos(config.shopPhotos || []);
+      setSelectedHashtags(config.reviewHashtags || []);
     }
   }, [config]);
 
@@ -83,6 +88,7 @@ export default function AdminDashboard() {
 
     setIsDiscovering(true);
     setSuggestedPhotos([]);
+    setSuggestedHashtags([]);
     try {
       const result = await discoverSocialLinks(websiteUrl);
       
@@ -104,23 +110,32 @@ export default function AdminDashboard() {
         setSuggestedPhotos(result.suggestedPhotos);
       }
 
+      // Store suggested hashtags (filter out already selected ones)
+      if (result.suggestedHashtags && result.suggestedHashtags.length > 0) {
+        const newSuggestions = result.suggestedHashtags.filter(
+          tag => !selectedHashtags.includes(tag)
+        );
+        setSuggestedHashtags(newSuggestions);
+      }
+
       const foundCount = Object.values(result.discoveredLinks).filter(Boolean).length;
       const photoCount = result.suggestedPhotos?.length || 0;
+      const hashtagCount = result.suggestedHashtags?.length || 0;
       
-      if (foundCount > 0 || photoCount > 0) {
-        let message = '';
-        if (foundCount > 0) message += `${foundCount} social link${foundCount > 1 ? 's' : ''}`;
-        if (foundCount > 0 && photoCount > 0) message += ' and ';
-        if (photoCount > 0) message += `${photoCount} photo suggestion${photoCount > 1 ? 's' : ''}`;
+      if (foundCount > 0 || photoCount > 0 || hashtagCount > 0) {
+        let parts = [];
+        if (foundCount > 0) parts.push(`${foundCount} social link${foundCount > 1 ? 's' : ''}`);
+        if (photoCount > 0) parts.push(`${photoCount} photo${photoCount > 1 ? 's' : ''}`);
+        if (hashtagCount > 0) parts.push(`${hashtagCount} hashtag${hashtagCount > 1 ? 's' : ''}`);
         
         toast({ 
           title: "Discovery Complete!", 
-          description: `AI found ${message} from your website.` 
+          description: `AI found ${parts.join(', ')} from your website.` 
         });
       } else {
         toast({ 
           title: "No Content Found", 
-          description: "No social media links or photos were found on your website.", 
+          description: "No social media links, photos, or hashtags were found on your website.", 
           variant: "destructive" 
         });
       }
@@ -168,6 +183,76 @@ export default function AdminDashboard() {
 
   const handleDismissPhoto = (photo: SuggestedPhoto) => {
     setSuggestedPhotos(prev => prev.filter(p => p.url !== photo.url));
+  };
+
+  const handleApproveHashtag = (hashtag: string) => {
+    if (selectedHashtags.length >= 12) {
+      toast({ 
+        title: "Limit Reached", 
+        description: "Maximum 12 hashtags allowed.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    if (!selectedHashtags.includes(hashtag)) {
+      setSelectedHashtags(prev => [...prev, hashtag]);
+    }
+    setSuggestedHashtags(prev => prev.filter(h => h !== hashtag));
+  };
+
+  const handleDismissHashtag = (hashtag: string) => {
+    setSuggestedHashtags(prev => prev.filter(h => h !== hashtag));
+  };
+
+  const handleRemoveSelectedHashtag = (hashtag: string) => {
+    setSelectedHashtags(prev => prev.filter(h => h !== hashtag));
+  };
+
+  const handleAddCustomHashtag = () => {
+    if (!newHashtag.trim()) return;
+    
+    const formatted = newHashtag.trim().startsWith('#') ? newHashtag.trim() : `#${newHashtag.trim()}`;
+    
+    if (selectedHashtags.length >= 12) {
+      toast({ 
+        title: "Limit Reached", 
+        description: "Maximum 12 hashtags allowed.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    if (selectedHashtags.includes(formatted)) {
+      toast({ 
+        title: "Already Added", 
+        description: "This hashtag is already in your list.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setSelectedHashtags(prev => [...prev, formatted]);
+    setNewHashtag("");
+  };
+
+  const handleSaveHashtags = async () => {
+    setSavingHashtags(true);
+    try {
+      await saveHashtags(selectedHashtags);
+      queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
+      toast({ 
+        title: "Saved!", 
+        description: `${selectedHashtags.length} hashtags saved successfully.` 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "Failed to Save", 
+        description: error.message || "Could not save hashtags. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setSavingHashtags(false);
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -349,6 +434,128 @@ export default function AdminDashboard() {
                             </div>
                         )}
 
+                        {/* Suggested Hashtags Section */}
+                        {suggestedHashtags.length > 0 && (
+                            <div className="p-4 rounded-lg bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Hash className="w-5 h-5 text-teal-600" />
+                                    <span className="font-semibold text-teal-900">Suggested Hashtags for Reviews</span>
+                                    <span className="text-xs text-muted-foreground ml-auto">
+                                        {selectedHashtags.length}/12 selected
+                                    </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-4">
+                                    These hashtags can help customers when sharing reviews. Approve the ones you'd like to offer.
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {suggestedHashtags.map((hashtag, idx) => (
+                                        <div 
+                                            key={idx} 
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-teal-200 text-sm"
+                                            data-testid={`tag-suggested-${idx}`}
+                                        >
+                                            <span className="text-teal-700">{hashtag}</span>
+                                            <button
+                                                onClick={() => handleApproveHashtag(hashtag)}
+                                                className="ml-1 p-0.5 rounded-full hover:bg-green-100 text-green-600"
+                                                disabled={selectedHashtags.length >= 12}
+                                                data-testid={`button-approve-hashtag-${idx}`}
+                                            >
+                                                <Check className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDismissHashtag(hashtag)}
+                                                className="p-0.5 rounded-full hover:bg-red-100 text-red-600"
+                                                data-testid={`button-dismiss-hashtag-${idx}`}
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Selected Hashtags Management */}
+                        <div className="p-4 rounded-lg border bg-card">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Hash className="w-5 h-5 text-purple-600" />
+                                <span className="font-semibold">Review Hashtags</span>
+                                <span className="text-xs text-muted-foreground ml-auto">
+                                    {selectedHashtags.length}/12 hashtags
+                                </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-4">
+                                Customers can use these hashtags when sharing their reviews.
+                            </p>
+                            
+                            {/* Add custom hashtag */}
+                            <div className="flex gap-2 mb-4">
+                                <Input 
+                                    placeholder="Add custom hashtag..."
+                                    value={newHashtag}
+                                    onChange={(e) => setNewHashtag(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddCustomHashtag()}
+                                    className="flex-1"
+                                    data-testid="input-new-hashtag"
+                                />
+                                <Button 
+                                    size="sm" 
+                                    onClick={handleAddCustomHashtag}
+                                    disabled={!newHashtag.trim() || selectedHashtags.length >= 12}
+                                    data-testid="button-add-hashtag"
+                                >
+                                    <Plus className="w-4 h-4 mr-1" />
+                                    Add
+                                </Button>
+                            </div>
+                            
+                            {/* Selected hashtags display */}
+                            {selectedHashtags.length > 0 ? (
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {selectedHashtags.map((hashtag, idx) => (
+                                        <div 
+                                            key={idx}
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-purple-100 border border-purple-200 text-sm"
+                                            data-testid={`tag-selected-${idx}`}
+                                        >
+                                            <span className="text-purple-700">{hashtag}</span>
+                                            <button
+                                                onClick={() => handleRemoveSelectedHashtag(hashtag)}
+                                                className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-red-600"
+                                                data-testid={`button-remove-hashtag-${idx}`}
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    No hashtags selected yet. Use AI discovery or add custom ones.
+                                </p>
+                            )}
+                            
+                            <Button 
+                                onClick={handleSaveHashtags} 
+                                disabled={savingHashtags}
+                                className="w-full"
+                                data-testid="button-save-hashtags"
+                            >
+                                {savingHashtags ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Saving Hashtags...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Check className="w-4 h-4 mr-2" />
+                                        Save Hashtags
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+
                         <div className="grid gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="google">Google Maps URL</Label>
@@ -434,16 +641,19 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {/* Placeholder/Default Photos from Mock Data */}
-                    <Card className="group relative overflow-hidden border-dashed bg-muted/20">
-                         <CardContent className="p-0 aspect-square flex items-center justify-center text-muted-foreground">
-                            <span className="text-sm">Default: Hair</span>
+                    {/* ShareLor Logo - Featured */}
+                    <Card className="group relative overflow-hidden border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+                         <CardContent className="p-0 aspect-square flex items-center justify-center">
+                            <img 
+                                src="/Sharelor_Logo.png" 
+                                alt="ShareLor Logo" 
+                                className="w-full h-full object-contain p-4"
+                                data-testid="img-sharelor-logo"
+                            />
                          </CardContent>
-                    </Card>
-                     <Card className="group relative overflow-hidden border-dashed bg-muted/20">
-                         <CardContent className="p-0 aspect-square flex items-center justify-center text-muted-foreground">
-                            <span className="text-sm">Default: Skin</span>
-                         </CardContent>
+                         <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/90 text-white text-xs text-center py-1">
+                            ShareLor Logo
+                         </div>
                     </Card>
                     
                     {/* User Uploaded Photos */}

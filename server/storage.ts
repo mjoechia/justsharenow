@@ -14,6 +14,7 @@ export interface IStorage {
   getStoreConfig(): Promise<StoreConfig | undefined>;
   updateStoreConfig(config: InsertStoreConfig): Promise<StoreConfig>;
   addShopPhoto(photoBase64: string): Promise<StoreConfig>;
+  setReviewHashtags(hashtags: string[]): Promise<StoreConfig>;
   
   // Analytics
   getAllAnalytics(): Promise<Analytics[]>;
@@ -76,6 +77,35 @@ export class DatabaseStorage implements IStorage {
       const [created] = await db
         .insert(storeConfig)
         .values({ shopPhotos: newPhotos } as any)
+        .returning();
+      return created;
+    }
+  }
+
+  async setReviewHashtags(hashtags: string[]): Promise<StoreConfig> {
+    const existing = await this.getStoreConfig();
+    
+    // Normalize hashtags: ensure # prefix, dedupe, limit to 12
+    const normalized = [...new Set(
+      hashtags
+        .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
+        .slice(0, 12)
+    )];
+    
+    if (existing) {
+      const [updated] = await db
+        .update(storeConfig)
+        .set({ 
+          reviewHashtags: normalized,
+          updatedAt: sql`NOW()` 
+        })
+        .where(eq(storeConfig.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(storeConfig)
+        .values({ reviewHashtags: normalized } as any)
         .returning();
       return created;
     }

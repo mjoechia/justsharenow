@@ -235,20 +235,26 @@ export async function registerRoutes(
       // Also check for meta tags and footer content
       const pageText = $('body').text().substring(0, 5000);
 
-      // Use AI to analyze and find social links + rank images
+      // Use AI to analyze and find social links + rank images + suggest hashtags
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: `You are a helpful assistant that extracts social media URLs and identifies good photos from website content.
+            content: `You are a helpful assistant that extracts social media URLs, identifies good photos, and suggests hashtags from website content.
 Given a list of links, images, and page content from a website (likely a salon/beauty business), identify:
 1. Social media profile URLs
 2. The best photos that would work as shop/portfolio photos (before/after shots, treatment results, product photos)
+3. Relevant hashtags that customers could use when sharing reviews about this business
 
 Return a JSON object with:
 - socialLinks: { google, facebook, instagram, xiaohongshu } - use null if not found
 - suggestedPhotos: array of objects with { url, reason } - select up to 6 best photos that show treatments, results, or portfolio-worthy images. Reason should briefly explain why this photo is good (e.g., "Shows hair treatment results", "Before/after comparison").
+- suggestedHashtags: array of 8-12 hashtags (with # prefix) that are relevant to this business and useful for customer reviews. Include a mix of:
+  - Business/brand specific tags (e.g., #RegrowGroup)
+  - Service-related tags (e.g., #HairCare, #SkinTreatment)
+  - Location tags if identifiable (e.g., #SingaporeBeauty)
+  - General engagement tags (e.g., #BeforeAndAfter, #GlowUp)
 
 Only return valid URLs. Do not make up URLs.`
           },
@@ -280,6 +286,7 @@ ${pageText}`
       };
       
       let suggestedPhotos: { url: string; reason: string }[] = [];
+      let suggestedHashtags: string[] = [];
 
       if (aiResponse) {
         try {
@@ -297,6 +304,13 @@ ${pageText}`
               .filter((p: any) => p.url && isValidExternalUrl(p.url))
               .slice(0, 6);
           }
+          
+          if (Array.isArray(parsed.suggestedHashtags)) {
+            suggestedHashtags = parsed.suggestedHashtags
+              .filter((tag: any) => typeof tag === 'string')
+              .map((tag: string) => tag.startsWith('#') ? tag : `#${tag}`)
+              .slice(0, 12);
+          }
         } catch {
           console.error("Failed to parse AI response:", aiResponse);
         }
@@ -307,6 +321,7 @@ ${pageText}`
         websiteUrl: url.toString(),
         discoveredLinks,
         suggestedPhotos,
+        suggestedHashtags,
       });
 
     } catch (error) {
@@ -406,6 +421,33 @@ ${pageText}`
     } catch (error) {
       console.error("Error approving photo:", error);
       res.status(500).json({ error: "Failed to approve photo" });
+    }
+  });
+
+  // Save selected hashtags
+  app.post("/api/hashtags", async (req, res) => {
+    try {
+      const { hashtags } = req.body;
+      
+      if (!Array.isArray(hashtags)) {
+        res.status(400).json({ error: "Hashtags must be an array" });
+        return;
+      }
+      
+      // Validate hashtags (strings only, max 12)
+      const validHashtags = hashtags
+        .filter((tag): tag is string => typeof tag === 'string')
+        .slice(0, 12);
+      
+      const config = await storage.setReviewHashtags(validHashtags);
+      
+      res.json({
+        success: true,
+        reviewHashtags: config.reviewHashtags,
+      });
+    } catch (error) {
+      console.error("Error saving hashtags:", error);
+      res.status(500).json({ error: "Failed to save hashtags" });
     }
   });
 

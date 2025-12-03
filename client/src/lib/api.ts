@@ -8,6 +8,7 @@ export interface StoreConfig {
   instagramUrl?: string | null;
   xiaohongshuUrl?: string | null;
   shopPhotos?: string[];
+  reviewHashtags?: string[];
   updatedAt?: string;
 }
 
@@ -71,6 +72,7 @@ export interface DiscoverResponse {
   websiteUrl: string;
   discoveredLinks: DiscoveredLinks;
   suggestedPhotos: SuggestedPhoto[];
+  suggestedHashtags: string[];
 }
 
 export async function discoverSocialLinks(websiteUrl: string): Promise<DiscoverResponse> {
@@ -102,6 +104,25 @@ export async function approvePhoto(imageUrl: string): Promise<ApprovePhotoRespon
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Failed to approve photo');
+  }
+  return response.json();
+}
+
+// Save selected hashtags
+export interface SaveHashtagsResponse {
+  success: boolean;
+  reviewHashtags: string[];
+}
+
+export async function saveHashtags(hashtags: string[]): Promise<SaveHashtagsResponse> {
+  const response = await fetch('/api/hashtags', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hashtags }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to save hashtags');
   }
   return response.json();
 }
