@@ -244,12 +244,19 @@ export async function registerRoutes(
             content: `You are a helpful assistant that extracts social media URLs, identifies good photos, and suggests hashtags from website content.
 Given a list of links, images, and page content from a website (likely a salon/beauty business), identify:
 1. Social media profile URLs
-2. The best photos that would work as shop/portfolio photos (before/after shots, treatment results, product photos)
+2. The best photos for TWO purposes:
+   a) Shop/portfolio photos (before/after shots, treatment results, product photos)
+   b) Slider/hero photos (eye-catching, professional photos for a carousel/banner)
 3. Relevant hashtags that customers could use when sharing reviews about this business
 
 Return a JSON object with:
 - socialLinks: { google, facebook, instagram, xiaohongshu } - use null if not found
 - suggestedPhotos: array of objects with { url, reason } - select up to 6 best photos that show treatments, results, or portfolio-worthy images. Reason should briefly explain why this photo is good (e.g., "Shows hair treatment results", "Before/after comparison").
+- suggestedSliderPhotos: array of objects with { url, reason } - select up to 3 best photos for a hero carousel/slider. These should be:
+  - Wide/landscape oriented if possible
+  - High quality, visually striking images
+  - Professional looking photos of the business, interior, or featured work
+  Reason should explain why it's good for a slider (e.g., "Professional interior shot", "Eye-catching treatment showcase").
 - suggestedHashtags: array of 8-12 hashtags (with # prefix) that are relevant to this business and useful for customer reviews. Include a mix of:
   - Business/brand specific tags (e.g., #RegrowGroup)
   - Service-related tags (e.g., #HairCare, #SkinTreatment)
@@ -286,6 +293,7 @@ ${pageText}`
       };
       
       let suggestedPhotos: { url: string; reason: string }[] = [];
+      let suggestedSliderPhotos: { url: string; reason: string }[] = [];
       let suggestedHashtags: string[] = [];
 
       if (aiResponse) {
@@ -305,6 +313,12 @@ ${pageText}`
               .slice(0, 6);
           }
           
+          if (Array.isArray(parsed.suggestedSliderPhotos)) {
+            suggestedSliderPhotos = parsed.suggestedSliderPhotos
+              .filter((p: any) => p.url && isValidExternalUrl(p.url))
+              .slice(0, 3);
+          }
+          
           if (Array.isArray(parsed.suggestedHashtags)) {
             suggestedHashtags = parsed.suggestedHashtags
               .filter((tag: any) => typeof tag === 'string')
@@ -321,6 +335,7 @@ ${pageText}`
         websiteUrl: url.toString(),
         discoveredLinks,
         suggestedPhotos,
+        suggestedSliderPhotos,
         suggestedHashtags,
       });
 
@@ -421,6 +436,100 @@ ${pageText}`
     } catch (error) {
       console.error("Error approving photo:", error);
       res.status(500).json({ error: "Failed to approve photo" });
+    }
+  });
+
+  // Slider Photo Approval Endpoint - download external image and add to slider photos
+  app.post("/api/slider-photos/approve", async (req, res) => {
+    try {
+      const { imageUrl } = req.body;
+      
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        res.status(400).json({ error: "Image URL is required" });
+        return;
+      }
+
+      // Validate URL
+      if (!isValidExternalUrl(imageUrl)) {
+        res.status(400).json({ error: "Invalid image URL" });
+        return;
+      }
+
+      // Check photo limit first
+      const currentConfig = await storage.getStoreConfig();
+      const currentPhotos = currentConfig?.sliderPhotos || [];
+      
+      if (currentPhotos.length >= 3) {
+        res.status(400).json({ error: "Maximum of 3 slider photos allowed. Please remove some photos first." });
+        return;
+      }
+
+      // Download the image with timeout and size limit
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB limit
+
+      try {
+        const response = await fetch(imageUrl, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ShareLor/1.0)',
+          },
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          res.status(400).json({ error: "Failed to download image" });
+          return;
+        }
+
+        // Verify content type
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.startsWith('image/')) {
+          res.status(400).json({ error: "URL does not point to a valid image" });
+          return;
+        }
+
+        // Check content length
+        const contentLength = response.headers.get('content-length');
+        if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE) {
+          res.status(400).json({ error: "Image is too large (max 2MB)" });
+          return;
+        }
+
+        // Download and convert to base64
+        const arrayBuffer = await response.arrayBuffer();
+        
+        if (arrayBuffer.byteLength > MAX_IMAGE_SIZE) {
+          res.status(400).json({ error: "Image is too large (max 2MB)" });
+          return;
+        }
+
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const dataUrl = `data:${contentType};base64,${base64}`;
+
+        // Add to slider photos using dedicated method (preserves other config fields)
+        const updatedConfig = await storage.addSliderPhoto(dataUrl);
+
+        res.json({
+          success: true,
+          sliderPhotos: updatedConfig.sliderPhotos,
+          photoCount: updatedConfig.sliderPhotos?.length || 0,
+        });
+
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          res.status(408).json({ error: "Download timeout - image took too long" });
+        } else {
+          res.status(400).json({ error: "Failed to download image" });
+        }
+        return;
+      }
+
+    } catch (error) {
+      console.error("Error approving slider photo:", error);
+      res.status(500).json({ error: "Failed to approve slider photo" });
     }
   });
 
