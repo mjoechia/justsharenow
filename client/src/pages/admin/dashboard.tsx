@@ -24,10 +24,12 @@ export default function AdminDashboard() {
   });
 
   const [websiteUrl, setWebsiteUrl] = useState("");
-  const [googleUrl, setGoogleUrl] = useState("");
+  const [googleReviewsUrl, setGoogleReviewsUrl] = useState("");
   const [fbUrl, setFbUrl] = useState("");
   const [igUrl, setIgUrl] = useState("");
   const [xhsUrl, setXhsUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
+  const [whatsappUrl, setWhatsappUrl] = useState("");
   const [shopPhotos, setShopPhotos] = useState<string[]>([]);
   const [sliderPhotos, setSliderPhotos] = useState<string[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
@@ -39,24 +41,46 @@ export default function AdminDashboard() {
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
   const [newHashtag, setNewHashtag] = useState("");
   const [savingHashtags, setSavingHashtags] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     if (config) {
       setWebsiteUrl(config.websiteUrl || "");
-      setGoogleUrl(config.googleUrl || "");
+      setGoogleReviewsUrl(config.googleReviewsUrl || "");
       setFbUrl(config.facebookUrl || "");
       setIgUrl(config.instagramUrl || "");
       setXhsUrl(config.xiaohongshuUrl || "");
+      setTiktokUrl(config.tiktokUrl || "");
+      setWhatsappUrl(config.whatsappUrl || "");
       setShopPhotos(config.shopPhotos || []);
       setSliderPhotos(config.sliderPhotos || []);
       setSelectedHashtags(config.reviewHashtags || []);
+      setIsDirty(false);
     }
   }, [config]);
+
+  const checkDirty = () => {
+    if (!config) return false;
+    return (
+      websiteUrl !== (config.websiteUrl || "") ||
+      googleReviewsUrl !== (config.googleReviewsUrl || "") ||
+      fbUrl !== (config.facebookUrl || "") ||
+      igUrl !== (config.instagramUrl || "") ||
+      xhsUrl !== (config.xiaohongshuUrl || "") ||
+      tiktokUrl !== (config.tiktokUrl || "") ||
+      whatsappUrl !== (config.whatsappUrl || "")
+    );
+  };
+
+  useEffect(() => {
+    setIsDirty(checkDirty());
+  }, [websiteUrl, googleReviewsUrl, fbUrl, igUrl, xhsUrl, tiktokUrl, whatsappUrl, config]);
 
   const updateConfigMutation = useMutation({
     mutationFn: updateStoreConfig,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
+      setIsDirty(false);
       toast({ title: "Saved", description: "Configuration updated successfully." });
     },
     onError: () => {
@@ -67,11 +91,14 @@ export default function AdminDashboard() {
   const handleSaveSocials = () => {
     updateConfigMutation.mutate({
       websiteUrl,
-      googleUrl,
+      googleReviewsUrl,
       facebookUrl: fbUrl,
       instagramUrl: igUrl,
       xiaohongshuUrl: xhsUrl,
+      tiktokUrl,
+      whatsappUrl,
       shopPhotos,
+      sliderPhotos,
       reviewHashtags: selectedHashtags,
     });
   };
@@ -89,8 +116,8 @@ export default function AdminDashboard() {
     try {
       const result = await discoverSocialLinks(websiteUrl);
       
-      if (result.discoveredLinks.google) {
-        setGoogleUrl(result.discoveredLinks.google);
+      if (result.discoveredLinks.googleReviews) {
+        setGoogleReviewsUrl(result.discoveredLinks.googleReviews);
       }
       if (result.discoveredLinks.facebook) {
         setFbUrl(result.discoveredLinks.facebook);
@@ -100,6 +127,12 @@ export default function AdminDashboard() {
       }
       if (result.discoveredLinks.xiaohongshu) {
         setXhsUrl(result.discoveredLinks.xiaohongshu);
+      }
+      if (result.discoveredLinks.tiktok) {
+        setTiktokUrl(result.discoveredLinks.tiktok);
+      }
+      if (result.discoveredLinks.whatsapp) {
+        setWhatsappUrl(result.discoveredLinks.whatsapp);
       }
 
       // Store suggested shop photos
@@ -311,11 +344,14 @@ export default function AdminDashboard() {
             setShopPhotos(newPhotos);
             updateConfigMutation.mutate({
               websiteUrl,
-              googleUrl,
+              googleReviewsUrl,
               facebookUrl: fbUrl,
               instagramUrl: igUrl,
               xiaohongshuUrl: xhsUrl,
+              tiktokUrl,
+              whatsappUrl,
               shopPhotos: newPhotos,
+              sliderPhotos,
               reviewHashtags: selectedHashtags,
             });
         };
@@ -328,10 +364,12 @@ export default function AdminDashboard() {
     setShopPhotos(newPhotos);
     updateConfigMutation.mutate({
       websiteUrl,
-      googleUrl,
+      googleReviewsUrl,
       facebookUrl: fbUrl,
       instagramUrl: igUrl,
       xiaohongshuUrl: xhsUrl,
+      tiktokUrl,
+      whatsappUrl,
       shopPhotos: newPhotos,
       sliderPhotos,
       reviewHashtags: selectedHashtags,
@@ -355,10 +393,12 @@ export default function AdminDashboard() {
         setSliderPhotos(newPhotos);
         updateConfigMutation.mutate({
           websiteUrl,
-          googleUrl,
+          googleReviewsUrl,
           facebookUrl: fbUrl,
           instagramUrl: igUrl,
           xiaohongshuUrl: xhsUrl,
+          tiktokUrl,
+          whatsappUrl,
           shopPhotos,
           sliderPhotos: newPhotos,
           reviewHashtags: selectedHashtags,
@@ -373,10 +413,12 @@ export default function AdminDashboard() {
     setSliderPhotos(newPhotos);
     updateConfigMutation.mutate({
       websiteUrl,
-      googleUrl,
+      googleReviewsUrl,
       facebookUrl: fbUrl,
       instagramUrl: igUrl,
       xiaohongshuUrl: xhsUrl,
+      tiktokUrl,
+      whatsappUrl,
       shopPhotos,
       sliderPhotos: newPhotos,
       reviewHashtags: selectedHashtags,
@@ -641,56 +683,99 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="grid gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="google">Google Maps URL</Label>
-                                <Input 
-                                    type="url" 
-                                    id="google" 
-                                    placeholder="https://maps.google.com/..."
-                                    value={googleUrl}
-                                    onChange={(e) => setGoogleUrl(e.target.value)} 
-                                />
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="google-reviews">Google Reviews URL</Label>
+                                    <Input 
+                                        type="url" 
+                                        id="google-reviews" 
+                                        placeholder="https://g.page/r/..."
+                                        value={googleReviewsUrl}
+                                        onChange={(e) => setGoogleReviewsUrl(e.target.value)}
+                                        data-testid="input-google-reviews-url"
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="facebook">Facebook URL</Label>
+                                    <Input 
+                                        type="url" 
+                                        id="facebook" 
+                                        placeholder="https://facebook.com/..."
+                                        value={fbUrl}
+                                        onChange={(e) => setFbUrl(e.target.value)}
+                                        data-testid="input-facebook-url"
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="instagram">Instagram URL</Label>
+                                    <Input 
+                                        type="url" 
+                                        id="instagram" 
+                                        placeholder="https://instagram.com/..." 
+                                        value={igUrl}
+                                        onChange={(e) => setIgUrl(e.target.value)}
+                                        data-testid="input-instagram-url"
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="xhs">XiaoHongShu URL</Label>
+                                    <Input 
+                                        type="url" 
+                                        id="xhs" 
+                                        placeholder="https://xiaohongshu.com/..."
+                                        value={xhsUrl}
+                                        onChange={(e) => setXhsUrl(e.target.value)}
+                                        data-testid="input-xiaohongshu-url"
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="tiktok">TikTok URL</Label>
+                                    <Input 
+                                        type="url" 
+                                        id="tiktok" 
+                                        placeholder="https://tiktok.com/@..."
+                                        value={tiktokUrl}
+                                        onChange={(e) => setTiktokUrl(e.target.value)}
+                                        data-testid="input-tiktok-url"
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="whatsapp">WhatsApp URL</Label>
+                                    <Input 
+                                        type="url" 
+                                        id="whatsapp" 
+                                        placeholder="https://wa.me/..."
+                                        value={whatsappUrl}
+                                        onChange={(e) => setWhatsappUrl(e.target.value)}
+                                        data-testid="input-whatsapp-url"
+                                    />
+                                </div>
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="facebook">Facebook URL</Label>
-                                <Input 
-                                    type="url" 
-                                    id="facebook" 
-                                    placeholder="https://facebook.com/..."
-                                    value={fbUrl}
-                                    onChange={(e) => setFbUrl(e.target.value)} 
-                                />
-                            </div>
+                            {isDirty && (
+                                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                                    You have unsaved changes. Please save before leaving.
+                                </div>
+                            )}
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="instagram">Instagram URL</Label>
-                                <Input 
-                                    type="url" 
-                                    id="instagram" 
-                                    placeholder="https://instagram.com/..." 
-                                    value={igUrl}
-                                    onChange={(e) => setIgUrl(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="xhs">XiaoHongShu URL</Label>
-                                <Input 
-                                    type="url" 
-                                    id="xhs" 
-                                    placeholder="https://xiaohongshu.com/..."
-                                    value={xhsUrl}
-                                    onChange={(e) => setXhsUrl(e.target.value)} 
-                                />
-                            </div>
-
-                            <Button onClick={handleSaveSocials} disabled={updateConfigMutation.isPending}>
+                            <Button 
+                                onClick={handleSaveSocials} 
+                                disabled={updateConfigMutation.isPending || !isDirty}
+                                className={isDirty ? "bg-amber-600 hover:bg-amber-700" : ""}
+                                data-testid="button-save-socials"
+                            >
                                 {updateConfigMutation.isPending ? (
                                     <>
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                         Saving...
                                     </>
+                                ) : isDirty ? (
+                                    "Save Changes (Required)"
                                 ) : (
                                     "Save Changes"
                                 )}
