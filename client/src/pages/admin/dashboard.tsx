@@ -49,15 +49,6 @@ export default function AdminDashboard() {
     }
   }, [config]);
 
-  const handleReset = () => {
-    setSelectedPhoto("");
-    setSelectedReview("");
-    toast({
-        title: "Demo Reset",
-        description: "Selection state has been cleared.",
-    });
-  };
-
   const updateConfigMutation = useMutation({
     mutationFn: updateStoreConfig,
     onSuccess: () => {
@@ -308,10 +299,6 @@ export default function AdminDashboard() {
                 <p className="text-muted-foreground">{t.admin.dashboard.subtitle}</p>
             </div>
             <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={handleReset}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Reset Demo
-                </Button>
                 <Button variant="outline" asChild>
                     <Link href="/quick-view">
                         <ExternalLink className="w-4 h-4 mr-2" />
