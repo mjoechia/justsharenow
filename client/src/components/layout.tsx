@@ -53,12 +53,6 @@ export function Layout({ children, isAdmin = false, hideCarousel = false }: { ch
                 <Link href="/admin" className={location === '/admin' ? "text-primary" : "hover:text-foreground transition-colors"}>
                   Dashboard
                 </Link>
-                <Link href="/admin/qr" className={location === '/admin/qr' ? "text-primary" : "hover:text-foreground transition-colors"}>
-                  QR Codes
-                </Link>
-                <Link href="/admin/analytics" className={location === '/admin/analytics' ? "text-primary" : "hover:text-foreground transition-colors"}>
-                  Analytics
-                </Link>
               </nav>
             )}
             
