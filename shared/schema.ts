@@ -6,10 +6,12 @@ import { z } from "zod";
 export const storeConfig = pgTable("store_config", {
   id: serial("id").primaryKey(),
   websiteUrl: text("website_url"),
-  googleUrl: text("google_url"),
+  googleReviewsUrl: text("google_reviews_url"),
   facebookUrl: text("facebook_url"),
   instagramUrl: text("instagram_url"),
   xiaohongshuUrl: text("xiaohongshu_url"),
+  tiktokUrl: text("tiktok_url"),
+  whatsappUrl: text("whatsapp_url"),
   shopPhotos: jsonb("shop_photos").$type<string[]>().default([]),
   sliderPhotos: jsonb("slider_photos").$type<string[]>().default([]),
   reviewHashtags: jsonb("review_hashtags").$type<string[]>().default([]),

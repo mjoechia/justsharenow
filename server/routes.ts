@@ -51,7 +51,7 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   // Initialize default platforms
-  const defaultPlatforms = ['google', 'facebook', 'instagram', 'xiaohongshu', 'follow-facebook', 'follow-instagram'];
+  const defaultPlatforms = ['google-reviews', 'facebook', 'instagram', 'xiaohongshu', 'tiktok', 'whatsapp'];
   await storage.initializePlatforms(defaultPlatforms);
 
   // Store Configuration Routes
@@ -60,10 +60,12 @@ export async function registerRoutes(
       const config = await storage.getStoreConfig();
       res.json(config || {
         websiteUrl: null,
-        googleUrl: null,
+        googleReviewsUrl: null,
         facebookUrl: null,
         instagramUrl: null,
         xiaohongshuUrl: null,
+        tiktokUrl: null,
+        whatsappUrl: null,
         shopPhotos: [],
         sliderPhotos: [],
         reviewHashtags: [],
@@ -245,14 +247,20 @@ export async function registerRoutes(
             role: "system",
             content: `You are a helpful assistant that extracts social media URLs, identifies good photos, and suggests hashtags from website content.
 Given a list of links, images, and page content from a website (likely a salon/beauty business), identify:
-1. Social media profile URLs
+1. Social media and contact URLs for 6 platforms:
+   - googleReviews: The Google Reviews/Google Business page where customers can leave reviews
+   - xiaohongshu: The XiaoHongShu (Little Red Book) page of the business
+   - instagram: The Instagram page of the business
+   - facebook: The Facebook page of the business
+   - tiktok: The TikTok page of the business
+   - whatsapp: The WhatsApp contact link (wa.me or api.whatsapp.com format)
 2. The best photos for TWO purposes:
    a) Shop/portfolio photos (before/after shots, treatment results, product photos)
    b) Slider/hero photos (eye-catching, professional photos for a carousel/banner)
 3. Relevant hashtags that customers could use when sharing reviews about this business
 
 Return a JSON object with:
-- socialLinks: { google, facebook, instagram, xiaohongshu } - use null if not found
+- socialLinks: { googleReviews, facebook, instagram, xiaohongshu, tiktok, whatsapp } - use null if not found
 - suggestedPhotos: array of objects with { url, reason } - select up to 6 best photos that show treatments, results, or portfolio-worthy images. Reason should briefly explain why this photo is good (e.g., "Shows hair treatment results", "Before/after comparison").
 - suggestedSliderPhotos: array of objects with { url, reason } - select up to 3 best photos for a hero carousel/slider. These should be:
   - Wide/landscape oriented if possible
@@ -288,10 +296,12 @@ ${pageText}`
       const aiResponse = completion.choices[0]?.message?.content;
       
       let discoveredLinks = {
-        google: null as string | null,
+        googleReviews: null as string | null,
         facebook: null as string | null,
         instagram: null as string | null,
         xiaohongshu: null as string | null,
+        tiktok: null as string | null,
+        whatsapp: null as string | null,
       };
       
       let suggestedPhotos: { url: string; reason: string }[] = [];
@@ -303,10 +313,12 @@ ${pageText}`
           const parsed = JSON.parse(aiResponse);
           const socialLinks = parsed.socialLinks || parsed;
           discoveredLinks = {
-            google: socialLinks.google || null,
+            googleReviews: socialLinks.googleReviews || null,
             facebook: socialLinks.facebook || null,
             instagram: socialLinks.instagram || null,
             xiaohongshu: socialLinks.xiaohongshu || null,
+            tiktok: socialLinks.tiktok || null,
+            whatsapp: socialLinks.whatsapp || null,
           };
           
           if (Array.isArray(parsed.suggestedPhotos)) {

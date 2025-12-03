@@ -3,10 +3,12 @@
 export interface StoreConfig {
   id?: number;
   websiteUrl?: string | null;
-  googleUrl?: string | null;
+  googleReviewsUrl?: string | null;
   facebookUrl?: string | null;
   instagramUrl?: string | null;
   xiaohongshuUrl?: string | null;
+  tiktokUrl?: string | null;
+  whatsappUrl?: string | null;
   shopPhotos?: string[];
   sliderPhotos?: string[];
   reviewHashtags?: string[];
@@ -57,10 +59,12 @@ export async function trackPlatformClick(platform: string): Promise<void> {
 
 // Discover social links from website
 export interface DiscoveredLinks {
-  google: string | null;
+  googleReviews: string | null;
   facebook: string | null;
   instagram: string | null;
   xiaohongshu: string | null;
+  tiktok: string | null;
+  whatsapp: string | null;
 }
 
 export interface SuggestedPhoto {
