@@ -110,9 +110,21 @@ export default function AdminDashboard() {
     }
 
     setIsDiscovering(true);
+    
+    // Clear ALL existing data when AI Logic starts
+    setGoogleReviewsUrl("");
+    setFbUrl("");
+    setIgUrl("");
+    setXhsUrl("");
+    setTiktokUrl("");
+    setWhatsappUrl("");
+    setShopPhotos([]);
+    setSliderPhotos([]);
+    setSelectedHashtags([]);
     setSuggestedPhotos([]);
     setSuggestedSliderPhotos([]);
     setSuggestedHashtags([]);
+    
     try {
       const result = await discoverSocialLinks(websiteUrl);
       
