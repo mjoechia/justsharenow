@@ -2,7 +2,7 @@ import { useStore } from "@/lib/store";
 import { Link, useLocation } from "wouter";
 import { Globe, Menu, X } from "lucide-react";
 import { useState } from "react";
-import sharelotLogo from "@assets/generated_images/modern_abstract_logo_for_sharelot.png";
+import sharelorLogo from "@assets/sharelor_logo_abstract_1764746550373.jpg";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -41,7 +41,7 @@ export function Layout({ children, isAdmin = false, hideCarousel = false }: { ch
       <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={sharelotLogo} alt="ShareLor" className="h-8 w-8 rounded-lg" />
+            <img src={sharelorLogo} alt="ShareLor" className="h-8 w-8 rounded-lg" />
             <span className="font-heading font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
               ShareLor
             </span>
