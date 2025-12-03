@@ -2,7 +2,7 @@
 
 ## Overview
 
-ShareLor is a multi-view interactive web application designed to help businesses manage and deploy review-sharing campaigns through QR codes. The platform enables customers to select AI-generated reviews and photos, then share them across multiple social media platforms (Google, Facebook, Instagram, XiaoHongShu). Business owners can track QR code scan analytics, optimize campaigns based on performance data, and download print-ready marketing materials.
+ShareLor is a multi-view interactive web application designed to help businesses manage and deploy review-sharing campaigns through QR codes. The platform enables customers to select AI-generated reviews and photos, then share them across 6 social media platforms (Google Reviews, Facebook, Instagram, XiaoHongShu, TikTok, WhatsApp). Business owners can track QR code scan analytics, optimize campaigns based on performance data, and download print-ready marketing materials.
 
 The application features a customer-facing flow for review selection and sharing, and an administrative dashboard for campaign management and analytics tracking.
 
@@ -51,13 +51,17 @@ Preferred communication style: Simple, everyday language.
 - Vite middleware integration for development HMR
 
 **Database Schema:**
-- `store_config` table: Single-row configuration storing social media URLs, website URL, shop photos (JSONB array), and review hashtags (text array)
-- `analytics` table: Platform-specific click tracking with unique platform identifiers and click counts
+- `store_config` table: Single-row configuration storing 6 social media URLs (googleReviewsUrl, facebookUrl, instagramUrl, xiaohongshuUrl, tiktokUrl, whatsappUrl), website URL, shop photos (JSONB array), slider photos (JSONB array), and review hashtags (text array)
+- `analytics` table: Platform-specific click tracking with unique platform identifiers (google-reviews, facebook, instagram, xiaohongshu, tiktok, whatsapp) and click counts
 
 **Recent Features:**
+- 6-platform support: Google Reviews, Facebook, Instagram, XiaoHongShu, TikTok, WhatsApp
+- AI-powered social link discovery: Scans business website to auto-discover social media URLs for all 6 platforms
 - AI-powered hashtag discovery: When scanning website, AI suggests up to 12 relevant hashtags
 - Admin hashtag management: Approve/dismiss AI suggestions, add custom hashtags manually
 - Customer hashtag selection: Hashtags displayed as selectable chips in review drafting flow
+- Dirty state tracking: "Save Changes" button only enabled when configuration is modified
+- Dynamic platform filtering: Shop View only displays platforms that have configured URLs
 - ShareLor logo featured as default image in Shop Photos section
 
 **Key Architectural Patterns:**
