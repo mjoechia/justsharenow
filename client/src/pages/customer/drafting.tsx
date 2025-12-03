@@ -1,6 +1,6 @@
 import { useStore, translations } from "@/lib/store";
 import { Layout } from "@/components/layout";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Check, ChevronRight, RefreshCw, Share2, ExternalLink, Copy, X, ThumbsUp, UserPlus, Hash } from "lucide-react";
@@ -11,14 +11,41 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig, trackPlatformClick } from "@/lib/api";
 
-import hairImage from "@assets/generated_images/before_and_after_hair_treatment_comparison.png";
-import skinImage from "@assets/generated_images/before_and_after_skin_treatment_comparison.png";
 import regrowLogo from "@assets/generated_images/regrow_group_corporate_logo.png";
+import sharelorLogo from "/Sharelor_Logo.png";
 
-const photos = [
-  { id: 'hair', src: hairImage, label: 'Hair Treatment' },
-  { id: 'skin', src: skinImage, label: 'Skin Treatment' },
-];
+const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): string[] => {
+  if (hashtags.length === 0) {
+    return [];
+  }
+  
+  const cleanTags = hashtags.map(h => h.replace('#', '').trim());
+  const primaryTag = cleanTags[0] || '';
+  const secondaryTag = cleanTags[1] || primaryTag;
+  const allTags = hashtags.slice(0, 4).join(' ');
+  
+  const reviewTemplates = [
+    [
+      `Amazing ${primaryTag} experience! The results exceeded my expectations. The ${secondaryTag} treatment was exactly what I needed. Highly recommend!`,
+      `Professional ${primaryTag} service! Will definitely come back for more ${secondaryTag} sessions. The transformation is incredible!`,
+      `Best ${primaryTag} decision I made! The quality of ${secondaryTag} here is unmatched. Worth every penny!`,
+    ],
+    [
+      `Absolutely love the ${primaryTag} results! The team was so professional and caring. Perfect ${secondaryTag} treatment!`,
+      `Such a wonderful ${primaryTag} experience from start to finish! The ${secondaryTag} service is top-notch!`,
+      `Truly exceptional ${primaryTag}! I can't stop recommending their ${secondaryTag} services to everyone!`,
+    ],
+    [
+      `Life-changing ${primaryTag} results! The staff are true professionals in ${secondaryTag}. I'm so happy!`,
+      `Exceeded all my ${primaryTag} expectations! The ${secondaryTag} quality here is amazing!`,
+      `Outstanding ${primaryTag} service! Best ${secondaryTag} experience I've ever had. Will be back!`,
+    ],
+  ];
+  
+  const templateSet = reviewTemplates[setIndex % reviewTemplates.length];
+  
+  return templateSet.map(review => `${review}\n\n${allTags}`);
+};
 
 const platforms = [
   { 
@@ -60,6 +87,7 @@ export default function CustomerDrafting() {
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reviewSetIndex, setReviewSetIndex] = useState(0);
+  const [photoSetIndex, setPhotoSetIndex] = useState(0);
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
   
   const { data: config } = useQuery({
@@ -75,6 +103,32 @@ export default function CustomerDrafting() {
   };
   
   const availableHashtags = config?.reviewHashtags || [];
+  const shopPhotos = config?.shopPhotos || [];
+  
+  const displayPhotos = useMemo(() => {
+    if (shopPhotos.length === 0) {
+      return [{ id: 'logo', src: sharelorLogo, label: 'ShareLor' }];
+    }
+    
+    const photosPerPage = 2;
+    const startIndex = (photoSetIndex * photosPerPage) % shopPhotos.length;
+    const selectedPhotos: { id: string; src: string; label: string }[] = [];
+    
+    for (let i = 0; i < Math.min(photosPerPage, shopPhotos.length); i++) {
+      const idx = (startIndex + i) % shopPhotos.length;
+      selectedPhotos.push({
+        id: `photo-${idx}`,
+        src: shopPhotos[idx],
+        label: `Photo ${idx + 1}`,
+      });
+    }
+    
+    return selectedPhotos;
+  }, [shopPhotos, photoSetIndex]);
+  
+  const generatedReviews = useMemo(() => {
+    return generateReviewsFromHashtags(availableHashtags, reviewSetIndex);
+  }, [availableHashtags, reviewSetIndex]);
   
   const toggleHashtag = (hashtag: string) => {
     setSelectedHashtags(prev => 
@@ -92,7 +146,9 @@ export default function CustomerDrafting() {
   
   const t = translations[language];
   const activePlatform = platforms.find(p => p.id === selectedPlatform);
-  const currentReviews = t.customer.drafting.reviewSets[reviewSetIndex];
+  const currentReviews = generatedReviews.length > 0 
+    ? generatedReviews 
+    : t.customer.drafting.reviewSets[reviewSetIndex];
   
   const handleNext = () => {
     if (selectedPhoto && selectedReview) {
@@ -101,13 +157,33 @@ export default function CustomerDrafting() {
   };
 
   const handleSwitch = () => {
-    setSelectedPhoto("");
     setSelectedReview("");
+    setSelectedHashtags([]);
+    
+    // Calculate next photo set index
+    const nextPhotoSetIndex = shopPhotos.length > 0 ? photoSetIndex + 1 : 0;
+    setPhotoSetIndex(nextPhotoSetIndex);
+    
+    // Auto-select first photo of new set
+    if (shopPhotos.length > 0) {
+      const photosPerPage = 2;
+      const startIndex = (nextPhotoSetIndex * photosPerPage) % shopPhotos.length;
+      setSelectedPhoto(shopPhotos[startIndex]);
+    } else {
+      setSelectedPhoto(sharelorLogo);
+    }
+    
     // Rotate to next review set
-    const totalSets = t.customer.drafting.reviewSets.length;
+    const totalSets = generatedReviews.length > 0 ? 3 : t.customer.drafting.reviewSets.length;
     setReviewSetIndex((prev) => (prev + 1) % totalSets);
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setIsModalOpen(false);
+    
+    toast({
+      title: "Switched!",
+      description: "New photos and reviews are ready for you.",
+    });
   };
 
   const handleReviewAction = async () => {
@@ -166,11 +242,12 @@ export default function CustomerDrafting() {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 ml-1">
             {t.customer.drafting.selectPhoto}
           </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {photos.map((photo) => (
+          <div className={`grid gap-3 ${displayPhotos.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-2'}`}>
+            {displayPhotos.map((photo) => (
               <div 
                 key={photo.id}
                 onClick={() => setSelectedPhoto(photo.src)}
+                data-testid={`photo-${photo.id}`}
                 className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer transition-all duration-300 border-2 ${
                   selectedPhoto === photo.src 
                     ? 'border-primary ring-2 ring-primary/20 scale-95' 
