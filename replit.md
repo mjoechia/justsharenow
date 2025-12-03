@@ -51,8 +51,14 @@ Preferred communication style: Simple, everyday language.
 - Vite middleware integration for development HMR
 
 **Database Schema:**
-- `store_config` table: Single-row configuration storing social media URLs, website URL, and shop photos (JSONB array)
+- `store_config` table: Single-row configuration storing social media URLs, website URL, shop photos (JSONB array), and review hashtags (text array)
 - `analytics` table: Platform-specific click tracking with unique platform identifiers and click counts
+
+**Recent Features:**
+- AI-powered hashtag discovery: When scanning website, AI suggests up to 12 relevant hashtags
+- Admin hashtag management: Approve/dismiss AI suggestions, add custom hashtags manually
+- Customer hashtag selection: Hashtags displayed as selectable chips in review drafting flow
+- ShareLor logo featured as default image in Shop Photos section
 
 **Key Architectural Patterns:**
 - Storage abstraction layer (`IStorage` interface) for database operations
