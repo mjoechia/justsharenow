@@ -61,6 +61,7 @@ export async function registerRoutes(
       res.json(config || {
         websiteUrl: null,
         googleReviewsUrl: null,
+        googlePlaceId: null,
         facebookUrl: null,
         instagramUrl: null,
         xiaohongshuUrl: null,
@@ -245,35 +246,41 @@ export async function registerRoutes(
         messages: [
           {
             role: "system",
-            content: `You are a helpful assistant that extracts social media URLs, identifies good photos, and suggests hashtags from website content.
+            content: `You are a helpful assistant that extracts social media URLs, Google Place IDs, photos, and hashtags from website content.
+
 Given a list of links, images, and page content from a website (likely a salon/beauty business), identify:
-1. Social media and contact URLs for 6 platforms:
-   - googleReviews: The Google Reviews/Google Business page where customers can leave reviews
+
+1. GOOGLE BUSINESS INFO (CRITICAL):
+   - googlePlaceId: Extract the Google Place ID from any Google Maps or Google Business links found on the page.
+     Look for patterns like:
+     - maps.google.com URLs containing "place_id=" parameter
+     - g.page/ short links (the business name after g.page/ helps identify the business)
+     - Google Maps URLs with "!1s" followed by the place ID (e.g., "!1s0x...")
+     - search.google.com/local/writereview URLs with "placeid=" parameter
+   - If no direct Place ID is found but there's a Google Maps/Business link, extract any identifiable info.
+   
+2. Social media and contact URLs for 6 platforms:
+   - googleReviews: The Google Reviews/Google Business page URL (we'll use this as fallback)
    - xiaohongshu: The XiaoHongShu (Little Red Book) page of the business
    - instagram: The Instagram page of the business
    - facebook: The Facebook page of the business
    - tiktok: The TikTok page of the business
    - whatsapp: The WhatsApp contact link (wa.me or api.whatsapp.com format)
-2. The best photos for TWO purposes:
+
+3. The best photos for TWO purposes:
    a) Shop/portfolio photos (before/after shots, treatment results, product photos)
    b) Slider/hero photos (eye-catching, professional photos for a carousel/banner)
-3. Relevant hashtags that customers could use when sharing reviews about this business
+
+4. Relevant hashtags that customers could use when sharing reviews
 
 Return a JSON object with:
-- socialLinks: { googleReviews, facebook, instagram, xiaohongshu, tiktok, whatsapp } - use null if not found
-- suggestedPhotos: array of objects with { url, reason } - select up to 6 best photos that show treatments, results, or portfolio-worthy images. Reason should briefly explain why this photo is good (e.g., "Shows hair treatment results", "Before/after comparison").
-- suggestedSliderPhotos: array of objects with { url, reason } - select up to 3 best photos for a hero carousel/slider. These should be:
-  - Wide/landscape oriented if possible
-  - High quality, visually striking images
-  - Professional looking photos of the business, interior, or featured work
-  Reason should explain why it's good for a slider (e.g., "Professional interior shot", "Eye-catching treatment showcase").
-- suggestedHashtags: array of 8-12 hashtags (with # prefix) that are relevant to this business and useful for customer reviews. Include a mix of:
-  - Business/brand specific tags (e.g., #RegrowGroup)
-  - Service-related tags (e.g., #HairCare, #SkinTreatment)
-  - Location tags if identifiable (e.g., #SingaporeBeauty)
-  - General engagement tags (e.g., #BeforeAndAfter, #GlowUp)
+- socialLinks: { googleReviews, googlePlaceId, facebook, instagram, xiaohongshu, tiktok, whatsapp } - use null if not found
+  IMPORTANT: googlePlaceId should be JUST the Place ID string (e.g., "ChIJ...") not a full URL
+- suggestedPhotos: array of objects with { url, reason } - select up to 6 best photos
+- suggestedSliderPhotos: array of objects with { url, reason } - select up to 3 best photos for hero carousel
+- suggestedHashtags: array of 8-12 hashtags (with # prefix)
 
-Only return valid URLs. Do not make up URLs.`
+Only return valid URLs. Do not make up URLs or Place IDs.`
           },
           {
             role: "user",
@@ -297,6 +304,7 @@ ${pageText}`
       
       let discoveredLinks = {
         googleReviews: null as string | null,
+        googlePlaceId: null as string | null,
         facebook: null as string | null,
         instagram: null as string | null,
         xiaohongshu: null as string | null,
@@ -314,6 +322,7 @@ ${pageText}`
           const socialLinks = parsed.socialLinks || parsed;
           discoveredLinks = {
             googleReviews: socialLinks.googleReviews || null,
+            googlePlaceId: socialLinks.googlePlaceId || null,
             facebook: socialLinks.facebook || null,
             instagram: socialLinks.instagram || null,
             xiaohongshu: socialLinks.xiaohongshu || null,

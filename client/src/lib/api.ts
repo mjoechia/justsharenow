@@ -4,6 +4,7 @@ export interface StoreConfig {
   id?: number;
   websiteUrl?: string | null;
   googleReviewsUrl?: string | null;
+  googlePlaceId?: string | null;
   facebookUrl?: string | null;
   instagramUrl?: string | null;
   xiaohongshuUrl?: string | null;
@@ -60,6 +61,7 @@ export async function trackPlatformClick(platform: string): Promise<void> {
 // Discover social links from website
 export interface DiscoveredLinks {
   googleReviews: string | null;
+  googlePlaceId: string | null;
   facebook: string | null;
   instagram: string | null;
   xiaohongshu: string | null;

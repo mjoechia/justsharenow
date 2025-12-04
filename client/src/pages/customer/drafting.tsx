@@ -103,6 +103,7 @@ export default function CustomerDrafting() {
   
   const socialLinks = {
     googleReviews: config?.googleReviewsUrl || "",
+    googlePlaceId: config?.googlePlaceId || "",
     facebook: config?.facebookUrl || "",
     instagram: config?.instagramUrl || "",
     xiaohongshu: config?.xiaohongshuUrl || "",
@@ -205,8 +206,17 @@ export default function CustomerDrafting() {
 
   const handleReviewAction = async () => {
     if (activePlatform?.id === 'google-reviews') {
+      // If we have a Google Place ID and a selected review, generate a pre-filled review link
+      const reviewText = getReviewWithHashtags();
+      if (socialLinks.googlePlaceId && selectedReview && reviewText) {
+        const encodedReview = encodeURIComponent(reviewText);
+        const prefilledUrl = `https://search.google.com/local/writereview?placeid=${socialLinks.googlePlaceId}&review=${encodedReview}`;
+        window.open(prefilledUrl, '_blank');
+      } else {
+        // Fallback to regular Google Reviews URL
         const url = socialLinks.googleReviews || "https://www.google.com/maps";
         window.open(url, '_blank');
+      }
     }
     if (activePlatform?.id) {
       await trackPlatformClick(activePlatform.id);
@@ -378,13 +388,53 @@ export default function CustomerDrafting() {
             {/* Google Review */}
             {activePlatform?.id === 'google-reviews' && (
               <>
-                <p className="text-sm text-muted-foreground text-center">
-                  We'd love to hear your feedback on Google!
-                </p>
-                <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Leave a Review
-                </Button>
+                {socialLinks.googlePlaceId && selectedReview ? (
+                  <>
+                    <p className="text-sm text-muted-foreground text-center">
+                      Your review is ready! Click OK to open Google Reviews with your text pre-filled.
+                    </p>
+                    
+                    {/* Preview of the prepared review */}
+                    <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-yellow-500">⭐⭐⭐⭐⭐</span>
+                      </div>
+                      <p className="text-sm text-gray-700 line-clamp-3" data-testid="text-review-preview">
+                        {getReviewWithHashtags()}
+                      </p>
+                    </div>
+                    
+                    {/* Selected photo reminder */}
+                    {selectedPhoto && (
+                      <div className="w-full">
+                        <p className="text-xs text-muted-foreground mb-2 text-center">
+                          Your selected photo (add it manually on Google):
+                        </p>
+                        <img 
+                          src={selectedPhoto} 
+                          alt="Selected photo" 
+                          className="w-20 h-20 object-cover rounded-lg mx-auto border"
+                          data-testid="img-selected-photo-preview"
+                        />
+                      </div>
+                    )}
+                    
+                    <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
+                      <Check className="mr-2 h-4 w-4" />
+                      OK - Open Google Review
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground text-center">
+                      We'd love to hear your feedback on Google!
+                    </p>
+                    <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Leave a Review
+                    </Button>
+                  </>
+                )}
               </>
             )}
 

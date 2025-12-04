@@ -51,12 +51,14 @@ Preferred communication style: Simple, everyday language.
 - Vite middleware integration for development HMR
 
 **Database Schema:**
-- `store_config` table: Single-row configuration storing 6 social media URLs (googleReviewsUrl, facebookUrl, instagramUrl, xiaohongshuUrl, tiktokUrl, whatsappUrl), website URL, shop photos (JSONB array), slider photos (JSONB array), and review hashtags (text array)
+- `store_config` table: Single-row configuration storing 6 social media URLs (googleReviewsUrl, facebookUrl, instagramUrl, xiaohongshuUrl, tiktokUrl, whatsappUrl), Google Place ID (googlePlaceId), website URL, shop photos (JSONB array), slider photos (JSONB array), and review hashtags (text array)
 - `analytics` table: Platform-specific click tracking with unique platform identifiers (google-reviews, facebook, instagram, xiaohongshu, tiktok, whatsapp) and click counts
 
 **Recent Features:**
 - 6-platform support: Google Reviews, Facebook, Instagram, XiaoHongShu, TikTok, WhatsApp
-- AI-powered social link discovery: Scans business website to auto-discover social media URLs for all 6 platforms
+- Google Place ID integration: AI extracts Google Place ID from website to generate pre-filled review links
+- Pre-filled Google Reviews: When Place ID is available, customers see a one-click review experience with their selected review text pre-populated in Google Reviews (format: https://search.google.com/local/writereview?placeid=PLACE_ID&review=ENCODED_TEXT)
+- AI-powered social link discovery: Scans business website to auto-discover social media URLs for all 6 platforms and extract Google Place ID
 - AI-powered hashtag discovery: When scanning website, AI suggests up to 12 relevant hashtags
 - Admin hashtag management: Approve/dismiss AI suggestions, add custom hashtags manually
 - Customer hashtag selection: Hashtags displayed as selectable chips in review drafting flow

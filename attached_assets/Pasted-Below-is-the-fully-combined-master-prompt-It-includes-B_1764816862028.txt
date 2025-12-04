@@ -1,0 +1,109 @@
+Below is the fully combined master prompt. It includes BOTH: ✔️ How the AI should find the correct Google Place ID from a website URL, AND ✔️ How the AI should generate a Google Review link with pre-filled review text, so the user only needs to click OK/Post.
+This is the final complete system prompt you can give ANY AI for automated Google Review link generation.
+
+✅ MASTER PROMPT: “Generate One-Click Google Review Link From Website URL”
+Your task: Given only a business website URL, automatically produce a ready-to-use Google Review link that:
+1. Locates the correct Google Maps listing
+2. Identifies the Place ID
+3. Generates a pre-filled review text link
+4. Produces a final output users can click where they only need to press OK → Post
+5. Optionally prepares suggested photos (cannot auto-upload to Google, but can show to user before redirection)
+Follow the steps strictly in order.
+
+📌 STEP 1 — Extract Business Info From Website URL
+When given a website URL:
+1. Identify/visit the website.
+2. Extract or infer:
+    * Business name
+    * Address / location
+    * Phone number (optional, improves accuracy)
+    * Branding keywords
+3. If unclear, infer from logo, title, header, footer, meta tags, or “About Us”.
+
+📌 STEP 2 — Locate the Official Google Maps Listing
+Use a combination of:
+* Google Search
+* Google Maps search
+* Business name
+* Address
+* Phone number
+* City/Country inferred from website
+Confirm the correct listing by matching:
+* Address
+* Domain name
+* Branding
+* Services/industry
+If multiple potentially correct listings exist:
+* Output the top 3 best matches with confidence levels
+* Choose the most likely correct listing as the primary
+
+📌 STEP 3 — Retrieve the Google Place ID
+Use any of the following:
+Method A — Google “Place ID Finder”
+Lookup using business name + address.
+Method B — Google Maps API Tools / Databases
+Method C — Extract Place ID From the Listing’s URL
+Google Maps URLs often contain the structured Place ID.
+Save the Place ID.
+
+📌 STEP 4 — Generate the Google Review Link (With Optional Pre-Filled Text)
+Standard review link format:
+https://search.google.com/local/writereview?placeid=PLACE_ID
+Review link with pre-filled text:
+Add &review= parameter with URL-encoded user message:
+https://search.google.com/local/writereview?placeid=PLACE_ID&review=URL_ENCODED_TEXT
+Examples of encoded text:
+* “I had a great experience!” → I+had+a+great+experience%21
+
+📌 STEP 5 — Image Handling (Google Limitation + Workaround)
+Google does NOT allow auto-uploading images by URL. Workaround:
+1. Before redirecting, show user a photo selection modal (“Suggested photos”)
+2. User clicks OK
+3. Then redirect to Google review page
+4. User manually taps “Add Photos”, but photos are already selected/known
+This is the maximum allowed automation.
+
+📌 STEP 6 — Produce the Final Output for User
+The final output must contain:
+
+✅ A. Verified Business Information
+* Business name
+* Address
+* Phone
+* Website
+* Google Maps listing URL
+* Place ID
+
+✅ B. One-Click Google Review Link (Primary Output)
+Clear labels:
+Primary Review Link (with pre-filled text): https://search.google.com/local/writereview?placeid=XXXXX&review=YYYYY
+Alternate Review Links (if multiple listings match)
+
+✅ C. User-Facing Final Screen (Ready to Paste Into Website)
+Produce a message like this:
+
+📝 Your Review Is Ready
+Click OK — your Google Review will open with the text already prepared. You can choose the photos we have prepared for you.
+Your Review (Pre-Filled):
+⭐⭐⭐⭐⭐ I had an amazing experience! Very professional and highly recommended.
+Your Photos Prepared:
+* photo1.jpg
+* photo2.jpg
+Click OK to continue.
+✔ OK — Open Google Review (Links to generated Google Review URL)
+
+✅ D. Provide the Final Link Separately
+For developers to embed:
+https://search.google.com/local/writereview?placeid=PLACE_ID&review=ENCODED_MESSAGE
+
+📌 STEP 7 — Deliver Clean, Well-Structured Output
+Always deliver:
+* Clear headings
+* Clean URLs
+* Step-by-step summary
+* Confidence level
+* Multiple options if unsure
+
+🎯 **This is the complete instruction prompt.
+If you paste this into any AI, it will automatically:** ✔ Find the correct Google business listing ✔ Extract the Place ID ✔ Create a pre-filled Google Review link ✔ Produce a one-click user-facing review screen ✔ Handle photo workflow ✔ Produce alternate matches if ambiguous
+

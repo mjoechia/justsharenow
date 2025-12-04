@@ -7,6 +7,7 @@ export const storeConfig = pgTable("store_config", {
   id: serial("id").primaryKey(),
   websiteUrl: text("website_url"),
   googleReviewsUrl: text("google_reviews_url"),
+  googlePlaceId: text("google_place_id"),
   facebookUrl: text("facebook_url"),
   instagramUrl: text("instagram_url"),
   xiaohongshuUrl: text("xiaohongshu_url"),

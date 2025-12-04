@@ -25,6 +25,7 @@ export default function AdminDashboard() {
 
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [googleReviewsUrl, setGoogleReviewsUrl] = useState("");
+  const [googlePlaceId, setGooglePlaceId] = useState("");
   const [fbUrl, setFbUrl] = useState("");
   const [igUrl, setIgUrl] = useState("");
   const [xhsUrl, setXhsUrl] = useState("");
@@ -47,6 +48,7 @@ export default function AdminDashboard() {
     if (config) {
       setWebsiteUrl(config.websiteUrl || "");
       setGoogleReviewsUrl(config.googleReviewsUrl || "");
+      setGooglePlaceId(config.googlePlaceId || "");
       setFbUrl(config.facebookUrl || "");
       setIgUrl(config.instagramUrl || "");
       setXhsUrl(config.xiaohongshuUrl || "");
@@ -64,6 +66,7 @@ export default function AdminDashboard() {
     return (
       websiteUrl !== (config.websiteUrl || "") ||
       googleReviewsUrl !== (config.googleReviewsUrl || "") ||
+      googlePlaceId !== (config.googlePlaceId || "") ||
       fbUrl !== (config.facebookUrl || "") ||
       igUrl !== (config.instagramUrl || "") ||
       xhsUrl !== (config.xiaohongshuUrl || "") ||
@@ -74,7 +77,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setIsDirty(checkDirty());
-  }, [websiteUrl, googleReviewsUrl, fbUrl, igUrl, xhsUrl, tiktokUrl, whatsappUrl, config]);
+  }, [websiteUrl, googleReviewsUrl, googlePlaceId, fbUrl, igUrl, xhsUrl, tiktokUrl, whatsappUrl, config]);
 
   const updateConfigMutation = useMutation({
     mutationFn: updateStoreConfig,
@@ -92,6 +95,7 @@ export default function AdminDashboard() {
     updateConfigMutation.mutate({
       websiteUrl,
       googleReviewsUrl,
+      googlePlaceId,
       facebookUrl: fbUrl,
       instagramUrl: igUrl,
       xiaohongshuUrl: xhsUrl,
@@ -113,6 +117,7 @@ export default function AdminDashboard() {
     
     // Clear ALL existing data when AI Logic starts
     setGoogleReviewsUrl("");
+    setGooglePlaceId("");
     setFbUrl("");
     setIgUrl("");
     setXhsUrl("");
@@ -130,6 +135,9 @@ export default function AdminDashboard() {
       
       if (result.discoveredLinks.googleReviews) {
         setGoogleReviewsUrl(result.discoveredLinks.googleReviews);
+      }
+      if (result.discoveredLinks.googlePlaceId) {
+        setGooglePlaceId(result.discoveredLinks.googlePlaceId);
       }
       if (result.discoveredLinks.facebook) {
         setFbUrl(result.discoveredLinks.facebook);
@@ -708,6 +716,23 @@ export default function AdminDashboard() {
                                     />
                                 </div>
 
+                                <div className="grid gap-2">
+                                    <Label htmlFor="google-place-id">Google Place ID</Label>
+                                    <Input 
+                                        type="text" 
+                                        id="google-place-id" 
+                                        placeholder="ChIJ..."
+                                        value={googlePlaceId}
+                                        onChange={(e) => setGooglePlaceId(e.target.value)}
+                                        data-testid="input-google-place-id"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Used to generate pre-filled review links
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="facebook">Facebook URL</Label>
                                     <Input 
