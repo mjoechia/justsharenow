@@ -847,18 +847,18 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {/* ShareLor Logo - Featured */}
+                    {/* JustShareNow Logo - Featured */}
                     <Card className="group relative overflow-hidden border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
                          <CardContent className="p-0 aspect-square flex items-center justify-center">
                             <img 
-                                src="/Sharelor_Logo.png" 
-                                alt="ShareLor Logo" 
+                                src="/attached_assets/justsharenow_logo_1765236628260.jpg" 
+                                alt="JustShareNow Logo" 
                                 className="w-full h-full object-contain p-4"
-                                data-testid="img-sharelor-logo"
+                                data-testid="img-justsharenow-logo"
                             />
                          </CardContent>
                          <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/90 text-white text-xs text-center py-1">
-                            ShareLor Logo
+                            JustShareNow Logo
                          </div>
                     </Card>
                     

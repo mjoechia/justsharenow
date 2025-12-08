@@ -64,7 +64,7 @@ Preferred communication style: Simple, everyday language.
 - Customer hashtag selection: Hashtags displayed as selectable chips in review drafting flow
 - Dirty state tracking: "Save Changes" button only enabled when configuration is modified
 - Dynamic platform filtering: Shop View only displays platforms that have configured URLs
-- ShareLor logo featured as default image in Shop Photos section
+- JustShareNow logo featured as default image in Shop Photos section
 
 **Key Architectural Patterns:**
 - Storage abstraction layer (`IStorage` interface) for database operations

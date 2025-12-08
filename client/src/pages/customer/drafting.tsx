@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig, trackPlatformClick } from "@/lib/api";
 
 import regrowLogo from "@assets/generated_images/regrow_group_corporate_logo.png";
-import sharelorLogo from "/Sharelor_Logo.png";
+import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 
 const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): string[] => {
   if (hashtags.length === 0) {
@@ -116,7 +116,7 @@ export default function CustomerDrafting() {
   
   const displayPhotos = useMemo(() => {
     if (shopPhotos.length === 0) {
-      return [{ id: 'logo', src: sharelorLogo, label: 'ShareLor' }];
+      return [{ id: 'logo', src: justShareNowLogo, label: 'JustShareNow' }];
     }
     
     const photosPerPage = 2;
@@ -188,7 +188,7 @@ export default function CustomerDrafting() {
       const startIndex = (nextPhotoSetIndex * photosPerPage) % shopPhotos.length;
       setSelectedPhoto(shopPhotos[startIndex]);
     } else {
-      setSelectedPhoto(sharelorLogo);
+      setSelectedPhoto(justShareNowLogo);
     }
     
     // Rotate to next review set

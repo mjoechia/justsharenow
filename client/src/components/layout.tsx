@@ -2,7 +2,7 @@ import { useStore } from "@/lib/store";
 import { Link, useLocation } from "wouter";
 import { Globe, Menu, X } from "lucide-react";
 import { useState } from "react";
-import sharelorLogo from "@assets/sharelor_logo_abstract_1764746550373.jpg";
+import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -41,9 +41,9 @@ export function Layout({ children, isAdmin = false, hideCarousel = false }: { ch
       <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={sharelorLogo} alt="ShareLor" className="h-8 w-8 rounded-lg" />
+            <img src={justShareNowLogo} alt="JustShareNow" className="h-8 w-8 rounded-lg" />
             <span className="font-heading font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-              ShareLor
+              JustShareNow
             </span>
           </div>
 
@@ -136,7 +136,7 @@ export function Layout({ children, isAdmin = false, hideCarousel = false }: { ch
 
       <footer className="border-t py-6 bg-muted/30">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2025 ShareLor. All rights reserved.</p>
+          <p>© 2025 JustShareNow. All rights reserved.</p>
         </div>
       </footer>
     </div>
