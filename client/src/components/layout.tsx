@@ -42,7 +42,7 @@ export function Layout({ children, isAdmin = false, hideCarousel = false }: { ch
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src={justShareNowLogo} alt="JustShareNow" className="h-8 w-8 rounded-lg" />
-            <span className="font-heading font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+            <span className="font-heading font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-[#2D7FF9] to-[#23C7C3]">
               JustShareNow
             </span>
           </div>

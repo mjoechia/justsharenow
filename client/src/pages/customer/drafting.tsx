@@ -328,8 +328,8 @@ export default function CustomerDrafting() {
                   onClick={() => toggleHashtag(hashtag)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
                     selectedHashtags.includes(hashtag)
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-700 hover:bg-purple-100 hover:text-purple-700'
+                      ? 'bg-[#23C7C3] text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-700 hover:bg-[#23C7C3]/10 hover:text-[#23C7C3]'
                   }`}
                   data-testid={`button-hashtag-${idx}`}
                 >
@@ -457,7 +457,7 @@ export default function CustomerDrafting() {
                 <p className="text-sm text-muted-foreground text-center">
                   Share your experience on Facebook!
                 </p>
-                <Button onClick={handleShareAction} className="h-12 w-full bg-indigo-600 hover:bg-indigo-700 text-white" data-testid="button-share-fb">
+                <Button onClick={handleShareAction} className="h-12 w-full bg-[#2D7FF9] hover:bg-[#2D7FF9]/90 text-white" data-testid="button-share-fb">
                   <Share2 className="mr-2 h-4 w-4" />
                   Share on Facebook
                 </Button>

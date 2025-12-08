@@ -484,10 +484,10 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {/* Website URL with AI Discovery */}
-                        <div className="p-4 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100">
+                        <div className="p-4 rounded-lg bg-gradient-to-r from-[#2D7FF9]/5 to-[#23C7C3]/5 border border-[#2D7FF9]/20">
                             <div className="flex items-center gap-2 mb-3">
-                                <Sparkles className="w-5 h-5 text-indigo-600" />
-                                <span className="font-semibold text-indigo-900">AI-Powered Discovery</span>
+                                <Sparkles className="w-5 h-5 text-[#2D7FF9]" />
+                                <span className="font-semibold text-[#0B1E3F]">AI-Powered Discovery</span>
                             </div>
                             <div className="flex gap-2">
                                 <Input 
@@ -501,7 +501,7 @@ export default function AdminDashboard() {
                                 <Button 
                                     onClick={handleDiscoverLinks}
                                     disabled={isDiscovering || !websiteUrl}
-                                    className="bg-indigo-600 hover:bg-indigo-700"
+                                    className="bg-[#2D7FF9] hover:bg-[#2D7FF9]/90"
                                     data-testid="button-discover-links"
                                 >
                                     {isDiscovering ? (
@@ -625,7 +625,7 @@ export default function AdminDashboard() {
                         {/* Selected Hashtags Management */}
                         <div className="p-4 rounded-lg border bg-card">
                             <div className="flex items-center gap-2 mb-3">
-                                <Hash className="w-5 h-5 text-purple-600" />
+                                <Hash className="w-5 h-5 text-[#23C7C3]" />
                                 <span className="font-semibold">Review Hashtags</span>
                                 <span className="text-xs text-muted-foreground ml-auto">
                                     {selectedHashtags.length}/12 hashtags
@@ -662,10 +662,10 @@ export default function AdminDashboard() {
                                     {selectedHashtags.map((hashtag, idx) => (
                                         <div 
                                             key={idx}
-                                            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-purple-100 border border-purple-200 text-sm"
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#23C7C3]/10 border border-[#23C7C3]/30 text-sm"
                                             data-testid={`tag-selected-${idx}`}
                                         >
-                                            <span className="text-purple-700">{hashtag}</span>
+                                            <span className="text-[#23C7C3]">{hashtag}</span>
                                             <button
                                                 onClick={() => handleRemoveSelectedHashtag(hashtag)}
                                                 className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-red-600"
@@ -848,7 +848,7 @@ export default function AdminDashboard() {
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {/* JustShareNow Logo - Featured */}
-                    <Card className="group relative overflow-hidden border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+                    <Card className="group relative overflow-hidden border-2 border-[#2D7FF9]/30 bg-gradient-to-br from-[#2D7FF9]/5 to-[#23C7C3]/5">
                          <CardContent className="p-0 aspect-square flex items-center justify-center">
                             <img 
                                 src="/attached_assets/justsharenow_logo_1765236628260.jpg" 
@@ -857,7 +857,7 @@ export default function AdminDashboard() {
                                 data-testid="img-justsharenow-logo"
                             />
                          </CardContent>
-                         <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/90 text-white text-xs text-center py-1">
+                         <div className="absolute bottom-0 left-0 right-0 bg-[#2D7FF9]/90 text-white text-xs text-center py-1">
                             JustShareNow Logo
                          </div>
                     </Card>

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import sharelorAiLogo from "@assets/generated_images/sharelor_ai_logo_with_qr_code.png";
+import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 import { Facebook, Instagram, MapPin, MessageCircle, Download, Link as LinkIcon, RefreshCw } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
@@ -50,7 +50,7 @@ export default function QuickView() {
         
         const pngFile = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
-        downloadLink.download = `ShareLor-QR.png`;
+        downloadLink.download = `JustShareNow-QR.png`;
         downloadLink.href = pngFile;
         downloadLink.click();
         
@@ -68,7 +68,7 @@ export default function QuickView() {
     { icon: <MapPin className="w-5 h-5" />, color: "text-blue-600 bg-blue-50" }, // Google
     { icon: <span className="font-bold text-sm">小</span>, color: "text-red-600 bg-red-50" }, // XHS
     { icon: <Instagram className="w-5 h-5" />, color: "text-pink-600 bg-pink-50" }, // Instagram
-    { icon: <Facebook className="w-5 h-5" />, color: "text-indigo-600 bg-indigo-50" }, // Facebook
+    { icon: <Facebook className="w-5 h-5" />, color: "text-[#2D7FF9] bg-[#2D7FF9]/10" }, // Facebook
     { icon: <span className="font-bold text-sm">Tk</span>, color: "text-black bg-gray-100" }, // TikTok
     { icon: <MessageCircle className="w-5 h-5" />, color: "text-green-600 bg-green-50" }, // WhatsApp
   ];
@@ -81,24 +81,24 @@ export default function QuickView() {
           animate={{ opacity: 1, scale: 1 }}
           className="w-full"
         >
-          <Card className="border-0 shadow-xl bg-gradient-to-b from-indigo-50/50 to-white overflow-hidden">
+          <Card className="border-0 shadow-xl bg-gradient-to-b from-[#2D7FF9]/5 to-white overflow-hidden">
             <CardContent className="p-8 flex flex-col items-center text-center">
               
               {/* Header */}
               <div className="mb-6 flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px]">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2D7FF9] to-[#23C7C3] p-[2px]">
                    <div className="w-full h-full bg-white rounded-xl flex items-center justify-center overflow-hidden">
-                      <img src={sharelorAiLogo} alt="ShareLor AI" className="w-full h-full object-cover" />
+                      <img src={justShareNowLogo} alt="JustShareNow" className="w-full h-full object-cover" />
                    </div>
                 </div>
-                <h1 className="text-2xl font-heading font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                  ShareLor AI
+                <h1 className="text-2xl font-heading font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#2D7FF9] to-[#23C7C3]">
+                  JustShareNow
                 </h1>
               </div>
 
               {/* QR Code */}
               <div 
-                className="bg-white p-4 rounded-2xl shadow-lg border border-indigo-100 mb-8 transition-transform duration-300 relative group cursor-pointer"
+                className="bg-white p-4 rounded-2xl shadow-lg border border-[#2D7FF9]/20 mb-8 transition-transform duration-300 relative group cursor-pointer"
                 onClick={handleScan}
               >
                 <QRCodeSVG 
@@ -106,7 +106,7 @@ export default function QuickView() {
                   size={200}
                   level="H"
                   includeMargin={true}
-                  fgColor="#4F46E5"
+                  fgColor="#2D7FF9"
                   ref={qrRef}
                 />
               </div>
@@ -135,7 +135,7 @@ export default function QuickView() {
               </div>
               
               <Button 
-                className="mt-8 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-200"
+                className="mt-8 w-full bg-gradient-to-r from-[#2D7FF9] to-[#23C7C3] hover:from-[#2D7FF9]/90 hover:to-[#23C7C3]/90 text-white border-0 shadow-lg shadow-[#2D7FF9]/20"
                 onClick={handleScan}
               >
                 Start Review Process

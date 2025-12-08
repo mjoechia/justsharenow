@@ -40,9 +40,9 @@ const allPlatforms = [
   { 
     id: 'facebook', 
     name: 'Facebook', 
-    color: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200', 
-    textColor: 'text-indigo-700',
-    iconColor: 'text-indigo-600',
+    color: 'bg-[#2D7FF9]/5 hover:bg-[#2D7FF9]/10 border-[#2D7FF9]/20', 
+    textColor: 'text-[#2D7FF9]',
+    iconColor: 'text-[#2D7FF9]',
     actionType: 'share',
     configKey: 'facebookUrl' as const
   },
@@ -281,7 +281,7 @@ export default function CustomerPlatform() {
                                     <RefreshCw className="mr-2 h-4 w-4" />
                                     Switch
                                 </Button>
-                                <Button onClick={handleShareAction} className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white" data-testid="button-share">
+                                <Button onClick={handleShareAction} className="h-12 bg-[#2D7FF9] hover:bg-[#2D7FF9]/90 text-white" data-testid="button-share">
                                     <Share2 className="mr-2 h-4 w-4" />
                                     Share
                                 </Button>

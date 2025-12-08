@@ -45,10 +45,10 @@ const platforms = [
   {
     id: 'facebook',
     name: 'Facebook',
-    icon: <Facebook className="w-8 h-8 text-indigo-600" />,
-    bgColor: 'bg-indigo-50',
-    borderColor: 'border-indigo-200',
-    hoverBg: 'hover:bg-indigo-100',
+    icon: <Facebook className="w-8 h-8 text-[#2D7FF9]" />,
+    bgColor: 'bg-[#2D7FF9]/5',
+    borderColor: 'border-[#2D7FF9]/20',
+    hoverBg: 'hover:bg-[#2D7FF9]/10',
   },
   {
     id: 'follow-facebook',
@@ -127,9 +127,9 @@ export default function Landing() {
               <CarouselNext className="right-4" />
             </Carousel>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-100">
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#2D7FF9]/10 to-[#23C7C3]/10">
               <div className="text-center text-muted-foreground p-8">
-                <p className="text-lg font-medium mb-2">Welcome to ShareLor</p>
+                <p className="text-lg font-medium mb-2">Welcome to JustShareNow</p>
                 <p className="text-sm">Upload photos in Admin Dashboard to display here</p>
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function Landing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
+            <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-[#2D7FF9]/5 to-[#23C7C3]/5">
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="bg-white p-2 rounded-lg shadow-sm border">
                   {quickViewUrl && (
@@ -190,7 +190,7 @@ export default function Landing() {
                       value={quickViewUrl}
                       size={80}
                       level="M"
-                      fgColor="#4F46E5"
+                      fgColor="#2D7FF9"
                     />
                   )}
                 </div>
