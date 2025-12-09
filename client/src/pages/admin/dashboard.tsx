@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle } from "lucide-react";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto } from "@/lib/api";
+import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview } from "@/lib/api";
 
 export default function AdminDashboard() {
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
@@ -44,6 +44,8 @@ export default function AdminDashboard() {
   const [newHashtag, setNewHashtag] = useState("");
   const [savingHashtags, setSavingHashtags] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [isFetchingReviews, setIsFetchingReviews] = useState(false);
+  const [fetchedReviews, setFetchedReviews] = useState<GoogleReview[]>([]);
 
   useEffect(() => {
     if (config) {
@@ -345,6 +347,51 @@ export default function AdminDashboard() {
       });
     } finally {
       setSavingHashtags(false);
+    }
+  };
+
+  const handleFetchGoogleReviews = async () => {
+    if (!googlePlaceId) {
+      toast({ 
+        title: "Place ID Required", 
+        description: "Please enter a Google Place ID first.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsFetchingReviews(true);
+    try {
+      const result = await fetchGoogleReviews(googlePlaceId);
+      if (result.success) {
+        setFetchedReviews(result.reviews);
+        const reviewCount = result.reviews.length;
+        toast({ 
+          title: "Reviews Fetched!", 
+          description: `Found ${reviewCount} review${reviewCount !== 1 ? 's' : ''} from Google.${result.businessName ? ` Business: ${result.businessName}` : ''}` 
+        });
+      } else {
+        if (result.needsApiKey) {
+          toast({ 
+            title: "API Key Required", 
+            description: "Please add GOOGLE_PLACES_API_KEY in your secrets to fetch reviews.", 
+            variant: "destructive" 
+          });
+        } else {
+          toast({ 
+            title: "No Reviews Found", 
+            description: result.message || "No reviews were found for this business.", 
+          });
+        }
+      }
+    } catch (error: any) {
+      toast({ 
+        title: "Failed to Fetch Reviews", 
+        description: error.message || "Could not fetch reviews. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsFetchingReviews(false);
     }
   };
 
@@ -790,19 +837,84 @@ export default function AdminDashboard() {
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="google-place-id">Google Place ID</Label>
-                                    <Input 
-                                        type="text" 
-                                        id="google-place-id" 
-                                        placeholder="ChIJ..."
-                                        value={googlePlaceId}
-                                        onChange={(e) => setGooglePlaceId(e.target.value)}
-                                        data-testid="input-google-place-id"
-                                    />
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            type="text" 
+                                            id="google-place-id" 
+                                            placeholder="ChIJ..."
+                                            value={googlePlaceId}
+                                            onChange={(e) => setGooglePlaceId(e.target.value)}
+                                            className="flex-1"
+                                            data-testid="input-google-place-id"
+                                        />
+                                        <Button 
+                                            onClick={handleFetchGoogleReviews}
+                                            disabled={isFetchingReviews || !googlePlaceId}
+                                            variant="outline"
+                                            data-testid="button-fetch-reviews"
+                                        >
+                                            {isFetchingReviews ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    Fetching...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Star className="w-4 h-4 mr-2" />
+                                                    Fetch Reviews
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Used to generate pre-filled review links
+                                        Used to generate pre-filled review links and fetch Google reviews
                                     </p>
                                 </div>
                             </div>
+
+                            {/* Fetched Google Reviews Display */}
+                            {fetchedReviews.length > 0 && (
+                                <div className="p-4 rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                                        <span className="font-semibold text-amber-900">Google Reviews ({fetchedReviews.length})</span>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {fetchedReviews.map((review) => (
+                                            <div key={review.id} className="p-3 bg-white rounded-lg border border-yellow-100" data-testid={`review-card-${review.id}`}>
+                                                <div className="flex items-start gap-3">
+                                                    {review.authorPhotoUrl && (
+                                                        <img 
+                                                            src={review.authorPhotoUrl} 
+                                                            alt={review.authorName}
+                                                            className="w-10 h-10 rounded-full object-cover"
+                                                        />
+                                                    )}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="font-medium text-sm truncate">{review.authorName}</span>
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star 
+                                                                        key={i} 
+                                                                        className={`w-3.5 h-3.5 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        {review.relativeTime && (
+                                                            <p className="text-xs text-muted-foreground">{review.relativeTime}</p>
+                                                        )}
+                                                        {review.text && (
+                                                            <p className="text-sm text-gray-700 mt-2 line-clamp-3">{review.text}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
