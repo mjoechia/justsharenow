@@ -40,11 +40,8 @@ export function Layout({ children, isAdmin = false, hideCarousel = false }: { ch
       {/* Navigation */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src={justShareNowLogo} alt="JustShareNow" className="h-8 w-8 rounded-lg" />
-            <span className="font-heading font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-[#2D7FF9] to-[#23C7C3]">
-              JustShareNow
-            </span>
+          <div className="flex items-center">
+            <img src={justShareNowLogo} alt="JustShareNow" className="h-10 w-auto object-contain" />
           </div>
 
           <div className="hidden md:flex items-center gap-6">
