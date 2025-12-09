@@ -154,3 +154,44 @@ export async function saveHashtags(hashtags: string[]): Promise<SaveHashtagsResp
   }
   return response.json();
 }
+
+// Google Reviews
+export interface GoogleReview {
+  id: number;
+  authorName: string;
+  authorPhotoUrl?: string | null;
+  rating: number;
+  text?: string | null;
+  relativeTime?: string | null;
+  publishTime?: string | null;
+  createdAt: string;
+}
+
+export interface FetchGoogleReviewsResponse {
+  success: boolean;
+  reviews: GoogleReview[];
+  businessName?: string | null;
+  rating?: number | null;
+  totalReviews?: number;
+  message?: string;
+  needsApiKey?: boolean;
+}
+
+export async function getGoogleReviews(): Promise<GoogleReview[]> {
+  const response = await fetch('/api/google-reviews');
+  if (!response.ok) throw new Error('Failed to fetch Google reviews');
+  return response.json();
+}
+
+export async function fetchGoogleReviews(placeId: string): Promise<FetchGoogleReviewsResponse> {
+  const response = await fetch('/api/google-reviews/fetch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ placeId }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch Google reviews');
+  }
+  return response.json();
+}

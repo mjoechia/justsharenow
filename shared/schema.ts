@@ -42,3 +42,24 @@ export const insertAnalyticsSchema = createInsertSchema(analytics).omit({
 
 export type InsertAnalytics = z.infer<typeof insertAnalyticsSchema>;
 export type Analytics = typeof analytics.$inferSelect;
+
+// Google Reviews
+export const googleReviews = pgTable("google_reviews", {
+  id: serial("id").primaryKey(),
+  authorName: text("author_name").notNull(),
+  authorPhotoUrl: text("author_photo_url"),
+  rating: integer("rating").notNull(),
+  text: text("text"),
+  relativeTime: text("relative_time"),
+  publishTime: timestamp("publish_time"),
+  googleReviewId: text("google_review_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGoogleReviewSchema = createInsertSchema(googleReviews).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertGoogleReview = z.infer<typeof insertGoogleReviewSchema>;
+export type GoogleReview = typeof googleReviews.$inferSelect;

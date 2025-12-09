@@ -583,5 +583,104 @@ ${pageText}`
     }
   });
 
+  // Get saved Google reviews
+  app.get("/api/google-reviews", async (_req, res) => {
+    try {
+      const reviews = await storage.getGoogleReviews();
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching Google reviews:", error);
+      res.status(500).json({ error: "Failed to fetch Google reviews" });
+    }
+  });
+
+  // Fetch Google reviews from Places API
+  app.post("/api/google-reviews/fetch", async (req, res) => {
+    try {
+      const { placeId } = req.body;
+      
+      if (!placeId || typeof placeId !== 'string') {
+        res.status(400).json({ error: "Google Place ID is required" });
+        return;
+      }
+
+      // Check for Google Places API key
+      const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (!googleApiKey) {
+        res.status(503).json({ 
+          error: "Google Places API key is not configured. Please add GOOGLE_PLACES_API_KEY to your secrets.",
+          needsApiKey: true
+        });
+        return;
+      }
+
+      // Fetch from Google Places API (New)
+      const fieldsParam = 'id,displayName,reviews,rating,userRatingCount';
+      const apiUrl = `https://places.googleapis.com/v1/places/${placeId}?fields=${fieldsParam}&key=${googleApiKey}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Google Places API error:", errorData);
+        
+        if (response.status === 400) {
+          res.status(400).json({ error: "Invalid Place ID. Please check your Google Place ID and try again." });
+        } else if (response.status === 403) {
+          res.status(403).json({ error: "Google API key is invalid or doesn't have Places API enabled." });
+        } else {
+          res.status(response.status).json({ error: "Failed to fetch reviews from Google" });
+        }
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (!data.reviews || data.reviews.length === 0) {
+        res.json({ 
+          success: true, 
+          reviews: [], 
+          message: "No reviews found for this business.",
+          businessName: data.displayName?.text || null,
+          rating: data.rating || null,
+          totalReviews: data.userRatingCount || 0
+        });
+        return;
+      }
+
+      // Transform Google reviews to our format
+      const reviewsToSave = data.reviews.map((review: any) => ({
+        authorName: review.authorAttribution?.displayName || 'Anonymous',
+        authorPhotoUrl: review.authorAttribution?.photoUri || null,
+        rating: review.rating || 0,
+        text: review.text?.text || review.originalText?.text || null,
+        relativeTime: review.relativePublishTimeDescription || null,
+        publishTime: review.publishTime ? new Date(review.publishTime) : null,
+        googleReviewId: null,
+      }));
+
+      // Save reviews to database
+      const savedReviews = await storage.saveGoogleReviews(reviewsToSave);
+
+      res.json({
+        success: true,
+        reviews: savedReviews,
+        businessName: data.displayName?.text || null,
+        rating: data.rating || null,
+        totalReviews: data.userRatingCount || 0,
+        message: `Successfully fetched ${savedReviews.length} reviews from Google.`
+      });
+
+    } catch (error) {
+      console.error("Error fetching Google reviews:", error);
+      res.status(500).json({ error: "Failed to fetch Google reviews" });
+    }
+  });
+
   return httpServer;
 }

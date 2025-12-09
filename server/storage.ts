@@ -1,10 +1,13 @@
 import { 
   storeConfig, 
   analytics,
+  googleReviews,
   type StoreConfig, 
   type InsertStoreConfig,
   type Analytics,
-  type InsertAnalytics 
+  type InsertAnalytics,
+  type GoogleReview,
+  type InsertGoogleReview 
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
@@ -21,6 +24,11 @@ export interface IStorage {
   getAllAnalytics(): Promise<Analytics[]>;
   incrementPlatformClick(platform: string): Promise<void>;
   initializePlatforms(platforms: string[]): Promise<void>;
+  
+  // Google Reviews
+  getGoogleReviews(): Promise<GoogleReview[]>;
+  saveGoogleReviews(reviews: InsertGoogleReview[]): Promise<GoogleReview[]>;
+  clearGoogleReviews(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -164,6 +172,29 @@ export class DatabaseStorage implements IStorage {
         .values({ platform, clicks: 0 })
         .onConflictDoNothing();
     }
+  }
+
+  async getGoogleReviews(): Promise<GoogleReview[]> {
+    return await db.select().from(googleReviews).orderBy(googleReviews.rating);
+  }
+
+  async saveGoogleReviews(reviews: InsertGoogleReview[]): Promise<GoogleReview[]> {
+    if (reviews.length === 0) return [];
+    
+    // Clear existing reviews first
+    await this.clearGoogleReviews();
+    
+    // Insert new reviews
+    const inserted = await db
+      .insert(googleReviews)
+      .values(reviews)
+      .returning();
+    
+    return inserted;
+  }
+
+  async clearGoogleReviews(): Promise<void> {
+    await db.delete(googleReviews);
   }
 }
 
