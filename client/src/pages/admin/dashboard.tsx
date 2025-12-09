@@ -3,7 +3,8 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus } from "lucide-react";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
@@ -705,7 +706,78 @@ export default function AdminDashboard() {
                         <div className="grid gap-4">
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="google-reviews">Google Reviews URL</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Label htmlFor="google-reviews">Google Reviews URL</Label>
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <button 
+                                                    type="button" 
+                                                    className="text-muted-foreground hover:text-primary transition-colors"
+                                                    data-testid="button-google-help"
+                                                >
+                                                    <HelpCircle className="w-4 h-4" />
+                                                </button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                                                <DialogHeader>
+                                                    <DialogTitle>How to Find Your Google Maps Link</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="space-y-4 text-sm">
+                                                    <p className="text-muted-foreground">Follow these steps to get the correct Google Maps link for your business:</p>
+                                                    
+                                                    <div className="space-y-3">
+                                                        <div className="p-3 bg-muted/50 rounded-lg">
+                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 1 — Open Google Maps</h4>
+                                                            <p>Go to: <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="text-[#2D7FF9] underline">https://maps.google.com</a></p>
+                                                            <p className="text-muted-foreground">Or open the Google Maps app on your phone.</p>
+                                                        </div>
+                                                        
+                                                        <div className="p-3 bg-muted/50 rounded-lg">
+                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 2 — Search for Your Business</h4>
+                                                            <p>In the search bar, type your business name exactly as customers know it.</p>
+                                                            <p className="text-muted-foreground">Example: Regrow</p>
+                                                            <p>Tap <strong>Search</strong>.</p>
+                                                        </div>
+                                                        
+                                                        <div className="p-3 bg-muted/50 rounded-lg">
+                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 3 — Select Your Business</h4>
+                                                            <p>From the search results, tap your business listing. You should now see your business info page with:</p>
+                                                            <ul className="list-disc list-inside text-muted-foreground mt-1">
+                                                                <li>Name</li>
+                                                                <li>Address</li>
+                                                                <li>Photos</li>
+                                                                <li>Reviews</li>
+                                                            </ul>
+                                                        </div>
+                                                        
+                                                        <div className="p-3 bg-muted/50 rounded-lg">
+                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 4 — Copy Your Business Link</h4>
+                                                            <p className="font-medium">On Phone (iOS or Android):</p>
+                                                            <ol className="list-decimal list-inside text-muted-foreground">
+                                                                <li>Tap <strong>Share</strong></li>
+                                                                <li>Tap <strong>Copy</strong> — This copies your official Google Maps business link.</li>
+                                                            </ol>
+                                                            <p className="font-medium mt-2">On Computer:</p>
+                                                            <ol className="list-decimal list-inside text-muted-foreground">
+                                                                <li>Click <strong>Share</strong></li>
+                                                                <li>Click <strong>Copy Link</strong></li>
+                                                            </ol>
+                                                        </div>
+                                                        
+                                                        <div className="p-3 bg-muted/50 rounded-lg">
+                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 5 — Paste the Link Into the App</h4>
+                                                            <p>Return to the app and paste the link where requested. This is all we need to identify your business.</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="p-3 bg-[#23C7C3]/10 border border-[#23C7C3]/30 rounded-lg text-center">
+                                                        <p className="font-semibold text-[#23C7C3]">Done!</p>
+                                                        <p className="text-muted-foreground">You now have the correct Google Maps business link. This link ensures the system can detect the right business name, address, and review page.</p>
+                                                    </div>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
                                     <Input 
                                         type="url" 
                                         id="google-reviews" 
