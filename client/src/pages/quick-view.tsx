@@ -85,15 +85,8 @@ export default function QuickView() {
             <CardContent className="p-8 flex flex-col items-center text-center">
               
               {/* Header */}
-              <div className="mb-6 flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2D7FF9] to-[#23C7C3] p-[2px]">
-                   <div className="w-full h-full bg-white rounded-xl flex items-center justify-center overflow-hidden">
-                      <img src={justShareNowLogo} alt="JustShareNow" className="w-full h-full object-cover" />
-                   </div>
-                </div>
-                <h1 className="text-2xl font-heading font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#2D7FF9] to-[#23C7C3]">
-                  JustShareNow
-                </h1>
+              <div className="mb-6 flex flex-col items-center">
+                <img src={justShareNowLogo} alt="JustShareNow" className="w-48 h-auto object-contain" />
               </div>
 
               {/* QR Code */}
