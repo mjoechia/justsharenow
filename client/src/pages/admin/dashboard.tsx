@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse, resolveGoogleMapsUrl } from "@/lib/api";
+import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 
 export default function AdminDashboard() {
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
@@ -1188,7 +1189,7 @@ export default function AdminDashboard() {
                     <Card className="group relative overflow-hidden border-2 border-[#2D7FF9]/30 bg-gradient-to-br from-[#2D7FF9]/5 to-[#23C7C3]/5">
                          <CardContent className="p-0 aspect-square flex items-center justify-center">
                             <img 
-                                src="/attached_assets/justsharenow_logo_1765236628260.jpg" 
+                                src={justShareNowLogo} 
                                 alt="JustShareNow Logo" 
                                 className="w-full h-full object-contain p-4"
                                 data-testid="img-justsharenow-logo"

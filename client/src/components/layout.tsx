@@ -26,14 +26,14 @@ export function Layout({ children, isAdmin = false, hideCarousel = false }: { ch
     queryFn: getStoreConfig,
   });
   
-  const shopPhotos = config?.shopPhotos || [];
+  const sliderPhotos = config?.sliderPhotos || [];
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'zh' : 'en');
   };
 
-  // Only show carousel on non-admin pages if there are photos and not hidden
-  const showCarousel = !isAdmin && !hideCarousel && shopPhotos.length > 0;
+  // Only show carousel on non-admin pages if there are slider photos and not hidden
+  const showCarousel = !isAdmin && !hideCarousel && sliderPhotos.length > 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
@@ -110,12 +110,12 @@ export function Layout({ children, isAdmin = false, hideCarousel = false }: { ch
             className="w-full max-w-screen-2xl mx-auto"
           >
             <CarouselContent>
-              {shopPhotos.map((photo, index) => (
+              {sliderPhotos.map((photo: string, index: number) => (
                 <CarouselItem key={index} className="basis-full md:basis-1/2 lg:basis-1/3 pl-0">
                   <div className="relative aspect-video md:aspect-[21/9] overflow-hidden">
                     <img 
                       src={photo} 
-                      alt={`Shop photo ${index + 1}`} 
+                      alt={`Slider photo ${index + 1}`} 
                       className="w-full h-full object-cover"
                     />
                   </div>
