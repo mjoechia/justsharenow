@@ -399,6 +399,11 @@ export default function AdminDashboard() {
       
       const result = await verifyGooglePlaceId(placeIdToVerify);
       if (result.success) {
+        // If the API returns a placeId (from business name search), update the field
+        if (result.placeId && result.placeId !== placeIdToVerify) {
+          setGooglePlaceId(result.placeId);
+          setIsDirty(true);
+        }
         setVerifiedBusiness({
           businessName: result.businessName,
           address: result.address,
@@ -415,30 +420,11 @@ export default function AdminDashboard() {
         });
       }
     } catch (error: any) {
-      const placeIdFinderUrl = error.placeIdFinderUrl;
-      if (placeIdFinderUrl) {
-        toast({ 
-          title: "Could not extract Place ID", 
-          description: "Please use Google's Place ID Finder tool, then paste the ID here.", 
-          variant: "destructive",
-          action: (
-            <a 
-              href={placeIdFinderUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="underline text-blue-600"
-            >
-              Open Place ID Finder
-            </a>
-          )
-        });
-      } else {
-        toast({ 
-          title: "Verification Failed", 
-          description: error.message || "Could not verify Place ID. Please check and try again.", 
-          variant: "destructive" 
-        });
-      }
+      toast({ 
+        title: "Verification Failed", 
+        description: error.message || "Could not verify. Please check and try again.", 
+        variant: "destructive" 
+      });
     } finally {
       setIsVerifyingPlace(false);
       setIsResolvingUrl(false);
@@ -965,7 +951,7 @@ export default function AdminDashboard() {
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Paste a Google Maps link or Place ID. Click "Verify" to confirm this is the correct business.
+                                        Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID. Click "Verify" to find your business.
                                     </p>
                                     
                                     {verifiedBusiness && (

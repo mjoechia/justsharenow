@@ -685,11 +685,57 @@ ${pageText}`
   // Verify Google Place ID and return business info (with 7-day cache)
   app.post("/api/google-place/verify", async (req, res) => {
     try {
-      const { placeId } = req.body;
+      let { placeId } = req.body;
       
       if (!placeId || typeof placeId !== 'string') {
-        res.status(400).json({ error: "Google Place ID is required" });
+        res.status(400).json({ error: "Business name or Place ID is required" });
         return;
+      }
+
+      const input = placeId.trim();
+      
+      // Check for Google Places API key first
+      const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (!googleApiKey) {
+        res.status(503).json({ 
+          error: "Google Places API key is not configured. Please add GOOGLE_PLACES_API_KEY to your secrets.",
+          needsApiKey: true
+        });
+        return;
+      }
+
+      // If input doesn't look like a Place ID (ChIJ...), treat it as a business name
+      if (!input.startsWith('ChIJ')) {
+        console.log("Input doesn't look like Place ID, searching for business:", input);
+        
+        // Use Text Search to find the business
+        const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
+        const searchResponse = await fetch(searchUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': googleApiKey,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress'
+          },
+          body: JSON.stringify({ textQuery: input })
+        });
+
+        if (!searchResponse.ok) {
+          const errData = await searchResponse.json().catch(() => ({}));
+          console.error("Text Search API error:", errData);
+          res.status(400).json({ error: "Could not find business. Please try a more specific name." });
+          return;
+        }
+
+        const searchData = await searchResponse.json();
+        if (!searchData.places || searchData.places.length === 0) {
+          res.status(404).json({ error: "No business found matching that name. Try including the city or area." });
+          return;
+        }
+
+        // Use the first result
+        placeId = searchData.places[0].id;
+        console.log("Found Place ID:", placeId);
       }
 
       // Check cache first
@@ -702,6 +748,7 @@ ${pageText}`
           // Return cached data with cache info
           res.json({
             success: true,
+            placeId: placeId,
             businessName: cached.businessName,
             address: cached.address,
             rating: cached.rating,
@@ -713,16 +760,6 @@ ${pageText}`
           });
           return;
         }
-      }
-
-      // Check for Google Places API key
-      const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
-      if (!googleApiKey) {
-        res.status(503).json({ 
-          error: "Google Places API key is not configured. Please add GOOGLE_PLACES_API_KEY to your secrets.",
-          needsApiKey: true
-        });
-        return;
       }
 
       // Fetch from Google Places API (New) - get basic business info
@@ -768,6 +805,7 @@ ${pageText}`
 
       res.json({
         success: true,
+        placeId: placeId,
         businessName: saved.businessName,
         address: saved.address,
         rating: saved.rating,
@@ -851,54 +889,44 @@ ${pageText}`
         return;
       }
       
-      // Pattern 4: ftid parameter (format: 0x...:0x...)
-      const ftidParam = urlObj.searchParams.get('ftid');
-      if (ftidParam && ftidParam.includes(':')) {
-        // This is a CID, need to convert via API
-        console.log("Found ftid (CID):", ftidParam);
-      }
-
-      // Pattern 4: Try to extract CID and use Text Search API to find Place ID
-      const cidMatch = finalUrl.match(/0x[0-9a-fA-F]+:0x([0-9a-fA-F]+)/);
-      if (cidMatch) {
-        // We have a CID but need to convert to Place ID - need to use API
+      // Pattern 5: Extract business name from URL path and use Text Search
+      const nameMatch = finalUrl.match(/place\/([^\/\@]+)/);
+      if (nameMatch) {
+        const businessName = decodeURIComponent(nameMatch[1].replace(/\+/g, ' '));
+        console.log("Extracted business name:", businessName);
+        
         const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
         if (googleApiKey) {
-          // Extract business name from URL if possible
-          const nameMatch = finalUrl.match(/place\/([^\/]+)\//);
-          if (nameMatch) {
-            const businessName = decodeURIComponent(nameMatch[1].replace(/\+/g, ' '));
-            
-            // Use Text Search API to find the Place ID
-            const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
-            const searchResponse = await fetch(searchUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Goog-Api-Key': googleApiKey,
-                'X-Goog-FieldMask': 'places.id'
-              },
-              body: JSON.stringify({ textQuery: businessName })
-            });
+          // Use Text Search API to find the Place ID
+          const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
+          const searchResponse = await fetch(searchUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': googleApiKey,
+              'X-Goog-FieldMask': 'places.id,places.displayName'
+            },
+            body: JSON.stringify({ textQuery: businessName })
+          });
 
-            if (searchResponse.ok) {
-              const searchData = await searchResponse.json();
-              if (searchData.places && searchData.places.length > 0) {
-                // The id is in format "places/ChIJ..." - extract just the ChIJ part
-                const fullId = searchData.places[0].id;
-                const extractedId = fullId.replace('places/', '');
-                res.json({ success: true, placeId: extractedId, businessName });
-                return;
-              }
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            if (searchData.places && searchData.places.length > 0) {
+              const extractedId = searchData.places[0].id;
+              const foundName = searchData.places[0].displayName?.text || businessName;
+              res.json({ success: true, placeId: extractedId, businessName: foundName });
+              return;
             }
+          } else {
+            const errData = await searchResponse.json().catch(() => ({}));
+            console.error("Text Search API error:", errData);
           }
         }
       }
 
-      // Could not extract - return helpful error with the final URL for debugging
+      // Could not extract - return helpful error
       res.status(400).json({ 
-        error: "Could not extract Place ID from this URL. Please use Google's Place ID Finder instead.",
-        placeIdFinderUrl: "https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder",
+        error: "Could not find the business. Please enter the business name directly in the field above.",
         resolvedUrl: finalUrl
       });
 

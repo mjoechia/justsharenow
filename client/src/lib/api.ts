@@ -199,6 +199,7 @@ export async function fetchGoogleReviews(placeId: string): Promise<FetchGoogleRe
 // Verify Google Place ID and get business info
 export interface VerifyPlaceIdResponse {
   success: boolean;
+  placeId?: string;
   businessName: string | null;
   address: string | null;
   rating: number | null;
