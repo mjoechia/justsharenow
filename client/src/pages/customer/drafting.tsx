@@ -378,57 +378,50 @@ export default function CustomerDrafting() {
             {/* Google Review */}
             {activePlatform?.id === 'google-reviews' && (
               <>
-                {socialLinks.googlePlaceId && selectedReview ? (
-                  <>
-                    <p className="text-sm text-muted-foreground text-center">
-                      Your review is ready! Click below to open Google Reviews with your text pre-filled.
+                <p className="text-sm text-muted-foreground text-center">
+                  {socialLinks.googlePlaceId && selectedReview 
+                    ? "Your review is ready! Click below to open Google Reviews with your text pre-filled."
+                    : "We'd love to hear your feedback on Google!"}
+                </p>
+                
+                {/* Selected photo preview */}
+                {selectedPhoto && (
+                  <div className="w-full">
+                    <p className="text-xs text-muted-foreground mb-2 text-center font-medium">
+                      Your Selected Photo
                     </p>
-                    
-                    {/* Selected photo preview */}
-                    {selectedPhoto && (
-                      <div className="w-full">
-                        <p className="text-xs text-muted-foreground mb-2 text-center font-medium">
-                          Your Selected Photo
-                        </p>
-                        <img 
-                          src={selectedPhoto} 
-                          alt="Selected photo" 
-                          className="w-32 h-32 object-cover rounded-lg mx-auto border-2 border-primary/20 shadow-sm"
-                          data-testid="img-selected-photo-preview"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1 text-center">
-                          (Add this photo manually when posting on Google)
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Preview of the prepared review */}
-                    <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-xs text-muted-foreground mb-2 font-medium">Your Review</p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-yellow-500">⭐⭐⭐⭐⭐</span>
-                      </div>
-                      <p className="text-sm text-gray-700 line-clamp-4" data-testid="text-review-preview">
-                        {getReviewWithHashtags()}
-                      </p>
-                    </div>
-                    
-                    <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
-                      <Check className="mr-2 h-4 w-4" />
-                      OK - Open Google Review
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-muted-foreground text-center">
-                      We'd love to hear your feedback on Google!
+                    <img 
+                      src={selectedPhoto} 
+                      alt="Selected photo" 
+                      className="w-32 h-32 object-cover rounded-lg mx-auto border-2 border-primary/20 shadow-sm"
+                      data-testid="img-selected-photo-preview"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1 text-center">
+                      (Add this photo manually when posting on Google)
                     </p>
-                    <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Leave a Review
-                    </Button>
-                  </>
+                  </div>
                 )}
+                
+                {/* Preview of the prepared review */}
+                {selectedReview && (
+                  <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-muted-foreground mb-2 font-medium">Your Review</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-yellow-500">⭐⭐⭐⭐⭐</span>
+                    </div>
+                    <p className="text-sm text-gray-700 line-clamp-4" data-testid="text-review-preview">
+                      {getReviewWithHashtags()}
+                    </p>
+                  </div>
+                )}
+                
+                <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
+                  {socialLinks.googlePlaceId && selectedReview ? (
+                    <><Check className="mr-2 h-4 w-4" />OK - Open Google Review</>
+                  ) : (
+                    <><ExternalLink className="mr-2 h-4 w-4" />Leave a Review</>
+                  )}
+                </Button>
               </>
             )}
 
