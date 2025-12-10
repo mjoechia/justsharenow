@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, jsonb, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -63,3 +63,24 @@ export const insertGoogleReviewSchema = createInsertSchema(googleReviews).omit({
 
 export type InsertGoogleReview = z.infer<typeof insertGoogleReviewSchema>;
 export type GoogleReview = typeof googleReviews.$inferSelect;
+
+// Verified Businesses (cache for Google Places API lookups)
+export const verifiedBusinesses = pgTable("verified_businesses", {
+  id: serial("id").primaryKey(),
+  placeId: text("place_id").notNull().unique(),
+  businessName: text("business_name"),
+  address: text("address"),
+  rating: real("rating"),
+  totalReviews: integer("total_reviews").default(0),
+  website: text("website"),
+  googleMapsUrl: text("google_maps_url"),
+  verifiedAt: timestamp("verified_at").defaultNow().notNull(),
+});
+
+export const insertVerifiedBusinessSchema = createInsertSchema(verifiedBusinesses).omit({
+  id: true,
+  verifiedAt: true,
+});
+
+export type InsertVerifiedBusiness = z.infer<typeof insertVerifiedBusinessSchema>;
+export type VerifiedBusiness = typeof verifiedBusinesses.$inferSelect;

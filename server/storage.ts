@@ -2,12 +2,15 @@ import {
   storeConfig, 
   analytics,
   googleReviews,
+  verifiedBusinesses,
   type StoreConfig, 
   type InsertStoreConfig,
   type Analytics,
   type InsertAnalytics,
   type GoogleReview,
-  type InsertGoogleReview 
+  type InsertGoogleReview,
+  type VerifiedBusiness,
+  type InsertVerifiedBusiness
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
@@ -29,6 +32,10 @@ export interface IStorage {
   getGoogleReviews(): Promise<GoogleReview[]>;
   saveGoogleReviews(reviews: InsertGoogleReview[]): Promise<GoogleReview[]>;
   clearGoogleReviews(): Promise<void>;
+  
+  // Verified Businesses (cache)
+  getVerifiedBusiness(placeId: string): Promise<VerifiedBusiness | undefined>;
+  saveVerifiedBusiness(business: InsertVerifiedBusiness): Promise<VerifiedBusiness>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -195,6 +202,36 @@ export class DatabaseStorage implements IStorage {
 
   async clearGoogleReviews(): Promise<void> {
     await db.delete(googleReviews);
+  }
+
+  async getVerifiedBusiness(placeId: string): Promise<VerifiedBusiness | undefined> {
+    const [business] = await db
+      .select()
+      .from(verifiedBusinesses)
+      .where(eq(verifiedBusinesses.placeId, placeId))
+      .limit(1);
+    return business || undefined;
+  }
+
+  async saveVerifiedBusiness(business: InsertVerifiedBusiness): Promise<VerifiedBusiness> {
+    // Upsert: update if exists, insert if not
+    const [saved] = await db
+      .insert(verifiedBusinesses)
+      .values({ ...business, verifiedAt: sql`NOW()` } as any)
+      .onConflictDoUpdate({
+        target: verifiedBusinesses.placeId,
+        set: {
+          businessName: business.businessName,
+          address: business.address,
+          rating: business.rating,
+          totalReviews: business.totalReviews,
+          website: business.website,
+          googleMapsUrl: business.googleMapsUrl,
+          verifiedAt: sql`NOW()`,
+        },
+      })
+      .returning();
+    return saved;
   }
 }
 
