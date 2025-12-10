@@ -770,11 +770,11 @@ ${pageText}`
       const data = await response.json();
       
       if (data.status !== 'OK') {
-        console.error("Google Places API status:", data.status);
+        console.error("Google Places API status:", data.status, "error_message:", data.error_message);
         if (data.status === 'INVALID_REQUEST') {
           res.status(400).json({ error: "Invalid Place ID. Please check your Google Place ID and try again." });
         } else if (data.status === 'REQUEST_DENIED') {
-          res.status(403).json({ error: "Google API key is invalid or doesn't have Places API enabled." });
+          res.status(403).json({ error: `Google API error: ${data.error_message || 'Places API not enabled or invalid key'}` });
         } else {
           res.status(400).json({ error: `Google API error: ${data.status}` });
         }
