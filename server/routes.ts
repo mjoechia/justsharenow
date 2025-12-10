@@ -784,5 +784,129 @@ ${pageText}`
     }
   });
 
+  // Resolve Google Maps URL to Place ID
+  app.post("/api/google-place/resolve-url", async (req, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url || typeof url !== 'string') {
+        res.status(400).json({ error: "Google Maps URL is required" });
+        return;
+      }
+
+      // Check if it's already a Place ID (starts with ChIJ)
+      if (url.match(/^ChIJ[A-Za-z0-9_-]+$/)) {
+        res.json({ success: true, placeId: url });
+        return;
+      }
+
+      // Validate it looks like a Google Maps URL
+      if (!url.includes('google.com/maps') && !url.includes('maps.app.goo.gl') && !url.includes('goo.gl/maps')) {
+        res.status(400).json({ error: "Please enter a valid Google Maps URL or Place ID" });
+        return;
+      }
+
+      // Follow redirects to get final URL
+      const response = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+
+      const finalUrl = response.url;
+      console.log("Resolved URL:", finalUrl);
+
+      // Try to extract Place ID from the URL
+      // Pattern 1: Direct Place ID in URL (ChIJ...)
+      let placeIdMatch = finalUrl.match(/(ChIJ[A-Za-z0-9_-]+)/);
+      if (placeIdMatch) {
+        res.json({ success: true, placeId: placeIdMatch[1] });
+        return;
+      }
+
+      // Pattern 2: place_id query parameter
+      const urlObj = new URL(finalUrl);
+      const placeIdParam = urlObj.searchParams.get('place_id');
+      if (placeIdParam) {
+        res.json({ success: true, placeId: placeIdParam });
+        return;
+      }
+
+      // Pattern 2b: q parameter with place_id: prefix (e.g., ?q=place_id:ChIJ...)
+      const qParam = urlObj.searchParams.get('q');
+      if (qParam && qParam.startsWith('place_id:')) {
+        const extractedId = qParam.replace('place_id:', '');
+        if (extractedId.startsWith('ChIJ')) {
+          res.json({ success: true, placeId: extractedId });
+          return;
+        }
+      }
+
+      // Pattern 3: Extract from data parameter (format: !1s0x...:0x... or !1sChIJ...)
+      const dataMatch = finalUrl.match(/!1s(ChIJ[A-Za-z0-9_-]+)/);
+      if (dataMatch) {
+        res.json({ success: true, placeId: dataMatch[1] });
+        return;
+      }
+      
+      // Pattern 4: ftid parameter (format: 0x...:0x...)
+      const ftidParam = urlObj.searchParams.get('ftid');
+      if (ftidParam && ftidParam.includes(':')) {
+        // This is a CID, need to convert via API
+        console.log("Found ftid (CID):", ftidParam);
+      }
+
+      // Pattern 4: Try to extract CID and use Text Search API to find Place ID
+      const cidMatch = finalUrl.match(/0x[0-9a-fA-F]+:0x([0-9a-fA-F]+)/);
+      if (cidMatch) {
+        // We have a CID but need to convert to Place ID - need to use API
+        const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
+        if (googleApiKey) {
+          // Extract business name from URL if possible
+          const nameMatch = finalUrl.match(/place\/([^\/]+)\//);
+          if (nameMatch) {
+            const businessName = decodeURIComponent(nameMatch[1].replace(/\+/g, ' '));
+            
+            // Use Text Search API to find the Place ID
+            const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
+            const searchResponse = await fetch(searchUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Goog-Api-Key': googleApiKey,
+                'X-Goog-FieldMask': 'places.id'
+              },
+              body: JSON.stringify({ textQuery: businessName })
+            });
+
+            if (searchResponse.ok) {
+              const searchData = await searchResponse.json();
+              if (searchData.places && searchData.places.length > 0) {
+                // The id is in format "places/ChIJ..." - extract just the ChIJ part
+                const fullId = searchData.places[0].id;
+                const extractedId = fullId.replace('places/', '');
+                res.json({ success: true, placeId: extractedId, businessName });
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      // Could not extract - return helpful error with the final URL for debugging
+      res.status(400).json({ 
+        error: "Could not extract Place ID from this URL. Please use Google's Place ID Finder instead.",
+        placeIdFinderUrl: "https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder",
+        resolvedUrl: finalUrl
+      });
+
+    } catch (error) {
+      console.error("Error resolving Google Maps URL:", error);
+      res.status(500).json({ error: "Failed to resolve Google Maps URL" });
+    }
+  });
+
   return httpServer;
 }

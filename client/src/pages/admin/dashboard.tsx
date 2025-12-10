@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse } from "@/lib/api";
+import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse, resolveGoogleMapsUrl } from "@/lib/api";
 
 export default function AdminDashboard() {
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
@@ -47,6 +47,7 @@ export default function AdminDashboard() {
   const [isFetchingReviews, setIsFetchingReviews] = useState(false);
   const [fetchedReviews, setFetchedReviews] = useState<GoogleReview[]>([]);
   const [isVerifyingPlace, setIsVerifyingPlace] = useState(false);
+  const [isResolvingUrl, setIsResolvingUrl] = useState(false);
   const [verifiedBusiness, setVerifiedBusiness] = useState<{
     businessName: string | null;
     address: string | null;
@@ -364,7 +365,7 @@ export default function AdminDashboard() {
     if (!googlePlaceId) {
       toast({ 
         title: "Place ID Required", 
-        description: "Please enter a Google Place ID first.", 
+        description: "Please enter a Google Place ID or Google Maps link.", 
         variant: "destructive" 
       });
       return;
@@ -372,8 +373,31 @@ export default function AdminDashboard() {
 
     setIsVerifyingPlace(true);
     setVerifiedBusiness(null);
+    
+    let placeIdToVerify = googlePlaceId.trim();
+    
     try {
-      const result = await verifyGooglePlaceId(googlePlaceId);
+      // Check if it's a Google Maps URL and resolve it first
+      if (placeIdToVerify.includes('google.com/maps') || placeIdToVerify.includes('maps.app.goo.gl') || placeIdToVerify.includes('goo.gl/maps')) {
+        setIsResolvingUrl(true);
+        toast({ 
+          title: "Resolving URL...", 
+          description: "Converting your Google Maps link to a Place ID." 
+        });
+        
+        const resolveResult = await resolveGoogleMapsUrl(placeIdToVerify);
+        if (resolveResult.success && resolveResult.placeId) {
+          placeIdToVerify = resolveResult.placeId;
+          // Update the input field with the resolved Place ID
+          setGooglePlaceId(resolveResult.placeId);
+          setIsDirty(true);
+        } else {
+          throw new Error("Could not extract Place ID from the URL");
+        }
+        setIsResolvingUrl(false);
+      }
+      
+      const result = await verifyGooglePlaceId(placeIdToVerify);
       if (result.success) {
         setVerifiedBusiness({
           businessName: result.businessName,
@@ -391,13 +415,33 @@ export default function AdminDashboard() {
         });
       }
     } catch (error: any) {
-      toast({ 
-        title: "Verification Failed", 
-        description: error.message || "Could not verify Place ID. Please check and try again.", 
-        variant: "destructive" 
-      });
+      const placeIdFinderUrl = error.placeIdFinderUrl;
+      if (placeIdFinderUrl) {
+        toast({ 
+          title: "Could not extract Place ID", 
+          description: "Please use Google's Place ID Finder tool, then paste the ID here.", 
+          variant: "destructive",
+          action: (
+            <a 
+              href={placeIdFinderUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline text-blue-600"
+            >
+              Open Place ID Finder
+            </a>
+          )
+        });
+      } else {
+        toast({ 
+          title: "Verification Failed", 
+          description: error.message || "Could not verify Place ID. Please check and try again.", 
+          variant: "destructive" 
+        });
+      }
     } finally {
       setIsVerifyingPlace(false);
+      setIsResolvingUrl(false);
     }
   };
 
@@ -910,7 +954,7 @@ export default function AdminDashboard() {
                                             {isVerifyingPlace ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                    Verifying...
+                                                    {isResolvingUrl ? "Resolving URL..." : "Verifying..."}
                                                 </>
                                             ) : (
                                                 <>
@@ -921,7 +965,7 @@ export default function AdminDashboard() {
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Used to generate pre-filled review links. Click "Verify" to confirm this is the correct business.
+                                        Paste a Google Maps link or Place ID. Click "Verify" to confirm this is the correct business.
                                     </p>
                                     
                                     {verifiedBusiness && (

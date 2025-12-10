@@ -210,6 +210,33 @@ export interface VerifyPlaceIdResponse {
   needsApiKey?: boolean;
 }
 
+// Resolve Google Maps URL to Place ID
+export interface ResolveUrlResponse {
+  success: boolean;
+  placeId: string;
+  businessName?: string;
+}
+
+export interface ResolveErrorResponse {
+  error: string;
+  placeIdFinderUrl?: string;
+}
+
+export async function resolveGoogleMapsUrl(url: string): Promise<ResolveUrlResponse> {
+  const response = await fetch('/api/google-place/resolve-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json() as ResolveErrorResponse;
+    const error = new Error(errorData.error || 'Failed to resolve URL') as Error & { placeIdFinderUrl?: string };
+    error.placeIdFinderUrl = errorData.placeIdFinderUrl;
+    throw error;
+  }
+  return response.json();
+}
+
 export async function verifyGooglePlaceId(placeId: string): Promise<VerifyPlaceIdResponse> {
   const response = await fetch('/api/google-place/verify', {
     method: 'POST',
