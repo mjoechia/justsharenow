@@ -3,10 +3,10 @@ import { Layout } from "@/components/layout";
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Check, ChevronRight, RefreshCw, Share2, ExternalLink, Copy, X, Hash, MessageCircle } from "lucide-react";
+import { Check, RefreshCw, Share2, ExternalLink, Copy, Hash, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig, trackPlatformClick } from "@/lib/api";
@@ -369,20 +369,10 @@ export default function CustomerDrafting() {
         </div>
       </div>
 
-      {/* Simplified Modal with single X close button */}
+      {/* Modal for sharing */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          {/* Close button at top right */}
-          <button 
-            onClick={() => setIsModalOpen(false)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            data-testid="button-close-modal"
-          >
-            <X className="h-5 w-5" />
-            <span className="sr-only">Close</span>
-          </button>
-
-          <div className="flex flex-col items-center gap-4 py-6 pt-8">
+        <DialogContent className="sm:max-w-md" data-testid="share-modal">
+          <div className="flex flex-col items-center gap-4 py-4">
             <DialogTitle className="text-xl font-bold text-center">{activePlatform?.name}</DialogTitle>
             
             {/* Google Review */}
@@ -391,33 +381,37 @@ export default function CustomerDrafting() {
                 {socialLinks.googlePlaceId && selectedReview ? (
                   <>
                     <p className="text-sm text-muted-foreground text-center">
-                      Your review is ready! Click OK to open Google Reviews with your text pre-filled.
+                      Your review is ready! Click below to open Google Reviews with your text pre-filled.
                     </p>
                     
-                    {/* Preview of the prepared review */}
-                    <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-yellow-500">⭐⭐⭐⭐⭐</span>
-                      </div>
-                      <p className="text-sm text-gray-700 line-clamp-3" data-testid="text-review-preview">
-                        {getReviewWithHashtags()}
-                      </p>
-                    </div>
-                    
-                    {/* Selected photo reminder */}
+                    {/* Selected photo preview */}
                     {selectedPhoto && (
                       <div className="w-full">
-                        <p className="text-xs text-muted-foreground mb-2 text-center">
-                          Your selected photo (add it manually on Google):
+                        <p className="text-xs text-muted-foreground mb-2 text-center font-medium">
+                          Your Selected Photo
                         </p>
                         <img 
                           src={selectedPhoto} 
                           alt="Selected photo" 
-                          className="w-20 h-20 object-cover rounded-lg mx-auto border"
+                          className="w-32 h-32 object-cover rounded-lg mx-auto border-2 border-primary/20 shadow-sm"
                           data-testid="img-selected-photo-preview"
                         />
+                        <p className="text-xs text-muted-foreground mt-1 text-center">
+                          (Add this photo manually when posting on Google)
+                        </p>
                       </div>
                     )}
+                    
+                    {/* Preview of the prepared review */}
+                    <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-muted-foreground mb-2 font-medium">Your Review</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-yellow-500">⭐⭐⭐⭐⭐</span>
+                      </div>
+                      <p className="text-sm text-gray-700 line-clamp-4" data-testid="text-review-preview">
+                        {getReviewWithHashtags()}
+                      </p>
+                    </div>
                     
                     <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
                       <Check className="mr-2 h-4 w-4" />

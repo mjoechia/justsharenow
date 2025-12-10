@@ -76,6 +76,32 @@ export default function AdminDashboard() {
     }
   }, [config]);
 
+  // Auto-verify business when googlePlaceId is available
+  useEffect(() => {
+    const autoVerifyBusiness = async () => {
+      if (config?.googlePlaceId && !verifiedBusiness && !isVerifyingPlace) {
+        try {
+          const result = await verifyGooglePlaceId(config.googlePlaceId);
+          if (result.success) {
+            setVerifiedBusiness({
+              businessName: result.businessName,
+              address: result.address,
+              rating: result.rating,
+              totalReviews: result.totalReviews,
+              googleMapsUrl: result.googleMapsUrl,
+              verifiedAt: result.verifiedAt,
+              fromCache: result.fromCache,
+            });
+          }
+        } catch (error) {
+          // Silent fail for auto-verification
+          console.log("Auto-verification failed:", error);
+        }
+      }
+    };
+    autoVerifyBusiness();
+  }, [config?.googlePlaceId]);
+
   const checkDirty = () => {
     if (!config) return false;
     return (
@@ -584,6 +610,14 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8 pb-24">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
+                {verifiedBusiness?.businessName && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <Building2 className="w-5 h-5 text-primary" />
+                    <span className="text-lg font-semibold text-primary" data-testid="text-header-business-name">
+                      {verifiedBusiness.businessName}
+                    </span>
+                  </div>
+                )}
                 <h1 className="text-3xl font-heading font-bold text-foreground">{t.admin.dashboard.title}</h1>
                 <p className="text-muted-foreground">{t.admin.dashboard.subtitle}</p>
             </div>
