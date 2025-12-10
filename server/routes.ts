@@ -708,33 +708,25 @@ ${pageText}`
       if (!input.startsWith('ChIJ')) {
         console.log("Input doesn't look like Place ID, searching for business:", input);
         
-        // Use Text Search to find the business
-        const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
-        const searchResponse = await fetch(searchUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': googleApiKey,
-            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress'
-          },
-          body: JSON.stringify({ textQuery: input })
-        });
+        // Use legacy Find Place API (supports API keys)
+        const searchUrl = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(input)}&inputtype=textquery&fields=place_id,name,formatted_address&key=${googleApiKey}`;
+        const searchResponse = await fetch(searchUrl);
 
         if (!searchResponse.ok) {
           const errData = await searchResponse.json().catch(() => ({}));
-          console.error("Text Search API error:", errData);
+          console.error("Find Place API error:", errData);
           res.status(400).json({ error: "Could not find business. Please try a more specific name." });
           return;
         }
 
         const searchData = await searchResponse.json();
-        if (!searchData.places || searchData.places.length === 0) {
+        if (searchData.status !== 'OK' || !searchData.candidates || searchData.candidates.length === 0) {
           res.status(404).json({ error: "No business found matching that name. Try including the city or area." });
           return;
         }
 
         // Use the first result
-        placeId = searchData.places[0].id;
+        placeId = searchData.candidates[0].place_id;
         console.log("Found Place ID:", placeId);
       }
 
@@ -762,43 +754,44 @@ ${pageText}`
         }
       }
 
-      // Fetch from Google Places API (New) - get basic business info
-      const fieldsParam = 'id,displayName,formattedAddress,rating,userRatingCount,websiteUri,googleMapsUri';
+      // Fetch from legacy Google Places API (supports API keys)
       const encodedPlaceId = encodeURIComponent(placeId);
-      const apiUrl = `https://places.googleapis.com/v1/places/${encodedPlaceId}?fields=${fieldsParam}&key=${googleApiKey}`;
+      const apiUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodedPlaceId}&fields=place_id,name,formatted_address,rating,user_ratings_total,website,url&key=${googleApiKey}`;
       
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(apiUrl);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("Google Places API error:", errorData);
-        
-        if (response.status === 400) {
-          res.status(400).json({ error: "Invalid Place ID. Please check your Google Place ID and try again." });
-        } else if (response.status === 403) {
-          res.status(403).json({ error: "Google API key is invalid or doesn't have Places API enabled." });
-        } else {
-          res.status(response.status).json({ error: "Failed to verify Place ID with Google" });
-        }
+        res.status(response.status).json({ error: "Failed to verify Place ID with Google" });
         return;
       }
 
       const data = await response.json();
+      
+      if (data.status !== 'OK') {
+        console.error("Google Places API status:", data.status);
+        if (data.status === 'INVALID_REQUEST') {
+          res.status(400).json({ error: "Invalid Place ID. Please check your Google Place ID and try again." });
+        } else if (data.status === 'REQUEST_DENIED') {
+          res.status(403).json({ error: "Google API key is invalid or doesn't have Places API enabled." });
+        } else {
+          res.status(400).json({ error: `Google API error: ${data.status}` });
+        }
+        return;
+      }
+
+      const result = data.result;
 
       // Save to cache
       const businessData = {
         placeId,
-        businessName: data.displayName?.text || null,
-        address: data.formattedAddress || null,
-        rating: data.rating || null,
-        totalReviews: data.userRatingCount || 0,
-        website: data.websiteUri || null,
-        googleMapsUrl: data.googleMapsUri || null,
+        businessName: result.name || null,
+        address: result.formatted_address || null,
+        rating: result.rating || null,
+        totalReviews: result.user_ratings_total || 0,
+        website: result.website || null,
+        googleMapsUrl: result.url || null,
       };
       
       const saved = await storage.saveVerifiedBusiness(businessData);
