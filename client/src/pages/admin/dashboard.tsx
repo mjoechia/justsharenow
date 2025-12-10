@@ -494,6 +494,7 @@ export default function AdminDashboard() {
             updateConfigMutation.mutate({
               websiteUrl,
               googleReviewsUrl,
+              googlePlaceId,
               facebookUrl: fbUrl,
               instagramUrl: igUrl,
               xiaohongshuUrl: xhsUrl,
@@ -514,6 +515,7 @@ export default function AdminDashboard() {
     updateConfigMutation.mutate({
       websiteUrl,
       googleReviewsUrl,
+      googlePlaceId,
       facebookUrl: fbUrl,
       instagramUrl: igUrl,
       xiaohongshuUrl: xhsUrl,
@@ -543,6 +545,7 @@ export default function AdminDashboard() {
         updateConfigMutation.mutate({
           websiteUrl,
           googleReviewsUrl,
+          googlePlaceId,
           facebookUrl: fbUrl,
           instagramUrl: igUrl,
           xiaohongshuUrl: xhsUrl,
@@ -563,6 +566,7 @@ export default function AdminDashboard() {
     updateConfigMutation.mutate({
       websiteUrl,
       googleReviewsUrl,
+      googlePlaceId,
       facebookUrl: fbUrl,
       instagramUrl: igUrl,
       xiaohongshuUrl: xhsUrl,
