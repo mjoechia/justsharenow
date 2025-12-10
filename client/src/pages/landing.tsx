@@ -83,7 +83,7 @@ export default function Landing() {
     queryFn: getStoreConfig,
   });
 
-  const shopPhotos = config?.shopPhotos || [];
+  const sliderPhotos = config?.sliderPhotos || [];
 
   const handlePlatformClick = (platformId: string) => {
     setSelectedPlatform(platformId);
@@ -97,7 +97,7 @@ export default function Landing() {
         {/* Mobile: Top Slider (1/3 height) */}
         {/* Desktop: Left Slider (2/3 width) */}
         <div className="h-[33vh] lg:h-auto lg:w-2/3 bg-muted/20 relative overflow-hidden">
-          {shopPhotos.length > 0 ? (
+          {sliderPhotos.length > 0 ? (
             <Carousel
               opts={{
                 align: "start",
@@ -111,12 +111,12 @@ export default function Landing() {
               className="w-full h-full"
             >
               <CarouselContent className="h-full -ml-0">
-                {shopPhotos.map((photo, index) => (
+                {sliderPhotos.map((photo, index) => (
                   <CarouselItem key={index} className="h-full pl-0 basis-full">
                     <div className="relative w-full h-full">
                       <img 
                         src={photo} 
-                        alt={`Shop photo ${index + 1}`} 
+                        alt={`Slider photo ${index + 1}`} 
                         className="w-full h-full object-cover"
                       />
                     </div>
