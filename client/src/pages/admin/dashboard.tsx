@@ -53,6 +53,8 @@ export default function AdminDashboard() {
     rating: number | null;
     totalReviews: number;
     googleMapsUrl: string | null;
+    verifiedAt?: string;
+    fromCache?: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -379,10 +381,13 @@ export default function AdminDashboard() {
           rating: result.rating,
           totalReviews: result.totalReviews,
           googleMapsUrl: result.googleMapsUrl,
+          verifiedAt: result.verifiedAt,
+          fromCache: result.fromCache,
         });
+        const cacheMessage = result.fromCache ? " (using cached data)" : "";
         toast({ 
           title: "Business Verified!", 
-          description: result.businessName || "Business information retrieved successfully." 
+          description: (result.businessName || "Business information retrieved successfully.") + cacheMessage
         });
       }
     } catch (error: any) {
@@ -926,7 +931,23 @@ export default function AdminDashboard() {
                                                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">Verified Business</p>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <p className="text-xs font-medium text-green-600 uppercase tracking-wide">Verified Business</p>
+                                                        {verifiedBusiness.verifiedAt && (
+                                                            <p className="text-xs text-gray-500" data-testid="text-verified-at">
+                                                                {verifiedBusiness.fromCache ? "Checked " : "Verified "}
+                                                                {(() => {
+                                                                    const verifiedDate = new Date(verifiedBusiness.verifiedAt);
+                                                                    const now = new Date();
+                                                                    const diffDays = Math.floor((now.getTime() - verifiedDate.getTime()) / (1000 * 60 * 60 * 24));
+                                                                    if (diffDays === 0) return "today";
+                                                                    if (diffDays === 1) return "yesterday";
+                                                                    if (diffDays < 7) return `${diffDays} days ago`;
+                                                                    return verifiedDate.toLocaleDateString();
+                                                                })()}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                     <h4 className="font-semibold text-gray-900 text-lg" data-testid="text-business-name">
                                                         {verifiedBusiness.businessName || "Unknown Business"}
                                                     </h4>

@@ -682,7 +682,7 @@ ${pageText}`
     }
   });
 
-  // Verify Google Place ID and return business info
+  // Verify Google Place ID and return business info (with 7-day cache)
   app.post("/api/google-place/verify", async (req, res) => {
     try {
       const { placeId } = req.body;
@@ -690,6 +690,29 @@ ${pageText}`
       if (!placeId || typeof placeId !== 'string') {
         res.status(400).json({ error: "Google Place ID is required" });
         return;
+      }
+
+      // Check cache first
+      const cached = await storage.getVerifiedBusiness(placeId);
+      if (cached) {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        if (cached.verifiedAt > sevenDaysAgo) {
+          // Return cached data with cache info
+          res.json({
+            success: true,
+            businessName: cached.businessName,
+            address: cached.address,
+            rating: cached.rating,
+            totalReviews: cached.totalReviews || 0,
+            website: cached.website,
+            googleMapsUrl: cached.googleMapsUrl,
+            verifiedAt: cached.verifiedAt.toISOString(),
+            fromCache: true,
+          });
+          return;
+        }
       }
 
       // Check for Google Places API key
@@ -730,14 +753,29 @@ ${pageText}`
 
       const data = await response.json();
 
-      res.json({
-        success: true,
+      // Save to cache
+      const businessData = {
+        placeId,
         businessName: data.displayName?.text || null,
         address: data.formattedAddress || null,
         rating: data.rating || null,
         totalReviews: data.userRatingCount || 0,
         website: data.websiteUri || null,
         googleMapsUrl: data.googleMapsUri || null,
+      };
+      
+      const saved = await storage.saveVerifiedBusiness(businessData);
+
+      res.json({
+        success: true,
+        businessName: saved.businessName,
+        address: saved.address,
+        rating: saved.rating,
+        totalReviews: saved.totalReviews || 0,
+        website: saved.website,
+        googleMapsUrl: saved.googleMapsUrl,
+        verifiedAt: saved.verifiedAt.toISOString(),
+        fromCache: false,
       });
 
     } catch (error) {

@@ -205,6 +205,8 @@ export interface VerifyPlaceIdResponse {
   totalReviews: number;
   website: string | null;
   googleMapsUrl: string | null;
+  verifiedAt?: string;
+  fromCache?: boolean;
   needsApiKey?: boolean;
 }
 
