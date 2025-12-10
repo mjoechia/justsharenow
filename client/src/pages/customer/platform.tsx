@@ -82,6 +82,10 @@ export default function CustomerPlatform() {
   const availablePlatforms = useMemo(() => {
     if (!config) return [];
     return allPlatforms.filter(platform => {
+      if (platform.id === 'google-reviews') {
+        return (config.googlePlaceId && config.googlePlaceId.trim() !== '') || 
+               (config.googleReviewsUrl && config.googleReviewsUrl.trim() !== '');
+      }
       const url = config[platform.configKey];
       return url && url.trim() !== '';
     });
@@ -122,9 +126,17 @@ export default function CustomerPlatform() {
 
   const handleReviewAction = async () => {
     if (activePlatform?.id === 'google-reviews') {
-      const url = getPlatformUrl('google-reviews');
-      if (url) {
-        window.open(url, '_blank');
+      if (config?.googlePlaceId && selectedReview) {
+        const prefilledUrl = `https://search.google.com/local/writereview?placeid=${encodeURIComponent(config.googlePlaceId)}&review=${encodeURIComponent(selectedReview)}`;
+        window.open(prefilledUrl, '_blank');
+      } else if (config?.googlePlaceId) {
+        const reviewUrl = `https://search.google.com/local/writereview?placeid=${encodeURIComponent(config.googlePlaceId)}`;
+        window.open(reviewUrl, '_blank');
+      } else {
+        const url = getPlatformUrl('google-reviews');
+        if (url) {
+          window.open(url, '_blank');
+        }
       }
     }
     incrementStat(activePlatform?.id || 'unknown');
