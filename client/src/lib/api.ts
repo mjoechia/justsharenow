@@ -195,3 +195,28 @@ export async function fetchGoogleReviews(placeId: string): Promise<FetchGoogleRe
   }
   return response.json();
 }
+
+// Verify Google Place ID and get business info
+export interface VerifyPlaceIdResponse {
+  success: boolean;
+  businessName: string | null;
+  address: string | null;
+  rating: number | null;
+  totalReviews: number;
+  website: string | null;
+  googleMapsUrl: string | null;
+  needsApiKey?: boolean;
+}
+
+export async function verifyGooglePlaceId(placeId: string): Promise<VerifyPlaceIdResponse> {
+  const response = await fetch('/api/google-place/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ placeId }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to verify Place ID');
+  }
+  return response.json();
+}

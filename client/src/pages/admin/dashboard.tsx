@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star } from "lucide-react";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview } from "@/lib/api";
+import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse } from "@/lib/api";
 
 export default function AdminDashboard() {
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
@@ -46,6 +46,14 @@ export default function AdminDashboard() {
   const [isDirty, setIsDirty] = useState(false);
   const [isFetchingReviews, setIsFetchingReviews] = useState(false);
   const [fetchedReviews, setFetchedReviews] = useState<GoogleReview[]>([]);
+  const [isVerifyingPlace, setIsVerifyingPlace] = useState(false);
+  const [verifiedBusiness, setVerifiedBusiness] = useState<{
+    businessName: string | null;
+    address: string | null;
+    rating: number | null;
+    totalReviews: number;
+    googleMapsUrl: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (config) {
@@ -347,6 +355,44 @@ export default function AdminDashboard() {
       });
     } finally {
       setSavingHashtags(false);
+    }
+  };
+
+  const handleVerifyPlaceId = async () => {
+    if (!googlePlaceId) {
+      toast({ 
+        title: "Place ID Required", 
+        description: "Please enter a Google Place ID first.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsVerifyingPlace(true);
+    setVerifiedBusiness(null);
+    try {
+      const result = await verifyGooglePlaceId(googlePlaceId);
+      if (result.success) {
+        setVerifiedBusiness({
+          businessName: result.businessName,
+          address: result.address,
+          rating: result.rating,
+          totalReviews: result.totalReviews,
+          googleMapsUrl: result.googleMapsUrl,
+        });
+        toast({ 
+          title: "Business Verified!", 
+          description: result.businessName || "Business information retrieved successfully." 
+        });
+      }
+    } catch (error: any) {
+      toast({ 
+        title: "Verification Failed", 
+        description: error.message || "Could not verify Place ID. Please check and try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsVerifyingPlace(false);
     }
   };
 
@@ -843,32 +889,84 @@ export default function AdminDashboard() {
                                             id="google-place-id" 
                                             placeholder="ChIJ..."
                                             value={googlePlaceId}
-                                            onChange={(e) => setGooglePlaceId(e.target.value)}
+                                            onChange={(e) => {
+                                              setGooglePlaceId(e.target.value);
+                                              setVerifiedBusiness(null);
+                                            }}
                                             className="flex-1"
                                             data-testid="input-google-place-id"
                                         />
                                         <Button 
-                                            onClick={handleFetchGoogleReviews}
-                                            disabled={isFetchingReviews || !googlePlaceId}
+                                            onClick={handleVerifyPlaceId}
+                                            disabled={isVerifyingPlace || !googlePlaceId}
                                             variant="outline"
-                                            data-testid="button-fetch-reviews"
+                                            data-testid="button-verify-place-id"
                                         >
-                                            {isFetchingReviews ? (
+                                            {isVerifyingPlace ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                    Fetching...
+                                                    Verifying...
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Star className="w-4 h-4 mr-2" />
-                                                    Fetch Reviews
+                                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                    Verify
                                                 </>
                                             )}
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Used to generate pre-filled review links and fetch Google reviews
+                                        Used to generate pre-filled review links. Click "Verify" to confirm this is the correct business.
                                     </p>
+                                    
+                                    {verifiedBusiness && (
+                                        <div className="mt-3 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200" data-testid="verified-business-info">
+                                            <div className="flex items-start gap-3">
+                                                <div className="p-2 bg-green-100 rounded-full">
+                                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">Verified Business</p>
+                                                    <h4 className="font-semibold text-gray-900 text-lg" data-testid="text-business-name">
+                                                        {verifiedBusiness.businessName || "Unknown Business"}
+                                                    </h4>
+                                                    {verifiedBusiness.address && (
+                                                        <div className="flex items-start gap-1.5 mt-1.5 text-sm text-gray-600">
+                                                            <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-gray-400" />
+                                                            <span data-testid="text-business-address">{verifiedBusiness.address}</span>
+                                                        </div>
+                                                    )}
+                                                    {verifiedBusiness.rating && (
+                                                        <div className="flex items-center gap-2 mt-2">
+                                                            <div className="flex items-center gap-1">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star 
+                                                                        key={i} 
+                                                                        className={`w-4 h-4 ${i < Math.round(verifiedBusiness.rating!) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <span className="text-sm text-gray-600">
+                                                                {verifiedBusiness.rating.toFixed(1)} ({verifiedBusiness.totalReviews} reviews)
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {verifiedBusiness.googleMapsUrl && (
+                                                        <a 
+                                                            href={verifiedBusiness.googleMapsUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1.5 mt-3 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                                                            data-testid="link-google-maps"
+                                                        >
+                                                            <ExternalLink className="w-3.5 h-3.5" />
+                                                            View on Google Maps
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

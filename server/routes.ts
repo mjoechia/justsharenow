@@ -682,5 +682,69 @@ ${pageText}`
     }
   });
 
+  // Verify Google Place ID and return business info
+  app.post("/api/google-place/verify", async (req, res) => {
+    try {
+      const { placeId } = req.body;
+      
+      if (!placeId || typeof placeId !== 'string') {
+        res.status(400).json({ error: "Google Place ID is required" });
+        return;
+      }
+
+      // Check for Google Places API key
+      const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (!googleApiKey) {
+        res.status(503).json({ 
+          error: "Google Places API key is not configured. Please add GOOGLE_PLACES_API_KEY to your secrets.",
+          needsApiKey: true
+        });
+        return;
+      }
+
+      // Fetch from Google Places API (New) - get basic business info
+      const fieldsParam = 'id,displayName,formattedAddress,rating,userRatingCount,websiteUri,googleMapsUri';
+      const encodedPlaceId = encodeURIComponent(placeId);
+      const apiUrl = `https://places.googleapis.com/v1/places/${encodedPlaceId}?fields=${fieldsParam}&key=${googleApiKey}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Google Places API error:", errorData);
+        
+        if (response.status === 400) {
+          res.status(400).json({ error: "Invalid Place ID. Please check your Google Place ID and try again." });
+        } else if (response.status === 403) {
+          res.status(403).json({ error: "Google API key is invalid or doesn't have Places API enabled." });
+        } else {
+          res.status(response.status).json({ error: "Failed to verify Place ID with Google" });
+        }
+        return;
+      }
+
+      const data = await response.json();
+
+      res.json({
+        success: true,
+        businessName: data.displayName?.text || null,
+        address: data.formattedAddress || null,
+        rating: data.rating || null,
+        totalReviews: data.userRatingCount || 0,
+        website: data.websiteUri || null,
+        googleMapsUrl: data.googleMapsUri || null,
+      });
+
+    } catch (error) {
+      console.error("Error verifying Google Place ID:", error);
+      res.status(500).json({ error: "Failed to verify Google Place ID" });
+    }
+  });
+
   return httpServer;
 }
