@@ -53,6 +53,7 @@ Preferred communication style: Simple, everyday language.
 **Database Schema:**
 - `store_config` table: Single-row configuration storing 6 social media URLs (googleReviewsUrl, facebookUrl, instagramUrl, xiaohongshuUrl, tiktokUrl, whatsappUrl), Google Place ID (googlePlaceId), website URL, shop photos (JSONB array), slider photos (JSONB array), and review hashtags (text array)
 - `analytics` table: Platform-specific click tracking with unique platform identifiers (google-reviews, facebook, instagram, xiaohongshu, tiktok, whatsapp) and click counts
+- `verified_businesses` table: Caches verified business data from Google Places API with 7-day cache duration. Stores placeId (unique), businessName, address, rating, totalReviews, website, googleMapsUrl, and verifiedAt timestamp
 
 **Recent Features:**
 - 6-platform support: Google Reviews, Facebook, Instagram, XiaoHongShu, TikTok, WhatsApp
