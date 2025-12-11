@@ -1,11 +1,12 @@
 import { useStore } from "@/lib/store";
 import { Link, useLocation } from "wouter";
-import { Globe, Menu, Building2, QrCode, Store } from "lucide-react";
+import { Menu, Building2, QrCode, Store } from "lucide-react";
 import { useState } from "react";
 import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LanguageSelector } from "@/components/language-selector";
 import {
   Carousel,
   CarouselContent,
@@ -30,7 +31,6 @@ export function Layout({
   activeAdminTab?: string,
   onAdminTabChange?: (tab: string) => void
 }) {
-  const { language, setLanguage } = useStore();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -40,10 +40,6 @@ export function Layout({
   });
   
   const sliderPhotos = config?.sliderPhotos || [];
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'zh' : 'en');
-  };
 
   // Only show carousel on non-admin pages if there are slider photos and not hidden
   const showCarousel = !isAdmin && !hideCarousel && sliderPhotos.length > 0;
@@ -83,19 +79,13 @@ export function Layout({
                     <Link href="/admin">Admin View</Link>
                  </Button>
               )}
-              <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-full">
-                <Globe className="h-4 w-4" />
-                <span className="sr-only">Toggle Language</span>
-              </Button>
-              <span className="text-xs font-medium w-6">{language.toUpperCase()}</span>
+              <LanguageSelector />
             </div>
           </div>
 
           {/* Mobile Menu */}
           <div className="md:hidden flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleLanguage}>
-               <span className="text-xs font-bold">{language.toUpperCase()}</span>
-            </Button>
+            <LanguageSelector />
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">

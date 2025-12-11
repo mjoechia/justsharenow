@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type Language = 'en' | 'zh';
+type Language = 'en' | 'zh' | 'ta' | 'ms';
 
 interface CampaignState {
   language: Language;
@@ -201,6 +201,126 @@ export const translations = {
         recentActivity: "近期活动",
         generateQR: "生成二维码",
         downloadKit: "下载资源包"
+      }
+    }
+  },
+  ta: {
+    common: {
+      next: "அடுத்த படி",
+      back: "பின்",
+      confirm: "உறுதிப்படுத்து",
+      share: "பகிர்",
+      copy: "உரை நகலெடு",
+      copied: "நகலெடுக்கப்பட்டது!",
+    },
+    customer: {
+      drafting: {
+        title: "உங்கள் அனுபவத்தைப் பகிரவும்",
+        subtitle: "ஒரு புகைப்படமும் மதிப்புரையும் தேர்ந்தெடுக்கவும்.",
+        selectPhoto: "புகைப்படம் தேர்வு",
+        selectReview: "மதிப்புரை தேர்வு",
+        reviewSets: [
+          [
+            "சிகிச்சை மிகவும் பிடித்திருந்தது! என் தலைமுடி மிகவும் ஆரோக்கியமாகவும் பளபளப்பாகவும் உள்ளது. Regrow Group-ஐ பரிந்துரைக்கிறேன்!",
+            "தொழில்முறை சேவை மற்றும் அற்புதமான முடிவுகள். ஊழியர்கள் என் தேவைகளுக்கு மிகவும் கவனம் செலுத்தினார்கள்.",
+            "பல ஆண்டுகளில் இது என்னுடைய சிறந்த சலூன் அனுபவம். முன்னும் பின்னும் வேறுபாடு நம்பமுடியாதது!",
+            "Regrow Group என் தோற்றத்தை முற்றிலும் மாற்றியது. முடிவுகளில் மிகவும் மகிழ்ச்சி!"
+          ],
+          [
+            "Regrow Group குழு தலைமுடி பராமரிப்பை உண்மையாகப் புரிந்துகொள்கிறது. என் தலைமுடி இதுவரை இவ்வளவு அழகாக இருந்ததில்லை!",
+            "அற்புதமான மாற்றம்! ஸ்டைலிஸ்ட்கள் மிகவும் திறமையானவர்கள், நீங்கள் என்ன விரும்புகிறீர்கள் என்பதை உண்மையாகக் கேட்கிறார்கள்.",
+            "முழு ஐந்து நட்சத்திரங்கள்! ஆலோசனை முதல் இறுதி முடிவு வரை எல்லாம் சரியாக இருந்தது.",
+            "ஒரு அமர்வுக்குப் பிறகு வேறுபாட்டை நம்ப முடியவில்லை. நிச்சயமாக மீண்டும் வருவேன்!"
+          ],
+          [
+            "Regrow Group என் எல்லா எதிர்பார்ப்புகளையும் மீறியது. சேவையின் தரம் ஒப்பற்றது!",
+            "என் நண்பர்கள் என் தலைமுடிக்கு என்ன செய்தேன் என்று தொடர்ந்து கேட்கிறார்கள். இந்த இடத்தைக் கண்டுபிடித்ததில் மிகவும் நன்றி!",
+            "ஊழியர்கள் என்னை மிகவும் வசதியாக உணர வைத்தார்கள். தொழில்முறை, நட்பான, மற்றும் நம்பமுடியாத திறமையானவர்கள்.",
+            "ஒவ்வொரு பைசாவும் மதிப்புக்குரியது! முடிவுகள் தானே பேசுகின்றன. அனைவருக்கும் கண்டிப்பாகப் பரிந்துரைக்கிறேன்!"
+          ],
+          [
+            "Regrow Group-ல் வாழ்க்கையை மாற்றும் அனுபவம்! என் வருகைக்குப் பிறகு என் நம்பிக்கை உயர்ந்துள்ளது.",
+            "நான் பல சலூன்களுக்குச் சென்றிருக்கிறேன், ஆனால் Regrow Group-ன் நிபுணத்துவத்துடன் ஒப்பிட முடியாது.",
+            "விவரங்களுக்கான கவனம் சிறப்பானது. அவர்கள் தங்கள் வாடிக்கையாளர்களை உண்மையாகக் கவனிக்கிறார்கள்.",
+            "நம்பமுடியாத முடிவுகள் மற்றும் அற்புதமான சேவை. இது என்னுடைய புதிய விருப்பமான சலூன்!"
+          ]
+        ]
+      },
+      platform: {
+        title: "தளம் தேர்வு",
+        subtitle: "உங்கள் மதிப்புரையைப் பகிர விரும்பும் இடத்தைத் தேர்ந்தெடுக்கவும்.",
+        instruction: "உங்கள் மதிப்புரையை நகலெடுத்து ஆப்பைத் திறக்க தளத்தைக் கிளிக் செய்யவும்.",
+      }
+    },
+    admin: {
+      dashboard: {
+        title: "பிரச்சார டாஷ்போர்டு",
+        subtitle: "செயல்திறனைக் கண்காணித்து உங்கள் மதிப்புரை பிரச்சாரங்களை நிர்வகிக்கவும்.",
+        totalScans: "மொத்த ஸ்கேன்கள்",
+        topPlatform: "சிறந்த தளம்",
+        recentActivity: "சமீபத்திய செயல்பாடு",
+        generateQR: "QR குறியீடு உருவாக்கு",
+        downloadKit: "சொத்து தொகுப்பைப் பதிவிறக்கு"
+      }
+    }
+  },
+  ms: {
+    common: {
+      next: "Langkah Seterusnya",
+      back: "Kembali",
+      confirm: "Sahkan",
+      share: "Kongsi",
+      copy: "Salin Teks",
+      copied: "Disalin!",
+    },
+    customer: {
+      drafting: {
+        title: "Kongsi Pengalaman Anda",
+        subtitle: "Pilih gambar dan ulasan untuk bermula.",
+        selectPhoto: "Pilih Gambar",
+        selectReview: "Pilih Ulasan",
+        reviewSets: [
+          [
+            "Sangat suka rawatan ini! Rambut saya terasa sangat sihat dan berkilau. Sangat mengesyorkan Regrow Group!",
+            "Perkhidmatan profesional dan hasil yang menakjubkan. Kakitangan sangat memberi perhatian kepada keperluan saya.",
+            "Pengalaman salon terbaik yang saya alami dalam beberapa tahun. Perbezaan sebelum dan selepas sungguh luar biasa!",
+            "Regrow Group mengubah penampilan saya sepenuhnya. Sangat gembira dengan hasilnya!"
+          ],
+          [
+            "Pasukan Regrow Group benar-benar memahami penjagaan rambut. Rambut saya tidak pernah kelihatan lebih baik!",
+            "Transformasi yang menakjubkan! Penggaya sangat berbakat dan benar-benar mendengar apa yang anda mahu.",
+            "Lima bintang sepenuhnya! Dari konsultasi hingga hasil akhir, semuanya sempurna.",
+            "Tidak percaya perbezaan selepas hanya satu sesi. Pasti akan kembali!"
+          ],
+          [
+            "Regrow Group melebihi semua jangkaan saya. Kualiti perkhidmatan tiada tandingan!",
+            "Kawan-kawan saya terus bertanya apa yang saya buat pada rambut saya. Sangat bersyukur menemui tempat ini!",
+            "Kakitangan membuat saya berasa sangat selesa. Profesional, mesra, dan sangat mahir.",
+            "Berbaloi setiap sen! Hasilnya berbicara sendiri. Sangat mengesyorkan kepada semua orang!"
+          ],
+          [
+            "Pengalaman yang mengubah hidup di Regrow Group! Keyakinan saya meningkat sejak lawatan saya.",
+            "Saya telah pergi ke banyak salon tetapi tiada yang setanding dengan kepakaran di Regrow Group.",
+            "Perhatian terhadap perincian sangat luar biasa. Mereka benar-benar mengambil berat tentang pelanggan mereka.",
+            "Hasil yang luar biasa dan perkhidmatan yang hebat. Ini adalah salon pilihan baru saya!"
+          ]
+        ]
+      },
+      platform: {
+        title: "Pilih Platform",
+        subtitle: "Pilih di mana anda mahu berkongsi ulasan anda.",
+        instruction: "Klik platform untuk menyalin ulasan anda dan buka aplikasi.",
+      }
+    },
+    admin: {
+      dashboard: {
+        title: "Papan Pemuka Kempen",
+        subtitle: "Jejaki prestasi dan urus kempen ulasan anda.",
+        totalScans: "Jumlah Imbasan",
+        topPlatform: "Platform Teratas",
+        recentActivity: "Aktiviti Terkini",
+        generateQR: "Jana Kod QR",
+        downloadKit: "Muat Turun Kit Aset"
       }
     }
   }
