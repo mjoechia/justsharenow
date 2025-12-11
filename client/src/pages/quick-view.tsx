@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig } from "@/lib/api";
 
-export default function QuickView() {
+export default function QuickView({ embedded = false }: { embedded?: boolean }) {
   const { language } = useStore();
   const [_, setLocation] = useLocation();
   const t = translations[language];
@@ -80,8 +80,7 @@ export default function QuickView() {
     { icon: <MessageCircle className="w-5 h-5" />, color: "text-green-600 bg-green-50" }, // WhatsApp
   ];
 
-  return (
-    <Layout>
+  const content = (
       <div className="container max-w-md mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[80vh]">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
@@ -153,6 +152,11 @@ export default function QuickView() {
           </Card>
         </motion.div>
       </div>
-    </Layout>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <Layout>{content}</Layout>;
 }

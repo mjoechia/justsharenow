@@ -68,7 +68,7 @@ const platforms = [
   }
 ];
 
-export default function Landing() {
+export default function Landing({ embedded = false }: { embedded?: boolean }) {
   const { language, setSelectedPlatform } = useStore();
   const [_, setLocation] = useLocation();
   const t = translations[language];
@@ -90,8 +90,7 @@ export default function Landing() {
     setLocation('/drafting');
   };
 
-  return (
-    <Layout hideCarousel>
+  const content = (
       <div className="flex-1 flex flex-col lg:flex-row min-h-[calc(100vh-8rem)]">
         
         {/* Mobile: Top Slider (1/3 height) */}
@@ -216,6 +215,11 @@ export default function Landing() {
           </motion.div>
         </div>
       </div>
-    </Layout>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <Layout hideCarousel>{content}</Layout>;
 }

@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2 } from "lucide-react";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2, QrCode, Store } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -13,6 +13,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse, resolveGoogleMapsUrl } from "@/lib/api";
 import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
+import QuickView from "@/pages/quick-view";
+import Landing from "@/pages/landing";
 
 export default function AdminDashboard() {
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
@@ -660,28 +662,33 @@ export default function AdminDashboard() {
                 <h1 className="text-3xl font-heading font-bold text-foreground">{t.admin.dashboard.title}</h1>
                 <p className="text-muted-foreground">{t.admin.dashboard.subtitle}</p>
             </div>
-            <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" asChild>
-                    <Link href="/quick-view">
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Open Quick View
-                    </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                    <Link href="/">
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Open Shop View
-                    </Link>
-                </Button>
-            </div>
         </div>
 
-        <Tabs defaultValue="socials" className="space-y-8">
-            <TabsList>
-                <TabsTrigger value="socials">Social Links</TabsTrigger>
-                <TabsTrigger value="photos">Shop Photos</TabsTrigger>
-                <TabsTrigger value="slider">Slider Photos</TabsTrigger>
+        {/* Top-level Admin Tabs */}
+        <Tabs defaultValue="dashboard" className="space-y-8">
+            <TabsList className="grid w-full grid-cols-3 max-w-md">
+                <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Dashboard
+                </TabsTrigger>
+                <TabsTrigger value="quick-view" className="flex items-center gap-2">
+                    <QrCode className="w-4 h-4" />
+                    Quick View
+                </TabsTrigger>
+                <TabsTrigger value="shop-view" className="flex items-center gap-2">
+                    <Store className="w-4 h-4" />
+                    Shop View
+                </TabsTrigger>
             </TabsList>
+
+            {/* Dashboard Tab Content */}
+            <TabsContent value="dashboard" className="space-y-8">
+              <Tabs defaultValue="socials" className="space-y-8">
+                <TabsList>
+                    <TabsTrigger value="socials">Social Links</TabsTrigger>
+                    <TabsTrigger value="photos">Shop Photos</TabsTrigger>
+                    <TabsTrigger value="slider">Slider Photos</TabsTrigger>
+                </TabsList>
 
             <TabsContent value="socials" className="space-y-6">
                 <Card>
@@ -1426,6 +1433,22 @@ export default function AdminDashboard() {
                         ))
                     )}
                 </div>
+            </TabsContent>
+              </Tabs>
+            </TabsContent>
+
+            {/* Quick View Tab Content */}
+            <TabsContent value="quick-view">
+              <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                <QuickView embedded />
+              </div>
+            </TabsContent>
+
+            {/* Shop View Tab Content */}
+            <TabsContent value="shop-view">
+              <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                <Landing embedded />
+              </div>
             </TabsContent>
         </Tabs>
       </div>
