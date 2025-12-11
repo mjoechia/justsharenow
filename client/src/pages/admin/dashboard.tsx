@@ -73,6 +73,9 @@ export default function AdminDashboard() {
       setShopPhotos(config.shopPhotos || []);
       setSliderPhotos(config.sliderPhotos || []);
       setSelectedHashtags(config.reviewHashtags || []);
+      if (config.businessName) {
+        setConfirmedBusinessName(config.businessName);
+      }
       setIsDirty(false);
     }
   }, [config]);
@@ -1082,7 +1085,21 @@ export default function AdminDashboard() {
                                                             onClick={() => {
                                                                 if (verifiedBusiness?.businessName) {
                                                                     setConfirmedBusinessName(verifiedBusiness.businessName);
-                                                                    toast({ title: "Business Confirmed!", description: "Business name updated in header." });
+                                                                    updateConfigMutation.mutate({
+                                                                        businessName: verifiedBusiness.businessName,
+                                                                        websiteUrl,
+                                                                        googleReviewsUrl,
+                                                                        googlePlaceId,
+                                                                        facebookUrl: fbUrl,
+                                                                        instagramUrl: igUrl,
+                                                                        xiaohongshuUrl: xhsUrl,
+                                                                        tiktokUrl,
+                                                                        whatsappUrl,
+                                                                        shopPhotos,
+                                                                        sliderPhotos,
+                                                                        reviewHashtags: selectedHashtags,
+                                                                    });
+                                                                    toast({ title: "Business Confirmed!", description: "Business name updated everywhere." });
                                                                 }
                                                             }}
                                                             disabled={confirmedBusinessName === verifiedBusiness?.businessName}

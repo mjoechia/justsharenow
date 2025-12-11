@@ -2,6 +2,7 @@
 
 export interface StoreConfig {
   id?: number;
+  businessName?: string | null;
   websiteUrl?: string | null;
   googleReviewsUrl?: string | null;
   googlePlaceId?: string | null;

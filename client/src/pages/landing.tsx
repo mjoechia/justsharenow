@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus, QrCode } from "lucide-react";
+import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus, QrCode, Building2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
@@ -140,6 +140,14 @@ export default function Landing() {
         {/* Desktop: Right Buttons (1/3 width) */}
         <div className="flex-1 lg:w-1/3 p-4 lg:p-6 flex flex-col">
           <div className="text-center mb-4 lg:mb-6">
+            {config?.businessName && (
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Building2 className="w-5 h-5 text-primary" />
+                <span className="text-lg font-semibold text-primary" data-testid="text-shop-business-name">
+                  {config.businessName}
+                </span>
+              </div>
+            )}
             <h1 className="text-xl lg:text-2xl font-heading font-bold text-foreground">
               Share Your Experience
             </h1>

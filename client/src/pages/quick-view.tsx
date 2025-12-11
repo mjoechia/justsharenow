@@ -6,11 +6,13 @@ import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
-import { Facebook, Instagram, MapPin, MessageCircle, Download, Link as LinkIcon, RefreshCw } from "lucide-react";
+import { Facebook, Instagram, MapPin, MessageCircle, Download, Link as LinkIcon, RefreshCw, Building2 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { getStoreConfig } from "@/lib/api";
 
 export default function QuickView() {
   const { language } = useStore();
@@ -18,6 +20,11 @@ export default function QuickView() {
   const t = translations[language];
   const { toast } = useToast();
   const qrRef = useRef<SVGSVGElement>(null);
+
+  const { data: config } = useQuery({
+    queryKey: ['storeConfig'],
+    queryFn: getStoreConfig,
+  });
 
   // QR code links to the Shop View (landing page)
   const [shareUrl, setShareUrl] = useState("");
@@ -87,6 +94,14 @@ export default function QuickView() {
               {/* Header */}
               <div className="mb-6 flex flex-col items-center">
                 <img src={justShareNowLogo} alt="JustShareNow" className="w-48 h-auto object-contain" />
+                {config?.businessName && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <Building2 className="w-5 h-5 text-primary" />
+                    <span className="text-lg font-semibold text-primary" data-testid="text-qr-business-name">
+                      {config.businessName}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* QR Code */}
