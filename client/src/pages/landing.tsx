@@ -19,7 +19,7 @@ import Autoplay from "embla-carousel-autoplay";
 
 const platforms = [
   {
-    id: 'google',
+    id: 'google-reviews',
     name: 'Google Reviews',
     icon: <MapPin className="w-8 h-8 text-blue-600" />,
     bgColor: 'bg-blue-50',
