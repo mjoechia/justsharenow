@@ -1,10 +1,11 @@
 import { useStore } from "@/lib/store";
 import { Link, useLocation } from "wouter";
-import { Globe, Menu, X } from "lucide-react";
+import { Globe, Menu, Building2, QrCode, Store } from "lucide-react";
 import { useState } from "react";
 import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Carousel,
   CarouselContent,
@@ -16,7 +17,19 @@ import Autoplay from "embla-carousel-autoplay";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig } from "@/lib/api";
 
-export function Layout({ children, isAdmin = false, hideCarousel = false }: { children: React.ReactNode, isAdmin?: boolean, hideCarousel?: boolean }) {
+export function Layout({ 
+  children, 
+  isAdmin = false, 
+  hideCarousel = false,
+  activeAdminTab = "dashboard",
+  onAdminTabChange
+}: { 
+  children: React.ReactNode, 
+  isAdmin?: boolean, 
+  hideCarousel?: boolean,
+  activeAdminTab?: string,
+  onAdminTabChange?: (tab: string) => void
+}) {
   const { language, setLanguage } = useStore();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -45,23 +58,29 @@ export function Layout({ children, isAdmin = false, hideCarousel = false }: { ch
           </div>
 
           <div className="hidden md:flex items-center gap-6">
-            {isAdmin && (
-              <nav className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
-                <Link href="/admin" className={location === '/admin' ? "text-primary" : "hover:text-foreground transition-colors"}>
-                  Dashboard
-                </Link>
-              </nav>
+            {isAdmin && onAdminTabChange && (
+              <Tabs value={activeAdminTab} onValueChange={onAdminTabChange}>
+                <TabsList className="bg-muted/50">
+                  <TabsTrigger value="dashboard" className="flex items-center gap-2 text-sm">
+                    <Building2 className="w-4 h-4" />
+                    Dashboard
+                  </TabsTrigger>
+                  <TabsTrigger value="quick-view" className="flex items-center gap-2 text-sm">
+                    <QrCode className="w-4 h-4" />
+                    Quick View
+                  </TabsTrigger>
+                  <TabsTrigger value="shop-view" className="flex items-center gap-2 text-sm">
+                    <Store className="w-4 h-4" />
+                    Shop View
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             )}
             
             <div className="flex items-center gap-2">
               {!isAdmin && (
                  <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground">
                     <Link href="/admin">Admin View</Link>
-                 </Button>
-              )}
-              {isAdmin && (
-                 <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground">
-                    <Link href="/">Customer View</Link>
                  </Button>
               )}
               <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-full">

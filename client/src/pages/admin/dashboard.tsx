@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2, QrCode, Store } from "lucide-react";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -21,6 +21,7 @@ export default function AdminDashboard() {
   const t = translations[language];
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
@@ -646,8 +647,29 @@ export default function AdminDashboard() {
     });
   };
 
+  // Render Quick View tab
+  if (activeTab === "quick-view") {
+    return (
+      <Layout isAdmin activeAdminTab={activeTab} onAdminTabChange={setActiveTab}>
+        <div className="container mx-auto px-4 py-8">
+          <QuickView embedded />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Render Shop View tab
+  if (activeTab === "shop-view") {
+    return (
+      <Layout isAdmin activeAdminTab={activeTab} onAdminTabChange={setActiveTab}>
+        <Landing embedded />
+      </Layout>
+    );
+  }
+
+  // Render Dashboard tab (default)
   return (
-    <Layout isAdmin>
+    <Layout isAdmin activeAdminTab={activeTab} onAdminTabChange={setActiveTab}>
       <div className="container mx-auto px-4 py-8 pb-24">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
@@ -664,31 +686,12 @@ export default function AdminDashboard() {
             </div>
         </div>
 
-        {/* Top-level Admin Tabs */}
-        <Tabs defaultValue="dashboard" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-3 max-w-md">
-                <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
-                    Dashboard
-                </TabsTrigger>
-                <TabsTrigger value="quick-view" className="flex items-center gap-2">
-                    <QrCode className="w-4 h-4" />
-                    Quick View
-                </TabsTrigger>
-                <TabsTrigger value="shop-view" className="flex items-center gap-2">
-                    <Store className="w-4 h-4" />
-                    Shop View
-                </TabsTrigger>
+        <Tabs defaultValue="socials" className="space-y-8">
+            <TabsList>
+                <TabsTrigger value="socials">Social Links</TabsTrigger>
+                <TabsTrigger value="photos">Shop Photos</TabsTrigger>
+                <TabsTrigger value="slider">Slider Photos</TabsTrigger>
             </TabsList>
-
-            {/* Dashboard Tab Content */}
-            <TabsContent value="dashboard" className="space-y-8">
-              <Tabs defaultValue="socials" className="space-y-8">
-                <TabsList>
-                    <TabsTrigger value="socials">Social Links</TabsTrigger>
-                    <TabsTrigger value="photos">Shop Photos</TabsTrigger>
-                    <TabsTrigger value="slider">Slider Photos</TabsTrigger>
-                </TabsList>
 
             <TabsContent value="socials" className="space-y-6">
                 <Card>
@@ -1433,22 +1436,6 @@ export default function AdminDashboard() {
                         ))
                     )}
                 </div>
-            </TabsContent>
-              </Tabs>
-            </TabsContent>
-
-            {/* Quick View Tab Content */}
-            <TabsContent value="quick-view">
-              <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-                <QuickView embedded />
-              </div>
-            </TabsContent>
-
-            {/* Shop View Tab Content */}
-            <TabsContent value="shop-view">
-              <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-                <Landing embedded />
-              </div>
             </TabsContent>
         </Tabs>
       </div>
