@@ -686,14 +686,9 @@ export default function AdminDashboard() {
             </div>
         </div>
 
-        <Tabs defaultValue="socials" className="space-y-8">
-            <TabsList>
-                <TabsTrigger value="socials">Social Links</TabsTrigger>
-                <TabsTrigger value="photos">Shop Photos</TabsTrigger>
-                <TabsTrigger value="slider">Slider Photos</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="socials" className="space-y-6">
+        <div className="space-y-8">
+            {/* Social Links Section */}
+            <div className="space-y-6">
                 <Card>
                     <CardHeader>
                         <CardTitle>Social Media Links</CardTitle>
@@ -1273,9 +1268,10 @@ export default function AdminDashboard() {
                         </div>
                     </CardContent>
                 </Card>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="photos" className="space-y-6">
+            {/* Shop Photos Section */}
+            <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold">Shop View Photos</h2>
@@ -1329,9 +1325,10 @@ export default function AdminDashboard() {
                         </Card>
                     ))}
                 </div>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="slider" className="space-y-6">
+            {/* Slider Photos Section */}
+            <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold">Slider Photos</h2>
@@ -1436,8 +1433,8 @@ export default function AdminDashboard() {
                         ))
                     )}
                 </div>
-            </TabsContent>
-        </Tabs>
+            </div>
+        </div>
       </div>
     </Layout>
   );
