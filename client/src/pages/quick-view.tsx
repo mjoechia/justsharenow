@@ -62,8 +62,8 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
         downloadLink.click();
         
         toast({
-            title: "QR Code Downloaded",
-            description: "Image saved to your device.",
+            title: t.quickView.qrDownloaded,
+            description: t.quickView.imageSaved,
         });
       }
     };
@@ -122,7 +122,7 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
               <div className="w-full flex items-center justify-center bg-muted/30 p-3 rounded-lg mb-6">
                 <Button variant="ghost" size="sm" onClick={handleDownload} className="text-xs text-muted-foreground hover:text-primary">
                    <Download className="w-4 h-4 mr-2" />
-                   Download QR Code
+                   {t.quickView.downloadQR}
                 </Button>
               </div>
 
@@ -137,15 +137,15 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
 
               {/* CTA */}
               <div className="space-y-2">
-                <h2 className="text-xl font-bold text-foreground">Share and Unlock Rewards</h2>
-                <p className="text-sm text-muted-foreground">Scan to share your experience and get instant perks.</p>
+                <h2 className="text-xl font-bold text-foreground">{t.quickView.shareUnlock}</h2>
+                <p className="text-sm text-muted-foreground">{t.quickView.scanToShare}</p>
               </div>
               
               <Button 
                 className="mt-8 w-full bg-gradient-to-r from-[#2D7FF9] to-[#23C7C3] hover:from-[#2D7FF9]/90 hover:to-[#23C7C3]/90 text-white border-0 shadow-lg shadow-[#2D7FF9]/20"
                 onClick={handleScan}
               >
-                Start Review Process
+                {t.quickView.startReview}
               </Button>
 
             </CardContent>

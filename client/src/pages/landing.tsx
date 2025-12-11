@@ -128,8 +128,8 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#2D7FF9]/10 to-[#23C7C3]/10">
               <div className="text-center text-muted-foreground p-8">
-                <p className="text-lg font-medium mb-2">Welcome to JustShareNow</p>
-                <p className="text-sm">Upload photos in Admin Dashboard to display here</p>
+                <p className="text-lg font-medium mb-2">{t.landing.welcome}</p>
+                <p className="text-sm">{t.landing.uploadPhotos}</p>
               </div>
             </div>
           )}
@@ -148,10 +148,10 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
               </div>
             )}
             <h1 className="text-xl lg:text-2xl font-heading font-bold text-foreground">
-              Share Your Experience
+              {t.landing.shareExperience}
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Tap a platform to get started
+              {t.landing.tapPlatform}
             </p>
           </div>
 

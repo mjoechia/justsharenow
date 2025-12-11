@@ -199,8 +199,8 @@ export default function CustomerDrafting() {
     setIsModalOpen(false);
     
     toast({
-      title: "Switched!",
-      description: "New photos and reviews are ready for you.",
+      title: t.customer.drafting.switched,
+      description: t.customer.drafting.newPhotosReady,
     });
   };
 
@@ -212,8 +212,8 @@ export default function CustomerDrafting() {
       if (reviewText) {
         await navigator.clipboard.writeText(reviewText);
         toast({
-          title: "Review Copied!",
-          description: "Your review text is copied. Paste it in Google Reviews.",
+          title: t.customer.drafting.reviewCopied,
+          description: t.customer.drafting.pasteInGoogle,
         });
       }
       
@@ -248,15 +248,15 @@ export default function CustomerDrafting() {
       document.body.removeChild(a);
       
       toast({
-        title: "Photo Downloaded!",
-        description: "Upload this photo when posting your review.",
+        title: t.customer.drafting.photoDownloaded,
+        description: t.customer.drafting.uploadPhoto,
       });
     } catch (e) {
       // Fallback: open in new tab
       window.open(selectedPhoto, '_blank');
       toast({
-        title: "Photo Opened",
-        description: "Save the photo and upload it to your review.",
+        title: t.customer.drafting.photoOpened,
+        description: t.customer.drafting.savePhoto,
       });
     }
   };
@@ -266,8 +266,8 @@ export default function CustomerDrafting() {
     if (reviewText) {
       await navigator.clipboard.writeText(reviewText);
       toast({
-        title: "Copied!",
-        description: "Review text copied to clipboard.",
+        title: t.common.copied,
+        description: t.customer.drafting.pasteInGoogle,
       });
     }
   };
@@ -278,9 +278,7 @@ export default function CustomerDrafting() {
       navigator.clipboard.writeText(textToCopy);
       toast({
         title: t.common.copied,
-        description: selectedHashtags.length > 0 
-          ? "Review text with hashtags copied. Ready to paste!"
-          : "Review text copied. Ready to paste!",
+        description: t.customer.drafting.pasteInGoogle,
       });
     }
     if (activePlatform?.id) {
@@ -367,7 +365,7 @@ export default function CustomerDrafting() {
           <section className="mb-8 animate-in-slide-up" style={{ animationDelay: '300ms' }}>
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 ml-1 flex items-center gap-2">
               <Hash className="w-4 h-4" />
-              Add Hashtags (Optional)
+              {t.customer.drafting.addHashtags}
             </h2>
             <div className="flex flex-wrap gap-2">
               {availableHashtags.map((hashtag, idx) => (
@@ -387,7 +385,7 @@ export default function CustomerDrafting() {
             </div>
             {selectedHashtags.length > 0 && (
               <p className="text-xs text-muted-foreground mt-2">
-                {selectedHashtags.length} hashtag{selectedHashtags.length > 1 ? 's' : ''} will be added to your review
+                {selectedHashtags.length} {t.customer.drafting.hashtagsAdded}
               </p>
             )}
           </section>
@@ -403,7 +401,7 @@ export default function CustomerDrafting() {
             onClick={handleSwitch}
           >
             <RefreshCw className="mr-2 w-4 h-4" />
-            Switch
+            {t.common.switch}
           </Button>
           
           <Button 
@@ -411,7 +409,7 @@ export default function CustomerDrafting() {
             onClick={handleNext}
             disabled={!selectedPhoto || !selectedReview}
           >
-            Share
+            {t.common.share}
             <Share2 className="ml-2 w-4 h-4" />
           </Button>
         </div>
@@ -428,14 +426,14 @@ export default function CustomerDrafting() {
               <>
                 <div className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
                   <p className="text-sm font-medium text-blue-900 text-center mb-3">
-                    📋 Your review will be copied automatically!
+                    📋 {t.customer.drafting.reviewCopiedAuto}
                   </p>
                   <div className="flex items-center justify-center gap-2 text-xs text-blue-700">
-                    <span className="bg-blue-100 px-2 py-1 rounded-full">1. Click Share</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded-full">{t.customer.drafting.step1}</span>
                     <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded-full">2. Paste in Google</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded-full">{t.customer.drafting.step2}</span>
                     <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded-full">3. Add Photo</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded-full">{t.customer.drafting.step3}</span>
                   </div>
                 </div>
                 
@@ -443,7 +441,7 @@ export default function CustomerDrafting() {
                 {selectedPhoto && (
                   <div className="w-full">
                     <p className="text-xs text-muted-foreground mb-2 text-center font-medium">
-                      📷 Your Photo (download to upload on Google)
+                      📷 {t.customer.drafting.yourPhoto}
                     </p>
                     <div className="flex items-center justify-center gap-4">
                       <img 
@@ -460,7 +458,7 @@ export default function CustomerDrafting() {
                         data-testid="button-download-photo"
                       >
                         <Download className="w-4 h-4" />
-                        Save Photo
+                        {t.customer.drafting.savePhotoBtn}
                       </Button>
                     </div>
                   </div>
@@ -470,7 +468,7 @@ export default function CustomerDrafting() {
                 {selectedReview && (
                   <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground font-medium">Your Review</p>
+                      <p className="text-xs text-muted-foreground font-medium">{t.customer.drafting.yourReview}</p>
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -479,7 +477,7 @@ export default function CustomerDrafting() {
                         data-testid="button-copy-review"
                       >
                         <Copy className="w-3 h-3 mr-1" />
-                        Copy
+                        {t.common.copy}
                       </Button>
                     </div>
                     <div className="flex items-center gap-2 mb-2">

@@ -208,8 +208,8 @@ export default function CustomerPlatform() {
 
         {availablePlatforms.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p>No sharing platforms are configured yet.</p>
-            <p className="text-sm mt-2">Please ask the store owner to set up social media links.</p>
+            <p>{t.customer.platform.noPlatforms}</p>
+            <p className="text-sm mt-2">{t.customer.platform.askOwner}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 animate-in-slide-up" style={{ animationDelay: '100ms' }}>
@@ -230,8 +230,8 @@ export default function CustomerPlatform() {
                           <div className="text-left">
                               <span className={`block font-bold ${platform.textColor}`}>{platform.name}</span>
                               <span className="text-xs text-muted-foreground/80">
-                                  {platform.actionType === 'review' ? 'Leave a Review' : 
-                                   platform.actionType === 'contact' ? 'Contact Us' : 'Share Your Experience'}
+                                  {platform.actionType === 'review' ? t.customer.platform.leaveReview : 
+                                   platform.actionType === 'contact' ? t.customer.platform.contactUs : t.customer.platform.shareExperience}
                               </span>
                           </div>
                       </div>
@@ -256,16 +256,16 @@ export default function CustomerPlatform() {
                     {activePlatform?.id === 'google-reviews' && (
                         <div className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground text-center mb-4">
-                                We'd love to hear your feedback on Google!
+                                {t.customer.platform.googleFeedback}
                             </p>
                             <div className="grid grid-cols-2 gap-3">
                                 <Button variant="outline" onClick={handleSwitch} className="h-12" data-testid="button-switch">
                                     <RefreshCw className="mr-2 h-4 w-4" />
-                                    Switch
+                                    {t.common.switch}
                                 </Button>
                                 <Button onClick={handleReviewAction} className="h-12 bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
                                     <ExternalLink className="mr-2 h-4 w-4" />
-                                    Review
+                                    {t.customer.platform.leaveReview}
                                 </Button>
                             </div>
                         </div>
@@ -274,11 +274,11 @@ export default function CustomerPlatform() {
                     {activePlatform?.id === 'xiaohongshu' && (
                          <div className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground text-center mb-4">
-                                Copy your text and share your photo on XiaoHongShu!
+                                {t.customer.platform.copyXHS}
                             </p>
                             <Button onClick={handleShareAction} className="h-12 bg-red-600 hover:bg-red-700 text-white w-full" data-testid="button-share-xhs">
                                 <Copy className="mr-2 h-4 w-4" />
-                                Copy & Open XHS
+                                {t.customer.platform.copyShare}
                             </Button>
                         </div>
                     )}
@@ -286,16 +286,16 @@ export default function CustomerPlatform() {
                     {(activePlatform?.id === 'facebook' || activePlatform?.id === 'instagram') && (
                         <div className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground text-center mb-4">
-                                Share your experience with your friends!
+                                {t.customer.platform.shareFriends}
                             </p>
                             <div className="grid grid-cols-2 gap-3">
                                 <Button variant="outline" onClick={handleSwitch} className="h-12" data-testid="button-switch">
                                     <RefreshCw className="mr-2 h-4 w-4" />
-                                    Switch
+                                    {t.common.switch}
                                 </Button>
                                 <Button onClick={handleShareAction} className="h-12 bg-[#2D7FF9] hover:bg-[#2D7FF9]/90 text-white" data-testid="button-share">
                                     <Share2 className="mr-2 h-4 w-4" />
-                                    Share
+                                    {t.common.share}
                                 </Button>
                             </div>
                         </div>
@@ -304,16 +304,16 @@ export default function CustomerPlatform() {
                     {activePlatform?.id === 'tiktok' && (
                         <div className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground text-center mb-4">
-                                Share your transformation on TikTok!
+                                {t.customer.platform.shareTikTok}
                             </p>
                             <div className="grid grid-cols-2 gap-3">
                                 <Button variant="outline" onClick={handleSwitch} className="h-12" data-testid="button-switch">
                                     <RefreshCw className="mr-2 h-4 w-4" />
-                                    Switch
+                                    {t.common.switch}
                                 </Button>
                                 <Button onClick={handleShareAction} className="h-12 bg-slate-800 hover:bg-slate-900 text-white" data-testid="button-share-tiktok">
                                     <Share2 className="mr-2 h-4 w-4" />
-                                    Share
+                                    {t.common.share}
                                 </Button>
                             </div>
                         </div>
@@ -322,11 +322,11 @@ export default function CustomerPlatform() {
                     {activePlatform?.id === 'whatsapp' && (
                         <div className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground text-center mb-4">
-                                Chat with us on WhatsApp!
+                                {t.customer.platform.chatWhatsApp}
                             </p>
                             <Button onClick={handleContactAction} className="h-12 bg-green-600 hover:bg-green-700 text-white w-full" data-testid="button-contact-whatsapp">
                                 <MessageCircle className="mr-2 h-4 w-4" />
-                                Open WhatsApp
+                                {t.customer.platform.openWhatsApp}
                             </Button>
                         </div>
                     )}
