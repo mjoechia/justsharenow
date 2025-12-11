@@ -426,10 +426,11 @@ export default function AdminDashboard() {
       
       const result = await verifyGooglePlaceId(placeIdToVerify);
       if (result.success) {
+        const finalPlaceId = result.placeId || placeIdToVerify;
+        
         // If the API returns a placeId (from business name search), update the field
         if (result.placeId && result.placeId !== placeIdToVerify) {
           setGooglePlaceId(result.placeId);
-          setIsDirty(true);
         }
         setVerifiedBusiness({
           businessName: result.businessName,
@@ -440,11 +441,44 @@ export default function AdminDashboard() {
           verifiedAt: result.verifiedAt,
           fromCache: result.fromCache,
         });
-        const cacheMessage = result.fromCache ? " (using cached data)" : "";
-        toast({ 
-          title: "Business Verified!", 
-          description: (result.businessName || "Business information retrieved successfully.") + cacheMessage
-        });
+        
+        // Auto-save the Place ID and Google Reviews URL after successful verification
+        const googleReviewUrl = `https://search.google.com/local/writereview?placeid=${finalPlaceId}`;
+        setGoogleReviewsUrl(googleReviewUrl);
+        setGooglePlaceId(finalPlaceId);
+        
+        // Save to database immediately with error handling
+        try {
+          await updateStoreConfig({
+            websiteUrl,
+            googleReviewsUrl: googleReviewUrl,
+            googlePlaceId: finalPlaceId,
+            facebookUrl: fbUrl,
+            instagramUrl: igUrl,
+            xiaohongshuUrl: xhsUrl,
+            tiktokUrl,
+            whatsappUrl,
+            shopPhotos,
+            sliderPhotos,
+            reviewHashtags: selectedHashtags,
+          });
+          queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
+          setIsDirty(false);
+          
+          const cacheMessage = result.fromCache ? " (using cached data)" : "";
+          toast({ 
+            title: "Business Verified & Saved!", 
+            description: (result.businessName || "Business information retrieved successfully.") + cacheMessage
+          });
+        } catch (saveError) {
+          // Verification succeeded but save failed - show partial success
+          setIsDirty(true);
+          const cacheMessage = result.fromCache ? " (using cached data)" : "";
+          toast({ 
+            title: "Business Verified", 
+            description: (result.businessName || "Business verified.") + cacheMessage + " Please click Save Changes to persist."
+          });
+        }
       }
     } catch (error: any) {
       toast({ 
