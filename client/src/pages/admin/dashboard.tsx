@@ -465,18 +465,15 @@ export default function AdminDashboard() {
           queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
           setIsDirty(false);
           
-          const cacheMessage = result.fromCache ? " (using cached data)" : "";
           toast({ 
-            title: "Business Verified & Saved!", 
-            description: (result.businessName || "Business information retrieved successfully.") + cacheMessage
+            title: "Business Verified & Saved!"
           });
         } catch (saveError) {
           // Verification succeeded but save failed - show partial success
           setIsDirty(true);
-          const cacheMessage = result.fromCache ? " (using cached data)" : "";
           toast({ 
             title: "Business Verified", 
-            description: (result.businessName || "Business verified.") + cacheMessage + " Please click Save Changes to persist."
+            description: "Business verified. Please click Save Changes to persist."
           });
         }
       }
@@ -1013,18 +1010,18 @@ export default function AdminDashboard() {
                                             {isVerifyingPlace ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                    {isResolvingUrl ? "Resolving URL..." : "Verifying..."}
+                                                    {isResolvingUrl ? "Resolving URL..." : "Checking..."}
                                                 </>
                                             ) : (
                                                 <>
-                                                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                    Verify
+                                                    <Search className="w-4 h-4 mr-2" />
+                                                    Check in Google
                                                 </>
                                             )}
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID. Click "Verify" to find your business.
+                                        Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID. Click "Check in Google" to find your business.
                                     </p>
                                     
                                     {verifiedBusiness && (
@@ -1075,18 +1072,40 @@ export default function AdminDashboard() {
                                                             </span>
                                                         </div>
                                                     )}
-                                                    {verifiedBusiness.googleMapsUrl && (
-                                                        <a 
-                                                            href={verifiedBusiness.googleMapsUrl}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="inline-flex items-center gap-1.5 mt-3 text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                                                            data-testid="link-google-maps"
+                                                    <div className="flex items-center gap-3 mt-3">
+                                                        <Button
+                                                            onClick={handleVerifyPlaceId}
+                                                            disabled={isVerifyingPlace}
+                                                            variant="default"
+                                                            size="sm"
+                                                            className="bg-green-600 hover:bg-green-700"
+                                                            data-testid="button-verify-business"
                                                         >
-                                                            <ExternalLink className="w-3.5 h-3.5" />
-                                                            View on Google Maps
-                                                        </a>
-                                                    )}
+                                                            {isVerifyingPlace ? (
+                                                                <>
+                                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                    Verifying...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                                    Verify
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                        {verifiedBusiness.googleMapsUrl && (
+                                                            <a 
+                                                                href={verifiedBusiness.googleMapsUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                                                                data-testid="link-google-maps"
+                                                            >
+                                                                <ExternalLink className="w-3.5 h-3.5" />
+                                                                View on Google Maps
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
