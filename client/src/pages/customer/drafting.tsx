@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Check, RefreshCw, Share2, ExternalLink, Copy, Hash, MessageCircle } from "lucide-react";
+import { Check, RefreshCw, Share2, ExternalLink, Copy, Hash, MessageCircle, Download, Clipboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -206,14 +206,22 @@ export default function CustomerDrafting() {
 
   const handleReviewAction = async () => {
     if (activePlatform?.id === 'google-reviews') {
-      // If we have a Google Place ID and a selected review, generate a pre-filled review link
       const reviewText = getReviewWithHashtags();
-      if (socialLinks.googlePlaceId && selectedReview && reviewText) {
-        const encodedReview = encodeURIComponent(reviewText);
-        const prefilledUrl = `https://search.google.com/local/writereview?placeid=${socialLinks.googlePlaceId}&review=${encodedReview}`;
-        window.open(prefilledUrl, '_blank');
+      
+      // Copy review text to clipboard first
+      if (reviewText) {
+        await navigator.clipboard.writeText(reviewText);
+        toast({
+          title: "Review Copied!",
+          description: "Your review text is copied. Paste it in Google Reviews.",
+        });
+      }
+      
+      // Open Google Reviews page
+      if (socialLinks.googlePlaceId) {
+        const reviewUrl = `https://search.google.com/local/writereview?placeid=${socialLinks.googlePlaceId}`;
+        window.open(reviewUrl, '_blank');
       } else {
-        // Fallback to regular Google Reviews URL
         const url = socialLinks.googleReviews || "https://www.google.com/maps";
         window.open(url, '_blank');
       }
@@ -222,6 +230,46 @@ export default function CustomerDrafting() {
       await trackPlatformClick(activePlatform.id);
     }
     setIsModalOpen(false);
+  };
+
+  const handleDownloadPhoto = async () => {
+    if (!selectedPhoto) return;
+    
+    try {
+      const response = await fetch(selectedPhoto);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'review-photo.jpg';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Photo Downloaded!",
+        description: "Upload this photo when posting your review.",
+      });
+    } catch (e) {
+      // Fallback: open in new tab
+      window.open(selectedPhoto, '_blank');
+      toast({
+        title: "Photo Opened",
+        description: "Save the photo and upload it to your review.",
+      });
+    }
+  };
+
+  const handleCopyReview = async () => {
+    const reviewText = getReviewWithHashtags();
+    if (reviewText) {
+      await navigator.clipboard.writeText(reviewText);
+      toast({
+        title: "Copied!",
+        description: "Review text copied to clipboard.",
+      });
+    }
   };
 
   const handleShareAction = async () => {
@@ -378,49 +426,74 @@ export default function CustomerDrafting() {
             {/* Google Review */}
             {activePlatform?.id === 'google-reviews' && (
               <>
-                <p className="text-sm text-muted-foreground text-center">
-                  {socialLinks.googlePlaceId && selectedReview 
-                    ? "Your review is ready! Click below to open Google Reviews with your text pre-filled."
-                    : "We'd love to hear your feedback on Google!"}
-                </p>
+                <div className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                  <p className="text-sm font-medium text-blue-900 text-center mb-3">
+                    📋 Your review will be copied automatically!
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-blue-700">
+                    <span className="bg-blue-100 px-2 py-1 rounded-full">1. Click Share</span>
+                    <span>→</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded-full">2. Paste in Google</span>
+                    <span>→</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded-full">3. Add Photo</span>
+                  </div>
+                </div>
                 
-                {/* Selected photo preview */}
+                {/* Selected photo with download button */}
                 {selectedPhoto && (
                   <div className="w-full">
                     <p className="text-xs text-muted-foreground mb-2 text-center font-medium">
-                      Your Selected Photo
+                      📷 Your Photo (download to upload on Google)
                     </p>
-                    <img 
-                      src={selectedPhoto} 
-                      alt="Selected photo" 
-                      className="w-32 h-32 object-cover rounded-lg mx-auto border-2 border-primary/20 shadow-sm"
-                      data-testid="img-selected-photo-preview"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1 text-center">
-                      (Add this photo manually when posting on Google)
-                    </p>
+                    <div className="flex items-center justify-center gap-4">
+                      <img 
+                        src={selectedPhoto} 
+                        alt="Selected photo" 
+                        className="w-24 h-24 object-cover rounded-lg border-2 border-primary/20 shadow-sm"
+                        data-testid="img-selected-photo-preview"
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleDownloadPhoto}
+                        className="flex items-center gap-2"
+                        data-testid="button-download-photo"
+                      >
+                        <Download className="w-4 h-4" />
+                        Save Photo
+                      </Button>
+                    </div>
                   </div>
                 )}
                 
-                {/* Preview of the prepared review */}
+                {/* Preview of the prepared review with copy button */}
                 {selectedReview && (
                   <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-muted-foreground mb-2 font-medium">Your Review</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-muted-foreground font-medium">Your Review</p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleCopyReview}
+                        className="h-7 text-xs"
+                        data-testid="button-copy-review"
+                      >
+                        <Copy className="w-3 h-3 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-yellow-500">⭐⭐⭐⭐⭐</span>
                     </div>
-                    <p className="text-sm text-gray-700 line-clamp-4" data-testid="text-review-preview">
+                    <p className="text-sm text-gray-700 line-clamp-3" data-testid="text-review-preview">
                       {getReviewWithHashtags()}
                     </p>
                   </div>
                 )}
                 
                 <Button onClick={handleReviewAction} className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-review">
-                  {socialLinks.googlePlaceId && selectedReview ? (
-                    <><Check className="mr-2 h-4 w-4" />OK - Open Google Review</>
-                  ) : (
-                    <><ExternalLink className="mr-2 h-4 w-4" />Leave a Review</>
-                  )}
+                  <Clipboard className="mr-2 h-4 w-4" />
+                  Copy & Open Google Review
                 </Button>
               </>
             )}
