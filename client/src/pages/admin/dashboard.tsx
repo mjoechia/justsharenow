@@ -58,6 +58,7 @@ export default function AdminDashboard() {
     verifiedAt?: string;
     fromCache?: boolean;
   } | null>(null);
+  const [confirmedBusinessName, setConfirmedBusinessName] = useState<string | null>(null);
 
   useEffect(() => {
     if (config) {
@@ -92,6 +93,10 @@ export default function AdminDashboard() {
               verifiedAt: result.verifiedAt,
               fromCache: result.fromCache,
             });
+            // Set confirmed name on initial load (existing verified business)
+            if (result.businessName && !confirmedBusinessName) {
+              setConfirmedBusinessName(result.businessName);
+            }
           }
         } catch (error) {
           // Silent fail for auto-verification
@@ -641,11 +646,11 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8 pb-24">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-                {verifiedBusiness?.businessName && (
+                {confirmedBusinessName && (
                   <div className="flex items-center gap-2 mb-2">
                     <Building2 className="w-5 h-5 text-primary" />
                     <span className="text-lg font-semibold text-primary" data-testid="text-header-business-name">
-                      {verifiedBusiness.businessName}
+                      {confirmedBusinessName}
                     </span>
                   </div>
                 )}
@@ -1074,24 +1079,20 @@ export default function AdminDashboard() {
                                                     )}
                                                     <div className="flex items-center gap-3 mt-3">
                                                         <Button
-                                                            onClick={handleVerifyPlaceId}
-                                                            disabled={isVerifyingPlace}
+                                                            onClick={() => {
+                                                                if (verifiedBusiness?.businessName) {
+                                                                    setConfirmedBusinessName(verifiedBusiness.businessName);
+                                                                    toast({ title: "Business Confirmed!", description: "Business name updated in header." });
+                                                                }
+                                                            }}
+                                                            disabled={confirmedBusinessName === verifiedBusiness?.businessName}
                                                             variant="default"
                                                             size="sm"
                                                             className="bg-green-600 hover:bg-green-700"
                                                             data-testid="button-verify-business"
                                                         >
-                                                            {isVerifyingPlace ? (
-                                                                <>
-                                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                                    Verifying...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                                    Verify
-                                                                </>
-                                                            )}
+                                                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                            Verify
                                                         </Button>
                                                         {verifiedBusiness.googleMapsUrl && (
                                                             <a 
