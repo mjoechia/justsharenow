@@ -3,6 +3,7 @@ import {
   analytics,
   googleReviews,
   verifiedBusinesses,
+  testimonials,
   type StoreConfig, 
   type InsertStoreConfig,
   type Analytics,
@@ -10,23 +11,26 @@ import {
   type GoogleReview,
   type InsertGoogleReview,
   type VerifiedBusiness,
-  type InsertVerifiedBusiness
+  type InsertVerifiedBusiness,
+  type Testimonial,
+  type InsertTestimonial
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, desc } from "drizzle-orm";
 
 export interface IStorage {
-  // Store Configuration
-  getStoreConfig(): Promise<StoreConfig | undefined>;
-  updateStoreConfig(config: InsertStoreConfig): Promise<StoreConfig>;
-  addShopPhoto(photoBase64: string): Promise<StoreConfig>;
-  addSliderPhoto(photoBase64: string): Promise<StoreConfig>;
-  setReviewHashtags(hashtags: string[]): Promise<StoreConfig>;
+  // Store Configuration - now scoped by placeId
+  getStoreConfig(placeId?: string): Promise<StoreConfig | undefined>;
+  updateStoreConfig(config: InsertStoreConfig, placeId?: string): Promise<StoreConfig>;
+  addShopPhoto(photoBase64: string, placeId?: string): Promise<StoreConfig>;
+  addSliderPhoto(photoBase64: string, placeId?: string): Promise<StoreConfig>;
+  setReviewHashtags(hashtags: string[], placeId?: string): Promise<StoreConfig>;
+  getAllBusinesses(): Promise<StoreConfig[]>;
   
-  // Analytics
-  getAllAnalytics(): Promise<Analytics[]>;
-  incrementPlatformClick(platform: string): Promise<void>;
-  initializePlatforms(platforms: string[]): Promise<void>;
+  // Analytics - now scoped by placeId
+  getAllAnalytics(placeId?: string): Promise<Analytics[]>;
+  incrementPlatformClick(platform: string, placeId?: string): Promise<void>;
+  initializePlatforms(platforms: string[], placeId?: string): Promise<void>;
   
   // Google Reviews
   getGoogleReviews(): Promise<GoogleReview[]>;
@@ -36,17 +40,28 @@ export interface IStorage {
   // Verified Businesses (cache)
   getVerifiedBusiness(placeId: string): Promise<VerifiedBusiness | undefined>;
   saveVerifiedBusiness(business: InsertVerifiedBusiness): Promise<VerifiedBusiness>;
+  
+  // Testimonials
+  getTestimonials(placeId: string): Promise<Testimonial[]>;
+  saveTestimonial(testimonial: InsertTestimonial): Promise<Testimonial>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getStoreConfig(): Promise<StoreConfig | undefined> {
+  async getStoreConfig(placeId?: string): Promise<StoreConfig | undefined> {
+    if (placeId) {
+      const [config] = await db.select().from(storeConfig).where(eq(storeConfig.placeId, placeId)).limit(1);
+      return config || undefined;
+    }
+    // Fallback: get first config (for backward compatibility)
     const [config] = await db.select().from(storeConfig).limit(1);
     return config || undefined;
   }
 
-  async updateStoreConfig(configData: InsertStoreConfig): Promise<StoreConfig> {
-    // Check if config exists
-    const existing = await this.getStoreConfig();
+  async updateStoreConfig(configData: InsertStoreConfig, placeId?: string): Promise<StoreConfig> {
+    const targetPlaceId = placeId || configData.placeId;
+    
+    // Check if config exists for this business
+    const existing = targetPlaceId ? await this.getStoreConfig(targetPlaceId) : await this.getStoreConfig();
     
     if (existing) {
       // Update existing config
@@ -58,17 +73,17 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return updated;
     } else {
-      // Create new config
+      // Create new config for this business
       const [created] = await db
         .insert(storeConfig)
-        .values(configData as any)
+        .values({ ...configData, placeId: targetPlaceId } as any)
         .returning();
       return created;
     }
   }
 
-  async addShopPhoto(photoBase64: string): Promise<StoreConfig> {
-    const existing = await this.getStoreConfig();
+  async addShopPhoto(photoBase64: string, placeId?: string): Promise<StoreConfig> {
+    const existing = await this.getStoreConfig(placeId);
     const currentPhotos = existing?.shopPhotos || [];
     
     if (currentPhotos.length >= 9) {
@@ -90,14 +105,14 @@ export class DatabaseStorage implements IStorage {
     } else {
       const [created] = await db
         .insert(storeConfig)
-        .values({ shopPhotos: newPhotos } as any)
+        .values({ shopPhotos: newPhotos, placeId } as any)
         .returning();
       return created;
     }
   }
 
-  async addSliderPhoto(photoBase64: string): Promise<StoreConfig> {
-    const existing = await this.getStoreConfig();
+  async addSliderPhoto(photoBase64: string, placeId?: string): Promise<StoreConfig> {
+    const existing = await this.getStoreConfig(placeId);
     const currentPhotos = existing?.sliderPhotos || [];
     
     if (currentPhotos.length >= 3) {
@@ -119,14 +134,14 @@ export class DatabaseStorage implements IStorage {
     } else {
       const [created] = await db
         .insert(storeConfig)
-        .values({ sliderPhotos: newPhotos } as any)
+        .values({ sliderPhotos: newPhotos, placeId } as any)
         .returning();
       return created;
     }
   }
 
-  async setReviewHashtags(hashtags: string[]): Promise<StoreConfig> {
-    const existing = await this.getStoreConfig();
+  async setReviewHashtags(hashtags: string[], placeId?: string): Promise<StoreConfig> {
+    const existing = await this.getStoreConfig(placeId);
     
     // Normalize hashtags: ensure # prefix, dedupe, limit to 12
     const withPrefix = hashtags
@@ -147,37 +162,57 @@ export class DatabaseStorage implements IStorage {
     } else {
       const [created] = await db
         .insert(storeConfig)
-        .values({ reviewHashtags: normalized } as any)
+        .values({ reviewHashtags: normalized, placeId } as any)
         .returning();
       return created;
     }
   }
 
-  async getAllAnalytics(): Promise<Analytics[]> {
+  async getAllBusinesses(): Promise<StoreConfig[]> {
+    return await db.select().from(storeConfig).where(sql`${storeConfig.placeId} IS NOT NULL`);
+  }
+
+  async getAllAnalytics(placeId?: string): Promise<Analytics[]> {
+    if (placeId) {
+      return await db.select().from(analytics).where(eq(analytics.placeId, placeId));
+    }
     return await db.select().from(analytics);
   }
 
-  async incrementPlatformClick(platform: string): Promise<void> {
-    // Upsert: increment if exists, create if not
-    await db
-      .insert(analytics)
-      .values({ platform, clicks: 1 })
-      .onConflictDoUpdate({
-        target: analytics.platform,
-        set: {
+  async incrementPlatformClick(platform: string, placeId?: string): Promise<void> {
+    // Insert new record for each click (no unique constraint on platform now)
+    const existing = await db.select().from(analytics)
+      .where(placeId 
+        ? and(eq(analytics.platform, platform), eq(analytics.placeId, placeId))
+        : eq(analytics.platform, platform)
+      )
+      .limit(1);
+    
+    if (existing.length > 0) {
+      await db.update(analytics)
+        .set({ 
           clicks: sql`${analytics.clicks} + 1`,
-          lastUpdated: new Date(),
-        },
-      });
+          lastUpdated: new Date() 
+        })
+        .where(eq(analytics.id, existing[0].id));
+    } else {
+      await db.insert(analytics).values({ platform, placeId, clicks: 1 });
+    }
   }
 
-  async initializePlatforms(platforms: string[]): Promise<void> {
+  async initializePlatforms(platforms: string[], placeId?: string): Promise<void> {
     // Initialize platforms with 0 clicks if they don't exist
     for (const platform of platforms) {
-      await db
-        .insert(analytics)
-        .values({ platform, clicks: 0 })
-        .onConflictDoNothing();
+      const existing = await db.select().from(analytics)
+        .where(placeId 
+          ? and(eq(analytics.platform, platform), eq(analytics.placeId, placeId))
+          : eq(analytics.platform, platform)
+        )
+        .limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(analytics).values({ platform, placeId, clicks: 0 });
+      }
     }
   }
 
@@ -230,6 +265,22 @@ export class DatabaseStorage implements IStorage {
           verifiedAt: sql`NOW()`,
         },
       })
+      .returning();
+    return saved;
+  }
+
+  async getTestimonials(placeId: string): Promise<Testimonial[]> {
+    return await db
+      .select()
+      .from(testimonials)
+      .where(eq(testimonials.placeId, placeId))
+      .orderBy(desc(testimonials.createdAt));
+  }
+
+  async saveTestimonial(testimonial: InsertTestimonial): Promise<Testimonial> {
+    const [saved] = await db
+      .insert(testimonials)
+      .values(testimonial)
       .returning();
     return saved;
   }

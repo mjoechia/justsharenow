@@ -2,12 +2,12 @@ import { useStore, translations } from "@/lib/store";
 import { Layout } from "@/components/layout";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ExternalLink, Copy, RefreshCw, Share2, X, MessageCircle } from "lucide-react";
+import { ArrowLeft, ExternalLink, Copy, RefreshCw, Share2, X, MessageCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getStoreConfig, trackPlatformClick } from "@/lib/api";
+import { getStoreConfig, trackPlatformClick, saveTestimonial } from "@/lib/api";
 
 const allPlatforms = [
   { 
@@ -93,6 +93,8 @@ export default function CustomerPlatform() {
 
   const [activePlatform, setActivePlatform] = useState<typeof allPlatforms[0] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [instagramRating, setInstagramRating] = useState(0);
+  const [instagramSubmitting, setInstagramSubmitting] = useState(false);
 
   const handlePlatformClick = (platform: typeof allPlatforms[0]) => {
     setActivePlatform(platform);
@@ -102,6 +104,7 @@ export default function CustomerPlatform() {
   const handleClose = () => {
     setIsModalOpen(false);
     setActivePlatform(null);
+    setInstagramRating(0);
   };
 
   const handleSwitch = () => {
@@ -149,11 +152,15 @@ export default function CustomerPlatform() {
 
   const handleShareAction = async () => {
     if (selectedReview) {
-      navigator.clipboard.writeText(selectedReview);
-      toast({
-        title: t.common.copied,
-        description: "Review text copied. Ready to paste!",
-      });
+      try {
+        await navigator.clipboard.writeText(selectedReview);
+        toast({
+          title: t.common.copied,
+          description: t.customer.platform.reviewCopied,
+        });
+      } catch (clipboardErr) {
+        console.warn("Clipboard write failed:", clipboardErr);
+      }
     }
     
     const url = getPlatformUrl(activePlatform?.id || '');
@@ -180,6 +187,71 @@ export default function CustomerPlatform() {
       await trackPlatformClick(activePlatform?.id || 'unknown');
     } catch (e) {
       console.error("Failed to track click:", e);
+    }
+  };
+
+  const handleInstagramSubmit = async () => {
+    if (instagramRating === 0) {
+      toast({
+        title: t.customer.platform.selectRating,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const instagramUrl = getPlatformUrl('instagram');
+    if (!instagramUrl) {
+      toast({
+        title: t.common.error || "Error",
+        description: t.customer.platform.noPlatforms,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setInstagramSubmitting(true);
+    
+    try {
+      // Save testimonial if we have a business ID
+      if (config?.googlePlaceId) {
+        await saveTestimonial({
+          placeId: config.googlePlaceId,
+          platform: 'instagram',
+          rating: instagramRating,
+          reviewText: selectedReview || null,
+          photoUrl: selectedPhoto || null,
+          language: language,
+        });
+      }
+      
+      // Copy review text to clipboard with fallback
+      if (selectedReview) {
+        try {
+          await navigator.clipboard.writeText(selectedReview);
+          toast({
+            title: t.common.copied,
+            description: t.customer.platform.reviewCopied,
+          });
+        } catch (clipboardErr) {
+          console.warn("Clipboard write failed:", clipboardErr);
+        }
+      }
+      
+      // Open Instagram profile
+      window.open(instagramUrl, '_blank');
+      
+      incrementStat('instagram');
+      await trackPlatformClick('instagram');
+      
+      handleClose();
+    } catch (e) {
+      console.error("Failed to save testimonial:", e);
+      toast({
+        title: t.common.error || "Error",
+        variant: "destructive",
+      });
+    } finally {
+      setInstagramSubmitting(false);
     }
   };
 
@@ -283,7 +355,7 @@ export default function CustomerPlatform() {
                         </div>
                     )}
 
-                    {(activePlatform?.id === 'facebook' || activePlatform?.id === 'instagram') && (
+                    {activePlatform?.id === 'facebook' && (
                         <div className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground text-center mb-4">
                                 {t.customer.platform.shareFriends}
@@ -296,6 +368,57 @@ export default function CustomerPlatform() {
                                 <Button onClick={handleShareAction} className="h-12 bg-[#2D7FF9] hover:bg-[#2D7FF9]/90 text-white" data-testid="button-share">
                                     <Share2 className="mr-2 h-4 w-4" />
                                     {t.common.share}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {activePlatform?.id === 'instagram' && (
+                        <div className="flex flex-col gap-4">
+                            <p className="text-sm text-muted-foreground text-center">
+                                {t.customer.platform.rateExperience || "How was your experience?"}
+                            </p>
+                            
+                            <div className="flex justify-center gap-2">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                        key={star}
+                                        onClick={() => setInstagramRating(star)}
+                                        className="p-1 transition-transform hover:scale-110"
+                                        data-testid={`button-star-${star}`}
+                                    >
+                                        <Star 
+                                            className={`w-8 h-8 ${
+                                                star <= instagramRating 
+                                                    ? 'fill-yellow-400 text-yellow-400' 
+                                                    : 'text-gray-300'
+                                            }`} 
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            <p className="text-xs text-muted-foreground text-center">
+                                {t.customer.platform.instagramNote || "Your review will be saved. Then you'll be directed to Instagram."}
+                            </p>
+                            
+                            <div className="grid grid-cols-2 gap-3 mt-2">
+                                <Button variant="outline" onClick={handleSwitch} className="h-12" data-testid="button-switch-instagram">
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    {t.common.switch}
+                                </Button>
+                                <Button 
+                                    onClick={handleInstagramSubmit} 
+                                    className="h-12 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 text-white"
+                                    disabled={instagramRating === 0 || instagramSubmitting}
+                                    data-testid="button-submit-instagram"
+                                >
+                                    {instagramSubmitting ? (
+                                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Share2 className="mr-2 h-4 w-4" />
+                                    )}
+                                    {t.customer.platform.goToInstagram || "Go to Instagram"}
                                 </Button>
                             </div>
                         </div>

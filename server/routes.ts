@@ -929,5 +929,67 @@ ${pageText}`
     }
   });
 
+  // Testimonials Routes
+  app.get("/api/testimonials/:placeId", async (req, res) => {
+    try {
+      const { placeId } = req.params;
+      
+      if (!placeId) {
+        res.status(400).json({ error: "Place ID is required" });
+        return;
+      }
+      
+      const testimonialsList = await storage.getTestimonials(placeId);
+      res.json(testimonialsList);
+    } catch (error) {
+      console.error("Error fetching testimonials:", error);
+      res.status(500).json({ error: "Failed to fetch testimonials" });
+    }
+  });
+
+  app.post("/api/testimonials", async (req, res) => {
+    try {
+      const { placeId, platform, rating, reviewText, photoUrl, language } = req.body;
+      
+      if (!placeId || !platform || !rating) {
+        res.status(400).json({ error: "Place ID, platform, and rating are required" });
+        return;
+      }
+      
+      if (rating < 1 || rating > 5) {
+        res.status(400).json({ error: "Rating must be between 1 and 5" });
+        return;
+      }
+      
+      const testimonial = await storage.saveTestimonial({
+        placeId,
+        platform,
+        rating,
+        reviewText: reviewText || null,
+        photoUrl: photoUrl || null,
+        language: language || 'en',
+      });
+      
+      res.json({
+        success: true,
+        testimonial,
+      });
+    } catch (error) {
+      console.error("Error saving testimonial:", error);
+      res.status(500).json({ error: "Failed to save testimonial" });
+    }
+  });
+
+  // Get all businesses (for admin multi-business management)
+  app.get("/api/businesses", async (_req, res) => {
+    try {
+      const businesses = await storage.getAllBusinesses();
+      res.json(businesses);
+    } catch (error) {
+      console.error("Error fetching businesses:", error);
+      res.status(500).json({ error: "Failed to fetch businesses" });
+    }
+  });
+
   return httpServer;
 }

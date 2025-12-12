@@ -2,9 +2,10 @@ import { pgTable, text, serial, integer, timestamp, jsonb, real } from "drizzle-
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Store Configuration (single row table)
+// Store Configuration - now scoped by business (placeId)
 export const storeConfig = pgTable("store_config", {
   id: serial("id").primaryKey(),
+  placeId: text("place_id").unique(),
   businessName: text("business_name"),
   websiteUrl: text("website_url"),
   googleReviewsUrl: text("google_reviews_url"),
@@ -28,10 +29,11 @@ export const insertStoreConfigSchema = createInsertSchema(storeConfig).omit({
 export type InsertStoreConfig = z.infer<typeof insertStoreConfigSchema>;
 export type StoreConfig = typeof storeConfig.$inferSelect;
 
-// Analytics Tracking
+// Analytics Tracking - now scoped by business (placeId)
 export const analytics = pgTable("analytics", {
   id: serial("id").primaryKey(),
-  platform: text("platform").notNull().unique(),
+  placeId: text("place_id"),
+  platform: text("platform").notNull(),
   clicks: integer("clicks").default(0).notNull(),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 });
@@ -43,6 +45,26 @@ export const insertAnalyticsSchema = createInsertSchema(analytics).omit({
 
 export type InsertAnalytics = z.infer<typeof insertAnalyticsSchema>;
 export type Analytics = typeof analytics.$inferSelect;
+
+// Testimonials - customer-submitted reviews
+export const testimonials = pgTable("testimonials", {
+  id: serial("id").primaryKey(),
+  placeId: text("place_id").notNull(),
+  platform: text("platform").notNull(),
+  rating: integer("rating").notNull(),
+  reviewText: text("review_text"),
+  photoUrl: text("photo_url"),
+  language: text("language").default("en"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
+export type Testimonial = typeof testimonials.$inferSelect;
 
 // Google Reviews
 export const googleReviews = pgTable("google_reviews", {

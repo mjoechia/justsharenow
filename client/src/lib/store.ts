@@ -182,6 +182,11 @@ export const translations = {
         chatWhatsApp: "Chat with us on WhatsApp!",
         copyShare: "Copy & Share",
         openWhatsApp: "Open WhatsApp",
+        selectRating: "Please select a rating",
+        rateExperience: "How was your experience?",
+        instagramNote: "Your review will be saved. Then you'll be directed to Instagram.",
+        goToInstagram: "Go to Instagram",
+        reviewCopied: "Review copied. Ready to paste on Instagram!",
       }
     },
     admin: {
@@ -356,6 +361,11 @@ export const translations = {
         chatWhatsApp: "在WhatsApp上与我们聊天！",
         copyShare: "复制并分享",
         openWhatsApp: "打开WhatsApp",
+        selectRating: "请选择评分",
+        rateExperience: "您的体验如何？",
+        instagramNote: "您的评论将被保存。然后您将被引导到Instagram。",
+        goToInstagram: "前往Instagram",
+        reviewCopied: "评论已复制。准备粘贴到Instagram！",
       }
     },
     admin: {
@@ -530,6 +540,11 @@ export const translations = {
         chatWhatsApp: "WhatsApp-ல் எங்களுடன் அரட்டையடிக்கவும்!",
         copyShare: "நகலெடுத்துப் பகிர்",
         openWhatsApp: "WhatsApp திற",
+        selectRating: "மதிப்பீட்டைத் தேர்ந்தெடுக்கவும்",
+        rateExperience: "உங்கள் அனுபவம் எப்படி இருந்தது?",
+        instagramNote: "உங்கள் மதிப்புரை சேமிக்கப்படும். பின்னர் Instagram-க்கு அழைத்துச் செல்லப்படுவீர்கள்.",
+        goToInstagram: "Instagram-க்கு செல்",
+        reviewCopied: "மதிப்புரை நகலெடுக்கப்பட்டது. Instagram-ல் ஒட்ட தயார்!",
       }
     },
     admin: {
@@ -704,6 +719,11 @@ export const translations = {
         chatWhatsApp: "Sembang dengan kami di WhatsApp!",
         copyShare: "Salin & Kongsi",
         openWhatsApp: "Buka WhatsApp",
+        selectRating: "Sila pilih penarafan",
+        rateExperience: "Bagaimana pengalaman anda?",
+        instagramNote: "Ulasan anda akan disimpan. Kemudian anda akan dibawa ke Instagram.",
+        goToInstagram: "Pergi ke Instagram",
+        reviewCopied: "Ulasan disalin. Sedia untuk ditampal di Instagram!",
       }
     },
     admin: {

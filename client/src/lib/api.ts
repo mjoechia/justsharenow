@@ -251,3 +251,40 @@ export async function verifyGooglePlaceId(placeId: string): Promise<VerifyPlaceI
   }
   return response.json();
 }
+
+// Testimonials
+export interface Testimonial {
+  id: number;
+  placeId: string;
+  platform: string;
+  rating: number;
+  reviewText?: string | null;
+  photoUrl?: string | null;
+  language?: string | null;
+  createdAt: string;
+}
+
+export interface SaveTestimonialResponse {
+  success: boolean;
+  testimonial: Testimonial;
+}
+
+export async function saveTestimonial(data: {
+  placeId: string;
+  platform: string;
+  rating: number;
+  reviewText?: string | null;
+  photoUrl?: string | null;
+  language?: string;
+}): Promise<SaveTestimonialResponse> {
+  const response = await fetch('/api/testimonials', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to save testimonial');
+  }
+  return response.json();
+}
