@@ -273,18 +273,11 @@ export default function CustomerDrafting() {
   };
 
   const handleShareAction = async () => {
-    const textToCopy = getReviewWithHashtags();
-    if (textToCopy) {
-      navigator.clipboard.writeText(textToCopy);
-      toast({
-        title: t.common.copied,
-        description: t.customer.drafting.textCopiedReady,
-      });
-    }
-    
-    // Open the platform URL
+    // Get the platform URL first - if not available, show error
     let url = "";
-    switch (activePlatform?.id) {
+    const platformId = activePlatform?.id;
+    
+    switch (platformId) {
       case 'facebook':
         url = socialLinks.facebook;
         break;
@@ -298,12 +291,35 @@ export default function CustomerDrafting() {
         url = socialLinks.tiktok;
         break;
     }
-    if (url) {
-      window.open(url, '_blank');
+    
+    if (!url) {
+      toast({
+        title: t.common.error || "Error",
+        description: `No URL configured for ${activePlatform?.name || 'this platform'}`,
+        variant: "destructive",
+      });
+      return;
     }
     
-    if (activePlatform?.id) {
-      await trackPlatformClick(activePlatform.id);
+    // Copy text to clipboard
+    const textToCopy = getReviewWithHashtags();
+    if (textToCopy) {
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        toast({
+          title: t.common.copied,
+          description: t.customer.drafting.textCopiedReady,
+        });
+      } catch (e) {
+        console.warn("Clipboard write failed:", e);
+      }
+    }
+    
+    // Open the platform URL
+    window.open(url, '_blank');
+    
+    if (platformId) {
+      await trackPlatformClick(platformId);
     }
     setIsModalOpen(false);
   };
