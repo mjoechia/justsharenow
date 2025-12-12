@@ -281,6 +281,27 @@ export default function CustomerDrafting() {
         description: t.customer.drafting.textCopiedReady,
       });
     }
+    
+    // Open the platform URL
+    let url = "";
+    switch (activePlatform?.id) {
+      case 'facebook':
+        url = socialLinks.facebook;
+        break;
+      case 'instagram':
+        url = socialLinks.instagram;
+        break;
+      case 'xiaohongshu':
+        url = socialLinks.xiaohongshu;
+        break;
+      case 'tiktok':
+        url = socialLinks.tiktok;
+        break;
+    }
+    if (url) {
+      window.open(url, '_blank');
+    }
+    
     if (activePlatform?.id) {
       await trackPlatformClick(activePlatform.id);
     }
