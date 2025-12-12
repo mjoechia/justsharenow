@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ExternalLink, Copy, RefreshCw, Share2, X, MessageCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig, trackPlatformClick, saveTestimonial } from "@/lib/api";
 
@@ -97,13 +97,28 @@ export default function CustomerPlatform() {
   const [instagramSubmitting, setInstagramSubmitting] = useState(false);
   const [facebookRating, setFacebookRating] = useState(0);
   const [facebookSubmitting, setFacebookSubmitting] = useState(false);
-  const [facebookCopied, setFacebookCopied] = useState(false);
+  const [facebookAutoCopied, setFacebookAutoCopied] = useState(false);
+
+  // Auto-copy review text when Facebook modal opens (only once per modal session)
+  useEffect(() => {
+    if (isModalOpen && activePlatform?.id === 'facebook' && selectedReview && !facebookAutoCopied) {
+      setFacebookAutoCopied(true);
+      navigator.clipboard.writeText(selectedReview).then(() => {
+        toast({
+          title: t.common.copied,
+          description: t.customer.platform.everythingCopied || "Everything copied. Paste when Facebook opens.",
+        });
+      }).catch((err) => {
+        console.warn("Auto-copy failed:", err);
+      });
+    }
+  }, [isModalOpen, activePlatform?.id, selectedReview, facebookAutoCopied]);
 
   const handlePlatformClick = (platform: typeof allPlatforms[0]) => {
     // Reset all platform-specific states when opening modal
     setInstagramRating(0);
     setFacebookRating(0);
-    setFacebookCopied(false);
+    setFacebookAutoCopied(false);
     setActivePlatform(platform);
     setIsModalOpen(true);
   };
@@ -113,7 +128,7 @@ export default function CustomerPlatform() {
     setActivePlatform(null);
     setInstagramRating(0);
     setFacebookRating(0);
-    setFacebookCopied(false);
+    setFacebookAutoCopied(false);
   };
 
   const handleSwitch = () => {
@@ -269,21 +284,6 @@ export default function CustomerPlatform() {
     }
   };
 
-  const handleFacebookCopy = async () => {
-    if (selectedReview) {
-      try {
-        await navigator.clipboard.writeText(selectedReview);
-        setFacebookCopied(true);
-        toast({
-          title: t.common.copied,
-          description: t.customer.platform.facebookPasteReady,
-        });
-      } catch (clipboardErr) {
-        console.warn("Clipboard write failed:", clipboardErr);
-      }
-    }
-  };
-
   const handleFacebookSubmit = async () => {
     if (facebookRating === 0) {
       toast({
@@ -306,7 +306,7 @@ export default function CustomerPlatform() {
     setFacebookSubmitting(true);
     
     try {
-      // Try to save testimonial if we have a business ID (graceful degradation)
+      // 1. Save testimonial if we have a business ID (graceful degradation)
       if (config?.googlePlaceId) {
         try {
           await saveTestimonial({
@@ -318,12 +318,20 @@ export default function CustomerPlatform() {
             language: language,
           });
         } catch (saveError) {
-          // Log error but continue to Facebook - don't block the user
           console.warn("Failed to save testimonial:", saveError);
         }
       }
       
-      // Build reviews URL - append /reviews if not already present
+      // 2. Copy text to clipboard again to ensure it's ready
+      if (selectedReview) {
+        try {
+          await navigator.clipboard.writeText(selectedReview);
+        } catch (clipboardErr) {
+          console.warn("Clipboard write failed:", clipboardErr);
+        }
+      }
+      
+      // 3. Build reviews URL - append /reviews if not already present
       let reviewsUrl = facebookUrl;
       try {
         const urlObj = new URL(facebookUrl);
@@ -332,13 +340,12 @@ export default function CustomerPlatform() {
         }
         reviewsUrl = urlObj.toString();
       } catch {
-        // Fallback for invalid URLs - simple string manipulation
         if (!reviewsUrl.includes('/reviews')) {
           reviewsUrl = reviewsUrl.replace(/\/?(\?.*)?$/, '/reviews$1');
         }
       }
       
-      // Open Facebook reviews page
+      // 4. Open Facebook reviews page
       window.open(reviewsUrl, '_blank');
       
       incrementStat('facebook');
@@ -499,31 +506,20 @@ export default function CustomerPlatform() {
                                 </div>
                             </div>
                             
-                            {/* Action buttons */}
-                            <div className="flex flex-col gap-2">
-                                <Button 
-                                    variant="outline" 
-                                    onClick={handleFacebookCopy} 
-                                    className={`h-11 ${facebookCopied ? 'border-green-500 text-green-600' : ''}`}
-                                    data-testid="button-copy-facebook"
-                                >
-                                    <Copy className="mr-2 h-4 w-4" />
-                                    {facebookCopied ? t.common.copied : t.customer.platform.copyReviewText}
-                                </Button>
-                                <Button 
-                                    onClick={handleFacebookSubmit} 
-                                    className="h-11 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white"
-                                    disabled={facebookRating === 0 || facebookSubmitting}
-                                    data-testid="button-continue-facebook"
-                                >
-                                    {facebookSubmitting ? (
-                                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <ExternalLink className="mr-2 h-4 w-4" />
-                                    )}
-                                    {t.customer.platform.continueToFacebook}
-                                </Button>
-                            </div>
+                            {/* Single action button */}
+                            <Button 
+                                onClick={handleFacebookSubmit} 
+                                className="h-12 w-full bg-[#1877F2] hover:bg-[#1877F2]/90 text-white"
+                                disabled={facebookRating === 0 || facebookSubmitting}
+                                data-testid="button-post-facebook"
+                            >
+                                {facebookSubmitting ? (
+                                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                )}
+                                {t.customer.platform.postOnFacebook || "Post on Facebook Reviews"}
+                            </Button>
                             
                             <p className="text-xs text-muted-foreground text-center">
                                 {t.customer.platform.facebookNote}
