@@ -95,8 +95,15 @@ export default function CustomerPlatform() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [instagramRating, setInstagramRating] = useState(0);
   const [instagramSubmitting, setInstagramSubmitting] = useState(false);
+  const [facebookRating, setFacebookRating] = useState(0);
+  const [facebookSubmitting, setFacebookSubmitting] = useState(false);
+  const [facebookCopied, setFacebookCopied] = useState(false);
 
   const handlePlatformClick = (platform: typeof allPlatforms[0]) => {
+    // Reset all platform-specific states when opening modal
+    setInstagramRating(0);
+    setFacebookRating(0);
+    setFacebookCopied(false);
     setActivePlatform(platform);
     setIsModalOpen(true);
   };
@@ -105,6 +112,8 @@ export default function CustomerPlatform() {
     setIsModalOpen(false);
     setActivePlatform(null);
     setInstagramRating(0);
+    setFacebookRating(0);
+    setFacebookCopied(false);
   };
 
   const handleSwitch = () => {
@@ -212,16 +221,21 @@ export default function CustomerPlatform() {
     setInstagramSubmitting(true);
     
     try {
-      // Save testimonial if we have a business ID
+      // Try to save testimonial if we have a business ID (graceful degradation)
       if (config?.googlePlaceId) {
-        await saveTestimonial({
-          placeId: config.googlePlaceId,
-          platform: 'instagram',
-          rating: instagramRating,
-          reviewText: selectedReview || null,
-          photoUrl: selectedPhoto || null,
-          language: language,
-        });
+        try {
+          await saveTestimonial({
+            placeId: config.googlePlaceId,
+            platform: 'instagram',
+            rating: instagramRating,
+            reviewText: selectedReview || null,
+            photoUrl: selectedPhoto || null,
+            language: language,
+          });
+        } catch (saveError) {
+          // Log error but continue to Instagram - don't block the user
+          console.warn("Failed to save testimonial:", saveError);
+        }
       }
       
       // Copy review text to clipboard with fallback
@@ -245,13 +259,100 @@ export default function CustomerPlatform() {
       
       handleClose();
     } catch (e) {
-      console.error("Failed to save testimonial:", e);
+      console.error("Instagram flow error:", e);
       toast({
         title: t.common.error || "Error",
         variant: "destructive",
       });
     } finally {
       setInstagramSubmitting(false);
+    }
+  };
+
+  const handleFacebookCopy = async () => {
+    if (selectedReview) {
+      try {
+        await navigator.clipboard.writeText(selectedReview);
+        setFacebookCopied(true);
+        toast({
+          title: t.common.copied,
+          description: t.customer.platform.facebookPasteReady,
+        });
+      } catch (clipboardErr) {
+        console.warn("Clipboard write failed:", clipboardErr);
+      }
+    }
+  };
+
+  const handleFacebookSubmit = async () => {
+    if (facebookRating === 0) {
+      toast({
+        title: t.customer.platform.selectRating,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const facebookUrl = getPlatformUrl('facebook');
+    if (!facebookUrl) {
+      toast({
+        title: t.common.error || "Error",
+        description: t.customer.platform.noPlatforms,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFacebookSubmitting(true);
+    
+    try {
+      // Try to save testimonial if we have a business ID (graceful degradation)
+      if (config?.googlePlaceId) {
+        try {
+          await saveTestimonial({
+            placeId: config.googlePlaceId,
+            platform: 'facebook',
+            rating: facebookRating,
+            reviewText: selectedReview || null,
+            photoUrl: selectedPhoto || null,
+            language: language,
+          });
+        } catch (saveError) {
+          // Log error but continue to Facebook - don't block the user
+          console.warn("Failed to save testimonial:", saveError);
+        }
+      }
+      
+      // Build reviews URL - append /reviews if not already present
+      let reviewsUrl = facebookUrl;
+      try {
+        const urlObj = new URL(facebookUrl);
+        if (!urlObj.pathname.includes('/reviews')) {
+          urlObj.pathname = urlObj.pathname.replace(/\/?$/, '/reviews');
+        }
+        reviewsUrl = urlObj.toString();
+      } catch {
+        // Fallback for invalid URLs - simple string manipulation
+        if (!reviewsUrl.includes('/reviews')) {
+          reviewsUrl = reviewsUrl.replace(/\/?(\?.*)?$/, '/reviews$1');
+        }
+      }
+      
+      // Open Facebook reviews page
+      window.open(reviewsUrl, '_blank');
+      
+      incrementStat('facebook');
+      await trackPlatformClick('facebook');
+      
+      handleClose();
+    } catch (e) {
+      console.error("Facebook flow error:", e);
+      toast({
+        title: t.common.error || "Error",
+        variant: "destructive",
+      });
+    } finally {
+      setFacebookSubmitting(false);
     }
   };
 
@@ -312,7 +413,7 @@ export default function CustomerPlatform() {
           </div>
         )}
 
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) handleClose(); else setIsModalOpen(true); }}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader className="flex flex-row items-center justify-between">
                     <DialogTitle>{activePlatform?.name}</DialogTitle>
@@ -356,20 +457,77 @@ export default function CustomerPlatform() {
                     )}
 
                     {activePlatform?.id === 'facebook' && (
-                        <div className="flex flex-col gap-3">
-                            <p className="text-sm text-muted-foreground text-center mb-4">
-                                {t.customer.platform.shareFriends}
+                        <div className="flex flex-col gap-4">
+                            <p className="text-sm text-center font-medium text-foreground">
+                                {t.customer.platform.facebookThankYou}
                             </p>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Button variant="outline" onClick={handleSwitch} className="h-12" data-testid="button-switch">
-                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                    {t.common.switch}
+                            
+                            {/* Preview of selected content */}
+                            <div className="p-3 rounded-lg bg-gray-50 border">
+                                {selectedPhoto && (
+                                    <div className="w-full h-24 rounded-md overflow-hidden mb-2">
+                                        <img src={selectedPhoto} alt="Selected" className="w-full h-full object-cover" />
+                                    </div>
+                                )}
+                                {selectedReview && (
+                                    <p className="text-xs text-gray-600 line-clamp-3">{selectedReview}</p>
+                                )}
+                            </div>
+                            
+                            {/* Star rating selector */}
+                            <div className="flex flex-col items-center gap-2">
+                                <p className="text-sm text-muted-foreground">
+                                    {t.customer.platform.rateExperience}
+                                </p>
+                                <div className="flex justify-center gap-2">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            onClick={() => setFacebookRating(star)}
+                                            className="p-1 transition-transform hover:scale-110"
+                                            data-testid={`button-fb-star-${star}`}
+                                        >
+                                            <Star 
+                                                className={`w-7 h-7 ${
+                                                    star <= facebookRating 
+                                                        ? 'fill-yellow-400 text-yellow-400' 
+                                                        : 'text-gray-300'
+                                                }`} 
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Action buttons */}
+                            <div className="flex flex-col gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={handleFacebookCopy} 
+                                    className={`h-11 ${facebookCopied ? 'border-green-500 text-green-600' : ''}`}
+                                    data-testid="button-copy-facebook"
+                                >
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    {facebookCopied ? t.common.copied : t.customer.platform.copyReviewText}
                                 </Button>
-                                <Button onClick={handleShareAction} className="h-12 bg-[#2D7FF9] hover:bg-[#2D7FF9]/90 text-white" data-testid="button-share">
-                                    <Share2 className="mr-2 h-4 w-4" />
-                                    {t.common.share}
+                                <Button 
+                                    onClick={handleFacebookSubmit} 
+                                    className="h-11 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white"
+                                    disabled={facebookRating === 0 || facebookSubmitting}
+                                    data-testid="button-continue-facebook"
+                                >
+                                    {facebookSubmitting ? (
+                                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <ExternalLink className="mr-2 h-4 w-4" />
+                                    )}
+                                    {t.customer.platform.continueToFacebook}
                                 </Button>
                             </div>
+                            
+                            <p className="text-xs text-muted-foreground text-center">
+                                {t.customer.platform.facebookNote}
+                            </p>
                         </div>
                     )}
 

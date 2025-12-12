@@ -186,7 +186,12 @@ export const translations = {
         rateExperience: "How was your experience?",
         instagramNote: "Your review will be saved. Then you'll be directed to Instagram.",
         goToInstagram: "Go to Instagram",
-        reviewCopied: "Review copied. Ready to paste on Instagram!",
+        reviewCopied: "Review copied. Ready to paste!",
+        facebookThankYou: "Thank you! Just one more step 👇",
+        facebookPasteReady: "Your review text is copied. Just paste it in Facebook.",
+        copyReviewText: "Copy Text",
+        continueToFacebook: "Continue to Facebook",
+        facebookNote: "Tap 'Yes, Recommend' on Facebook, then paste your text and add photos.",
       }
     },
     admin: {
@@ -365,7 +370,12 @@ export const translations = {
         rateExperience: "您的体验如何？",
         instagramNote: "您的评论将被保存。然后您将被引导到Instagram。",
         goToInstagram: "前往Instagram",
-        reviewCopied: "评论已复制。准备粘贴到Instagram！",
+        reviewCopied: "评论已复制。准备粘贴！",
+        facebookThankYou: "谢谢！只剩最后一步了 👇",
+        facebookPasteReady: "您的评论文本已复制。请粘贴到Facebook。",
+        copyReviewText: "复制文本",
+        continueToFacebook: "继续到Facebook",
+        facebookNote: "在Facebook上点击'是，推荐'，然后粘贴文本并添加照片。",
       }
     },
     admin: {
@@ -544,7 +554,12 @@ export const translations = {
         rateExperience: "உங்கள் அனுபவம் எப்படி இருந்தது?",
         instagramNote: "உங்கள் மதிப்புரை சேமிக்கப்படும். பின்னர் Instagram-க்கு அழைத்துச் செல்லப்படுவீர்கள்.",
         goToInstagram: "Instagram-க்கு செல்",
-        reviewCopied: "மதிப்புரை நகலெடுக்கப்பட்டது. Instagram-ல் ஒட்ட தயார்!",
+        reviewCopied: "மதிப்புரை நகலெடுக்கப்பட்டது. ஒட்ட தயார்!",
+        facebookThankYou: "நன்றி! இன்னும் ஒரு படி மட்டுமே 👇",
+        facebookPasteReady: "உங்கள் மதிப்புரை உரை நகலெடுக்கப்பட்டது. Facebook-ல் ஒட்டவும்.",
+        copyReviewText: "உரை நகலெடு",
+        continueToFacebook: "Facebook-க்கு தொடரவும்",
+        facebookNote: "Facebook-ல் 'ஆம், பரிந்துரைக்கிறேன்' தட்டவும், பின்னர் உரையை ஒட்டி புகைப்படங்களைச் சேர்க்கவும்.",
       }
     },
     admin: {
@@ -723,7 +738,12 @@ export const translations = {
         rateExperience: "Bagaimana pengalaman anda?",
         instagramNote: "Ulasan anda akan disimpan. Kemudian anda akan dibawa ke Instagram.",
         goToInstagram: "Pergi ke Instagram",
-        reviewCopied: "Ulasan disalin. Sedia untuk ditampal di Instagram!",
+        reviewCopied: "Ulasan disalin. Sedia untuk ditampal!",
+        facebookThankYou: "Terima kasih! Satu langkah lagi 👇",
+        facebookPasteReady: "Teks ulasan anda disalin. Tampal sahaja di Facebook.",
+        copyReviewText: "Salin Teks",
+        continueToFacebook: "Teruskan ke Facebook",
+        facebookNote: "Ketik 'Ya, Syorkan' di Facebook, kemudian tampal teks dan tambah gambar.",
       }
     },
     admin: {
