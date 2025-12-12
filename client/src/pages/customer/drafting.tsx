@@ -278,7 +278,7 @@ export default function CustomerDrafting() {
       navigator.clipboard.writeText(textToCopy);
       toast({
         title: t.common.copied,
-        description: t.customer.drafting.pasteInGoogle,
+        description: t.customer.drafting.textCopiedReady,
       });
     }
     if (activePlatform?.id) {
