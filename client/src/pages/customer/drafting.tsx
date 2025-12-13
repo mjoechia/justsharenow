@@ -191,8 +191,12 @@ export default function CustomerDrafting() {
     if (selectedPhoto && selectedReview) {
       setFacebookRating(0);
       setFacebookAutoCopied(false);
-      setModalView('platforms');
-      setSelectedPlatform('');
+      // If platform already selected from Shop View, go directly to action
+      if (selectedPlatform) {
+        setModalView('action');
+      } else {
+        setModalView('platforms');
+      }
       setIsModalOpen(true);
     }
   };
