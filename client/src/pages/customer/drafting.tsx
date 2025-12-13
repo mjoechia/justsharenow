@@ -1,15 +1,15 @@
 import { useStore, translations } from "@/lib/store";
 import { Layout } from "@/components/layout";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Check, RefreshCw, Share2, ExternalLink, Copy, Hash, MessageCircle, Download, Clipboard } from "lucide-react";
+import { Check, RefreshCw, Share2, ExternalLink, Copy, Hash, MessageCircle, Download, Clipboard, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { getStoreConfig, trackPlatformClick } from "@/lib/api";
+import { getStoreConfig, trackPlatformClick, saveTestimonial } from "@/lib/api";
 
 import regrowLogo from "@assets/generated_images/regrow_group_corporate_logo.png";
 import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
@@ -88,13 +88,17 @@ const allPlatforms = [
 
 
 export default function CustomerDrafting() {
-  const { language, setSelectedReview, setSelectedPhoto, selectedPhoto, selectedReview, selectedPlatform } = useStore();
+  const { language, setSelectedReview, setSelectedPhoto, selectedPhoto, selectedReview, selectedPlatform, setSelectedPlatform } = useStore();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reviewSetIndex, setReviewSetIndex] = useState(0);
   const [photoSetIndex, setPhotoSetIndex] = useState(0);
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
+  const [facebookRating, setFacebookRating] = useState(0);
+  const [facebookSubmitting, setFacebookSubmitting] = useState(false);
+  const [facebookAutoCopied, setFacebookAutoCopied] = useState(false);
+  const [modalView, setModalView] = useState<'platforms' | 'action'>('platforms');
   
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
@@ -167,11 +171,42 @@ export default function CustomerDrafting() {
   const currentReviews = generatedReviews.length > 0 
     ? generatedReviews 
     : t.customer.drafting.reviewSets[reviewSetIndex];
+
+  useEffect(() => {
+    if (isModalOpen && modalView === 'action' && activePlatform?.id === 'facebook' && selectedReview && !facebookAutoCopied) {
+      setFacebookAutoCopied(true);
+      const reviewText = getReviewWithHashtags();
+      navigator.clipboard.writeText(reviewText).then(() => {
+        toast({
+          title: t.common.copied,
+          description: t.customer.platform?.everythingCopied || "Everything copied. Paste when Facebook opens.",
+        });
+      }).catch((err) => {
+        console.warn("Auto-copy failed:", err);
+      });
+    }
+  }, [isModalOpen, modalView, activePlatform?.id, selectedReview, facebookAutoCopied]);
   
   const handleNext = () => {
     if (selectedPhoto && selectedReview) {
+      setFacebookRating(0);
+      setFacebookAutoCopied(false);
+      setModalView('platforms');
+      setSelectedPlatform('');
       setIsModalOpen(true);
     }
+  };
+
+  const handlePlatformSelect = (platformId: string) => {
+    setSelectedPlatform(platformId);
+    setModalView('action');
+  };
+
+  const handleBackToPlatforms = () => {
+    setModalView('platforms');
+    setSelectedPlatform('');
+    setFacebookRating(0);
+    setFacebookAutoCopied(false);
   };
 
   const handleSwitch = () => {
@@ -336,6 +371,81 @@ export default function CustomerDrafting() {
     setIsModalOpen(false);
   };
 
+  const handleFacebookSubmit = async () => {
+    if (facebookRating === 0) {
+      toast({
+        title: t.customer.platform?.selectRating || "Please select a rating",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const facebookUrl = socialLinks.facebook;
+    if (!facebookUrl) {
+      toast({
+        title: t.common.error || "Error",
+        description: t.customer.platform?.noPlatforms || "No Facebook URL configured",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFacebookSubmitting(true);
+    
+    try {
+      if (config?.googlePlaceId) {
+        try {
+          await saveTestimonial({
+            placeId: config.googlePlaceId,
+            platform: 'facebook',
+            rating: facebookRating,
+            reviewText: selectedReview || null,
+            photoUrl: selectedPhoto || null,
+            language: language,
+          });
+        } catch (saveError) {
+          console.warn("Failed to save testimonial:", saveError);
+        }
+      }
+      
+      const reviewText = getReviewWithHashtags();
+      if (reviewText) {
+        try {
+          await navigator.clipboard.writeText(reviewText);
+        } catch (clipboardErr) {
+          console.warn("Clipboard write failed:", clipboardErr);
+        }
+      }
+      
+      let reviewsUrl = facebookUrl;
+      try {
+        const urlObj = new URL(facebookUrl);
+        if (!urlObj.pathname.includes('/reviews')) {
+          urlObj.pathname = urlObj.pathname.replace(/\/?$/, '/reviews');
+        }
+        reviewsUrl = urlObj.toString();
+      } catch {
+        if (!reviewsUrl.includes('/reviews')) {
+          reviewsUrl = reviewsUrl.replace(/\/?(\?.*)?$/, '/reviews$1');
+        }
+      }
+      
+      window.open(reviewsUrl, '_blank');
+      
+      await trackPlatformClick('facebook');
+      
+      setIsModalOpen(false);
+    } catch (e) {
+      console.error("Facebook flow error:", e);
+      toast({
+        title: t.common.error || "Error",
+        variant: "destructive",
+      });
+    } finally {
+      setFacebookSubmitting(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="container max-w-md mx-auto px-4 py-8 pb-32">
@@ -456,7 +566,73 @@ export default function CustomerDrafting() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-md" data-testid="share-modal">
           <div className="flex flex-col items-center gap-4 py-4">
-            <DialogTitle className="text-xl font-bold text-center">{activePlatform?.name}</DialogTitle>
+            
+            {/* Platform Selection View */}
+            {modalView === 'platforms' && (
+              <>
+                <DialogTitle className="text-xl font-bold text-center">
+                  {t.customer.platform?.title || "Choose a Platform"}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground text-center">
+                  {t.customer.platform?.instruction || "Select where you'd like to share"}
+                </p>
+                
+                {availablePlatforms.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>{t.customer.platform?.noPlatforms || "No platforms configured"}</p>
+                  </div>
+                ) : (
+                  <div className="w-full space-y-3">
+                    {availablePlatforms.map((platform) => (
+                      <button
+                        key={platform.id}
+                        onClick={() => handlePlatformSelect(platform.id)}
+                        className={`w-full p-4 rounded-xl border transition-all duration-200 flex items-center gap-4 hover:shadow-md ${
+                          platform.id === 'google-reviews' ? 'bg-blue-50 hover:bg-blue-100 border-blue-200' :
+                          platform.id === 'facebook' ? 'bg-[#2D7FF9]/5 hover:bg-[#2D7FF9]/10 border-[#2D7FF9]/20' :
+                          platform.id === 'instagram' ? 'bg-pink-50 hover:bg-pink-100 border-pink-200' :
+                          platform.id === 'xiaohongshu' ? 'bg-red-50 hover:bg-red-100 border-red-200' :
+                          platform.id === 'tiktok' ? 'bg-slate-50 hover:bg-slate-100 border-slate-200' :
+                          'bg-green-50 hover:bg-green-100 border-green-200'
+                        }`}
+                        data-testid={`button-platform-${platform.id}`}
+                      >
+                        <div className={`w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm ${
+                          platform.id === 'google-reviews' ? 'text-blue-600' :
+                          platform.id === 'facebook' ? 'text-[#2D7FF9]' :
+                          platform.id === 'instagram' ? 'text-pink-600' :
+                          platform.id === 'xiaohongshu' ? 'text-red-600' :
+                          platform.id === 'tiktok' ? 'text-slate-600' :
+                          'text-green-600'
+                        }`}>
+                          {platform.id === 'whatsapp' ? <MessageCircle className="w-5 h-5" /> : <ExternalLink className="w-5 h-5" />}
+                        </div>
+                        <div className="text-left">
+                          <span className={`block font-bold ${
+                            platform.id === 'google-reviews' ? 'text-blue-700' :
+                            platform.id === 'facebook' ? 'text-[#2D7FF9]' :
+                            platform.id === 'instagram' ? 'text-pink-700' :
+                            platform.id === 'xiaohongshu' ? 'text-red-700' :
+                            platform.id === 'tiktok' ? 'text-slate-700' :
+                            'text-green-700'
+                          }`}>{platform.name}</span>
+                          <span className="text-xs text-muted-foreground/80">
+                            {platform.actionType === 'review' ? (t.customer.platform?.leaveReview || 'Leave a review') : 
+                             platform.actionType === 'contact' ? (t.customer.platform?.contactUs || 'Contact us') : 
+                             (t.customer.platform?.shareExperience || 'Share your experience')}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            
+            {/* Platform Action View */}
+            {modalView === 'action' && (
+              <>
+                <DialogTitle className="text-xl font-bold text-center">{activePlatform?.name}</DialogTitle>
             
             {/* Google Review */}
             {activePlatform?.id === 'google-reviews' && (
@@ -548,15 +724,64 @@ export default function CustomerDrafting() {
 
             {/* Facebook Share */}
             {activePlatform?.id === 'facebook' && (
-              <>
-                <p className="text-sm text-muted-foreground text-center">
-                  Share your experience on Facebook!
+              <div className="flex flex-col gap-4 w-full">
+                <p className="text-sm text-center font-medium text-foreground">
+                  {t.customer.platform?.facebookThankYou || "Thanks for sharing on Facebook!"}
                 </p>
-                <Button onClick={handleShareAction} className="h-12 w-full bg-[#2D7FF9] hover:bg-[#2D7FF9]/90 text-white" data-testid="button-share-fb">
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share on Facebook
+                
+                {selectedPhoto && (
+                  <div className="p-3 rounded-lg bg-gray-50 border">
+                    <div className="w-full h-24 rounded-md overflow-hidden mb-2">
+                      <img src={selectedPhoto} alt="Selected" className="w-full h-full object-cover" />
+                    </div>
+                    {selectedReview && (
+                      <p className="text-xs text-gray-600 line-clamp-3">{getReviewWithHashtags()}</p>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    {t.customer.platform?.rateExperience || "How was your experience?"}
+                  </p>
+                  <div className="flex justify-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => setFacebookRating(star)}
+                        className="p-1 transition-transform hover:scale-110"
+                        data-testid={`button-fb-star-${star}`}
+                      >
+                        <Star 
+                          className={`w-7 h-7 ${
+                            star <= facebookRating 
+                              ? 'fill-yellow-400 text-yellow-400' 
+                              : 'text-gray-300'
+                          }`} 
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={handleFacebookSubmit} 
+                  className="h-12 w-full bg-[#1877F2] hover:bg-[#1877F2]/90 text-white"
+                  disabled={facebookRating === 0 || facebookSubmitting}
+                  data-testid="button-post-facebook"
+                >
+                  {facebookSubmitting ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                  )}
+                  {t.customer.platform?.postOnFacebook || "Post on Facebook Reviews"}
                 </Button>
-              </>
+                
+                <p className="text-xs text-muted-foreground text-center">
+                  {t.customer.platform?.facebookNote || "Your review is already copied. Paste it when Facebook opens."}
+                </p>
+              </div>
             )}
 
             {/* Instagram Share */}
@@ -597,6 +822,19 @@ export default function CustomerDrafting() {
                 </Button>
               </>
             )}
+            
+            {/* Back button */}
+            <Button 
+              variant="ghost" 
+              onClick={handleBackToPlatforms}
+              className="text-muted-foreground"
+              data-testid="button-back-platforms"
+            >
+              {t.common.back || "Back"}
+            </Button>
+            </>
+            )}
+            
           </div>
         </DialogContent>
       </Dialog>

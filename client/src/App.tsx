@@ -7,7 +7,6 @@ import NotFound from "@/pages/not-found";
 
 import Landing from "@/pages/landing";
 import CustomerDrafting from "@/pages/customer/drafting";
-import CustomerPlatform from "@/pages/customer/platform";
 import AdminDashboard from "@/pages/admin/dashboard";
 import QuickView from "@/pages/quick-view";
 
@@ -22,7 +21,6 @@ function Router() {
 
       {/* Customer Flow */}
       <Route path="/drafting" component={CustomerDrafting} />
-      <Route path="/platform" component={CustomerPlatform} />
       
       {/* Admin Flow */}
       <Route path="/admin" component={AdminDashboard} />
