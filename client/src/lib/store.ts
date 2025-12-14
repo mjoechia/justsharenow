@@ -208,6 +208,9 @@ export const translations = {
         facebookNote: "Tap 'Yes, Recommend' on Facebook, then paste your text and add photos.",
         everythingCopied: "Everything copied. Paste when Facebook opens.",
         postOnFacebook: "Post on Facebook Reviews",
+        followFbTitle: "Follow Us",
+        followFbSubtitle: "Stay connected with us on Facebook!",
+        followOnFacebook: "Follow on Facebook",
       }
     },
     admin: {
@@ -408,6 +411,9 @@ export const translations = {
         facebookNote: "在Facebook上点击'是，推荐'，然后粘贴文本并添加照片。",
         everythingCopied: "全部已复制。Facebook打开后粘贴即可。",
         postOnFacebook: "发布到Facebook评论",
+        followFbTitle: "关注我们",
+        followFbSubtitle: "在Facebook上与我们保持联系！",
+        followOnFacebook: "在Facebook上关注",
       }
     },
     admin: {
@@ -608,6 +614,9 @@ export const translations = {
         facebookNote: "Facebook-ல் 'ஆம், பரிந்துரைக்கிறேன்' தட்டவும், பின்னர் உரையை ஒட்டி புகைப்படங்களைச் சேர்க்கவும்.",
         everythingCopied: "அனைத்தும் நகலெடுக்கப்பட்டது. Facebook திறக்கும்போது ஒட்டவும்.",
         postOnFacebook: "Facebook மதிப்புரைகளில் இடுகையிடு",
+        followFbTitle: "எங்களைப் பின்தொடருங்கள்",
+        followFbSubtitle: "Facebook-ல் எங்களுடன் இணைந்திருங்கள்!",
+        followOnFacebook: "Facebook-ல் பின்தொடர்",
       }
     },
     admin: {
@@ -808,6 +817,9 @@ export const translations = {
         facebookNote: "Ketik 'Ya, Syorkan' di Facebook, kemudian tampal teks dan tambah gambar.",
         everythingCopied: "Semua disalin. Tampal apabila Facebook dibuka.",
         postOnFacebook: "Hantar ke Facebook Reviews",
+        followFbTitle: "Ikuti Kami",
+        followFbSubtitle: "Kekal berhubung dengan kami di Facebook!",
+        followOnFacebook: "Ikuti di Facebook",
       }
     },
     admin: {

@@ -2,12 +2,14 @@ import { useStore, translations } from "@/lib/store";
 import { Layout } from "@/components/layout";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus, QrCode, Building2 } from "lucide-react";
+import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus, QrCode, Building2, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { getStoreConfig } from "@/lib/api";
+import { getStoreConfig, trackPlatformClick } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -73,6 +75,7 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
   const [_, setLocation] = useLocation();
   const t = translations[language];
   const [quickViewUrl, setQuickViewUrl] = useState("");
+  const [followFbModalOpen, setFollowFbModalOpen] = useState(false);
 
   useEffect(() => {
     setQuickViewUrl(`${window.location.origin}/quick-view`);
@@ -85,9 +88,35 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
 
   const sliderPhotos = config?.sliderPhotos || [];
 
+  // Filter platforms based on configuration - hide follow buttons if URLs not configured
+  const availablePlatforms = useMemo(() => {
+    return platforms.filter(platform => {
+      if (platform.id === 'follow-facebook') {
+        return !!config?.facebookUrl;
+      }
+      if (platform.id === 'follow-instagram') {
+        return !!config?.instagramUrl;
+      }
+      return true;
+    });
+  }, [config]);
+
   const handlePlatformClick = (platformId: string) => {
+    if (platformId === 'follow-facebook') {
+      setFollowFbModalOpen(true);
+      return;
+    }
     setSelectedPlatform(platformId);
     setLocation('/drafting');
+  };
+
+  const handleFollowFacebook = async () => {
+    const facebookUrl = config?.facebookUrl;
+    if (facebookUrl) {
+      await trackPlatformClick('follow-facebook');
+      window.open(facebookUrl, '_blank');
+      setFollowFbModalOpen(false);
+    }
   };
 
   const content = (
@@ -157,7 +186,7 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
 
           {/* 2 Column Grid for Platform Buttons */}
           <div className="grid grid-cols-2 gap-3 lg:gap-4 flex-1 content-start">
-            {platforms.map((platform, index) => (
+            {availablePlatforms.map((platform, index) => (
               <motion.div
                 key={platform.id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -218,8 +247,96 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
   );
 
   if (embedded) {
-    return content;
+    return (
+      <>
+        {content}
+        <Dialog open={followFbModalOpen} onOpenChange={setFollowFbModalOpen}>
+          <DialogContent className="max-w-sm mx-auto">
+            <DialogTitle className="sr-only">Follow on Facebook</DialogTitle>
+            <div className="flex flex-col items-center text-center p-4 space-y-6">
+              <div className="w-16 h-16 rounded-full bg-[#1877F2] flex items-center justify-center">
+                <Facebook className="w-8 h-8 text-white" />
+              </div>
+              
+              {config?.businessName && (
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-foreground">{config.businessName}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t.customer.platform?.followFbSubtitle || "Stay connected with us on Facebook!"}
+                  </p>
+                </div>
+              )}
+              
+              {!config?.businessName && (
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-foreground">
+                    {t.customer.platform?.followFbTitle || "Follow Us"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t.customer.platform?.followFbSubtitle || "Stay connected with us on Facebook!"}
+                  </p>
+                </div>
+              )}
+              
+              <Button 
+                onClick={handleFollowFacebook}
+                className="w-full h-12 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white text-base font-medium"
+                data-testid="button-follow-facebook"
+                disabled={!config?.facebookUrl}
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                {t.customer.platform?.followOnFacebook || "Follow on Facebook"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
   }
 
-  return <Layout hideCarousel>{content}</Layout>;
+  return (
+    <Layout hideCarousel>
+      {content}
+      <Dialog open={followFbModalOpen} onOpenChange={setFollowFbModalOpen}>
+        <DialogContent className="max-w-sm mx-auto">
+          <DialogTitle className="sr-only">Follow on Facebook</DialogTitle>
+          <div className="flex flex-col items-center text-center p-4 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-[#1877F2] flex items-center justify-center">
+              <Facebook className="w-8 h-8 text-white" />
+            </div>
+            
+            {config?.businessName && (
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-foreground">{config.businessName}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t.customer.platform?.followFbSubtitle || "Stay connected with us on Facebook!"}
+                </p>
+              </div>
+            )}
+            
+            {!config?.businessName && (
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-foreground">
+                  {t.customer.platform?.followFbTitle || "Follow Us"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t.customer.platform?.followFbSubtitle || "Stay connected with us on Facebook!"}
+                </p>
+              </div>
+            )}
+            
+            <Button 
+              onClick={handleFollowFacebook}
+              className="w-full h-12 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white text-base font-medium"
+              data-testid="button-follow-facebook"
+              disabled={!config?.facebookUrl}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              {t.customer.platform?.followOnFacebook || "Follow on Facebook"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Layout>
+  );
 }
