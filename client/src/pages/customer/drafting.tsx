@@ -319,6 +319,15 @@ export default function CustomerDrafting() {
     switch (platformId) {
       case 'facebook':
         url = socialLinks.facebook;
+        if (url && !url.includes('/reviews')) {
+          try {
+            const urlObj = new URL(url);
+            urlObj.pathname = urlObj.pathname.replace(/\/?$/, '/reviews');
+            url = urlObj.toString();
+          } catch {
+            url = url.replace(/\/?(\?.*)?$/, '/reviews$1');
+          }
+        }
         break;
       case 'instagram':
         url = socialLinks.instagram;
