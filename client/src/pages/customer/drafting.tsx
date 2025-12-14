@@ -728,64 +728,15 @@ export default function CustomerDrafting() {
 
             {/* Facebook Share */}
             {activePlatform?.id === 'facebook' && (
-              <div className="flex flex-col gap-4 w-full">
-                <p className="text-sm text-center font-medium text-foreground">
-                  {t.customer.platform?.facebookThankYou || "Thanks for sharing on Facebook!"}
+              <>
+                <p className="text-sm text-muted-foreground text-center">
+                  Your review will be copied. Paste it on Facebook!
                 </p>
-                
-                {selectedPhoto && (
-                  <div className="p-3 rounded-lg bg-gray-50 border">
-                    <div className="w-full h-24 rounded-md overflow-hidden mb-2">
-                      <img src={selectedPhoto} alt="Selected" className="w-full h-full object-cover" />
-                    </div>
-                    {selectedReview && (
-                      <p className="text-xs text-gray-600 line-clamp-3">{getReviewWithHashtags()}</p>
-                    )}
-                  </div>
-                )}
-                
-                <div className="flex flex-col items-center gap-2">
-                  <p className="text-sm text-muted-foreground">
-                    {t.customer.platform?.rateExperience || "How was your experience?"}
-                  </p>
-                  <div className="flex justify-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => setFacebookRating(star)}
-                        className="p-1 transition-transform hover:scale-110"
-                        data-testid={`button-fb-star-${star}`}
-                      >
-                        <Star 
-                          className={`w-7 h-7 ${
-                            star <= facebookRating 
-                              ? 'fill-yellow-400 text-yellow-400' 
-                              : 'text-gray-300'
-                          }`} 
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <Button 
-                  onClick={handleFacebookSubmit} 
-                  className="h-12 w-full bg-[#1877F2] hover:bg-[#1877F2]/90 text-white"
-                  disabled={facebookRating === 0 || facebookSubmitting}
-                  data-testid="button-post-facebook"
-                >
-                  {facebookSubmitting ? (
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                  )}
-                  {t.customer.platform?.postOnFacebook || "Post on Facebook Reviews"}
+                <Button onClick={handleShareAction} className="h-12 w-full bg-[#1877F2] hover:bg-[#1877F2]/90 text-white" data-testid="button-share-fb">
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy & Open Facebook
                 </Button>
-                
-                <p className="text-xs text-muted-foreground text-center">
-                  {t.customer.platform?.facebookNote || "Your review is already copied. Paste it when Facebook opens."}
-                </p>
-              </div>
+              </>
             )}
 
             {/* Instagram Share */}
