@@ -174,11 +174,36 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
     }
   };
 
+  const openInstagramProfile = (profileUrl: string) => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+    
+    // Extract username from URL if possible (e.g., instagram.com/username)
+    const usernameMatch = profileUrl.match(/instagram\.com\/([^/?]+)/);
+    const username = usernameMatch ? usernameMatch[1] : null;
+    
+    if (isIOS && username) {
+      // Try to open Instagram app directly
+      window.location.href = `instagram://user?username=${username}`;
+      setTimeout(() => {
+        window.open(profileUrl, '_blank');
+      }, 1500);
+    } else if (isAndroid && username) {
+      window.location.href = `intent://instagram.com/_u/${username}#Intent;package=com.instagram.android;scheme=https;end`;
+      setTimeout(() => {
+        window.open(profileUrl, '_blank');
+      }, 1500);
+    } else {
+      window.open(profileUrl, '_blank');
+    }
+  };
+
   const handleFollowInstagram = async () => {
     const instagramUrl = config?.instagramUrl;
     if (instagramUrl) {
       await trackPlatformClick('follow-instagram');
-      window.open(instagramUrl, '_blank');
+      openInstagramProfile(instagramUrl);
       setFollowIgModalOpen(false);
     }
   };
