@@ -211,6 +211,9 @@ export const translations = {
         followFbTitle: "Follow Us",
         followFbSubtitle: "Stay connected with us on Facebook!",
         followOnFacebook: "Follow on Facebook",
+        followIgTitle: "Follow Us",
+        followIgSubtitle: "Follow us on Instagram!",
+        followOnInstagram: "Follow on Instagram",
       }
     },
     admin: {
@@ -414,6 +417,9 @@ export const translations = {
         followFbTitle: "关注我们",
         followFbSubtitle: "在Facebook上与我们保持联系！",
         followOnFacebook: "在Facebook上关注",
+        followIgTitle: "关注我们",
+        followIgSubtitle: "在Instagram上关注我们！",
+        followOnInstagram: "在Instagram上关注",
       }
     },
     admin: {
@@ -617,6 +623,9 @@ export const translations = {
         followFbTitle: "எங்களைப் பின்தொடருங்கள்",
         followFbSubtitle: "Facebook-ல் எங்களுடன் இணைந்திருங்கள்!",
         followOnFacebook: "Facebook-ல் பின்தொடர்",
+        followIgTitle: "எங்களைப் பின்தொடருங்கள்",
+        followIgSubtitle: "Instagram-ல் எங்களைப் பின்தொடருங்கள்!",
+        followOnInstagram: "Instagram-ல் பின்தொடர்",
       }
     },
     admin: {
@@ -820,6 +829,9 @@ export const translations = {
         followFbTitle: "Ikuti Kami",
         followFbSubtitle: "Kekal berhubung dengan kami di Facebook!",
         followOnFacebook: "Ikuti di Facebook",
+        followIgTitle: "Ikuti Kami",
+        followIgSubtitle: "Ikuti kami di Instagram!",
+        followOnInstagram: "Ikuti di Instagram",
       }
     },
     admin: {

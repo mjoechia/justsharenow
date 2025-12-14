@@ -76,6 +76,7 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
   const t = translations[language];
   const [quickViewUrl, setQuickViewUrl] = useState("");
   const [followFbModalOpen, setFollowFbModalOpen] = useState(false);
+  const [followIgModalOpen, setFollowIgModalOpen] = useState(false);
 
   useEffect(() => {
     setQuickViewUrl(`${window.location.origin}/quick-view`);
@@ -106,6 +107,10 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
       setFollowFbModalOpen(true);
       return;
     }
+    if (platformId === 'follow-instagram') {
+      setFollowIgModalOpen(true);
+      return;
+    }
     setSelectedPlatform(platformId);
     setLocation('/drafting');
   };
@@ -116,6 +121,15 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
       await trackPlatformClick('follow-facebook');
       window.open(facebookUrl, '_blank');
       setFollowFbModalOpen(false);
+    }
+  };
+
+  const handleFollowInstagram = async () => {
+    const instagramUrl = config?.instagramUrl;
+    if (instagramUrl) {
+      await trackPlatformClick('follow-instagram');
+      window.open(instagramUrl, '_blank');
+      setFollowIgModalOpen(false);
     }
   };
 
@@ -290,6 +304,48 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
             </div>
           </DialogContent>
         </Dialog>
+        
+        {/* Follow Instagram Modal */}
+        <Dialog open={followIgModalOpen} onOpenChange={setFollowIgModalOpen}>
+          <DialogContent className="max-w-sm mx-auto">
+            <DialogTitle className="sr-only">Follow on Instagram</DialogTitle>
+            <div className="flex flex-col items-center text-center p-4 space-y-6">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737] flex items-center justify-center">
+                <Instagram className="w-8 h-8 text-white" />
+              </div>
+              
+              {config?.businessName && (
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-foreground">{config.businessName}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t.customer.platform?.followIgSubtitle || "Follow us on Instagram!"}
+                  </p>
+                </div>
+              )}
+              
+              {!config?.businessName && (
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-foreground">
+                    {t.customer.platform?.followIgTitle || "Follow Us"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t.customer.platform?.followIgSubtitle || "Follow us on Instagram!"}
+                  </p>
+                </div>
+              )}
+              
+              <Button 
+                onClick={handleFollowInstagram}
+                className="w-full h-12 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-90 text-white text-base font-medium"
+                data-testid="button-follow-instagram"
+                disabled={!config?.instagramUrl}
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                {t.customer.platform?.followOnInstagram || "Follow on Instagram"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
@@ -333,6 +389,48 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
             >
               <ExternalLink className="mr-2 h-4 w-4" />
               {t.customer.platform?.followOnFacebook || "Follow on Facebook"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Follow Instagram Modal */}
+      <Dialog open={followIgModalOpen} onOpenChange={setFollowIgModalOpen}>
+        <DialogContent className="max-w-sm mx-auto">
+          <DialogTitle className="sr-only">Follow on Instagram</DialogTitle>
+          <div className="flex flex-col items-center text-center p-4 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737] flex items-center justify-center">
+              <Instagram className="w-8 h-8 text-white" />
+            </div>
+            
+            {config?.businessName && (
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-foreground">{config.businessName}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t.customer.platform?.followIgSubtitle || "Follow us on Instagram!"}
+                </p>
+              </div>
+            )}
+            
+            {!config?.businessName && (
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-foreground">
+                  {t.customer.platform?.followIgTitle || "Follow Us"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t.customer.platform?.followIgSubtitle || "Follow us on Instagram!"}
+                </p>
+              </div>
+            )}
+            
+            <Button 
+              onClick={handleFollowInstagram}
+              className="w-full h-12 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-90 text-white text-base font-medium"
+              data-testid="button-follow-instagram"
+              disabled={!config?.instagramUrl}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              {t.customer.platform?.followOnInstagram || "Follow on Instagram"}
             </Button>
           </div>
         </DialogContent>
