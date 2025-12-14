@@ -14,6 +14,41 @@ import { getStoreConfig, trackPlatformClick, saveTestimonial } from "@/lib/api";
 import regrowLogo from "@assets/generated_images/regrow_group_corporate_logo.png";
 import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 
+const formatForXiaohongshu = (review: string, hashtags: string[], businessName?: string): string => {
+  const stars = "⭐️⭐️⭐️⭐️⭐️";
+  const hashtagText = hashtags.length > 0 ? hashtags.join(' ') : '#真实测评 #推荐 #探店';
+  
+  return `真实体验分享✨
+
+📍 商家：${businessName || 'XXX'}
+💬 体验：${review}
+${stars}
+
+${hashtagText}
+
+收藏不迷路 ❤️`;
+};
+
+const openXiaohongshu = () => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(userAgent);
+  const isAndroid = /android/.test(userAgent);
+  
+  if (isIOS) {
+    window.location.href = "xhsdiscover://";
+    setTimeout(() => {
+      window.open("https://apps.apple.com/app/id741292507", "_blank");
+    }, 2000);
+  } else if (isAndroid) {
+    window.location.href = "intent://#Intent;scheme=xhsdiscover;package=com.xingin.xhs;end";
+    setTimeout(() => {
+      window.open("https://play.google.com/store/apps/details?id=com.xingin.xhs", "_blank");
+    }, 2000);
+  } else {
+    window.open("https://www.xiaohongshu.com", "_blank");
+  }
+};
+
 const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): string[] => {
   if (hashtags.length === 0) {
     return [];
@@ -99,6 +134,7 @@ export default function CustomerDrafting() {
   const [facebookSubmitting, setFacebookSubmitting] = useState(false);
   const [facebookAutoCopied, setFacebookAutoCopied] = useState(false);
   const [modalView, setModalView] = useState<'platforms' | 'action'>('platforms');
+  const [xhsCopied, setXhsCopied] = useState(false);
   
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
@@ -186,11 +222,32 @@ export default function CustomerDrafting() {
       });
     }
   }, [isModalOpen, modalView, activePlatform?.id, selectedReview, facebookAutoCopied]);
+
+  // XHS auto-copy when modal opens
+  useEffect(() => {
+    if (isModalOpen && modalView === 'action' && activePlatform?.id === 'xiaohongshu' && selectedReview && !xhsCopied) {
+      setXhsCopied(true);
+      const formattedText = formatForXiaohongshu(
+        selectedReview,
+        selectedHashtags,
+        config?.businessName || undefined
+      );
+      navigator.clipboard.writeText(formattedText).then(() => {
+        toast({
+          title: "✅ 内容已复制",
+          description: "打开小红书后直接粘贴发布",
+        });
+      }).catch((err) => {
+        console.warn("XHS auto-copy failed:", err);
+      });
+    }
+  }, [isModalOpen, modalView, activePlatform?.id, selectedReview, xhsCopied, selectedHashtags, config?.businessName]);
   
   const handleNext = () => {
     if (selectedPhoto && selectedReview) {
       setFacebookRating(0);
       setFacebookAutoCopied(false);
+      setXhsCopied(false);
       // If platform already selected from Shop View, go directly to action
       if (selectedPlatform) {
         setModalView('action');
@@ -211,6 +268,7 @@ export default function CustomerDrafting() {
     setSelectedPlatform('');
     setFacebookRating(0);
     setFacebookAutoCopied(false);
+    setXhsCopied(false);
   };
 
   const handleSwitch = () => {
@@ -382,6 +440,32 @@ export default function CustomerDrafting() {
       await trackPlatformClick(activePlatform.id);
     }
     setIsModalOpen(false);
+  };
+
+  const handleXiaohongshuAction = async () => {
+    const formattedText = formatForXiaohongshu(
+      selectedReview || '',
+      selectedHashtags,
+      config?.businessName || undefined
+    );
+    
+    try {
+      await navigator.clipboard.writeText(formattedText);
+      setXhsCopied(true);
+      toast({
+        title: "✅ 内容已复制",
+        description: "打开小红书后直接粘贴发布",
+      });
+    } catch (e) {
+      console.warn("Clipboard failed:", e);
+    }
+    
+    await trackPlatformClick('xiaohongshu');
+    
+    setTimeout(() => {
+      openXiaohongshu();
+      setIsModalOpen(false);
+    }, 800);
   };
 
   const handleFacebookSubmit = async () => {
@@ -722,16 +806,63 @@ export default function CustomerDrafting() {
               </>
             )}
 
-            {/* XHS Share */}
+            {/* XHS Share - Xiaohongshu Optimized Flow */}
             {activePlatform?.id === 'xiaohongshu' && (
               <>
-                <p className="text-sm text-muted-foreground text-center">
-                  Copy your text and share your photo on XiaoHongShu!
-                </p>
-                <Button onClick={handleShareAction} className="h-12 w-full bg-red-600 hover:bg-red-700 text-white" data-testid="button-share-xhs">
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy & Share
+                <div className="w-full p-4 bg-red-50 rounded-xl border border-red-200">
+                  <p className="text-sm font-medium text-red-700 mb-3 text-center">
+                    📱 小红书分享流程
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-red-600 mb-4">
+                    <span className="bg-red-100 px-2 py-1 rounded-full">复制内容</span>
+                    <span>→</span>
+                    <span className="bg-red-100 px-2 py-1 rounded-full">打开小红书</span>
+                    <span>→</span>
+                    <span className="bg-red-100 px-2 py-1 rounded-full">粘贴发布</span>
+                  </div>
+                  
+                  {/* Preview formatted text */}
+                  <div className="bg-white p-3 rounded-lg text-xs text-gray-700 whitespace-pre-line border max-h-32 overflow-y-auto">
+                    {formatForXiaohongshu(selectedReview || '', selectedHashtags, config?.businessName || undefined)}
+                  </div>
+                </div>
+                
+                {selectedPhoto && (
+                  <div className="w-full">
+                    <p className="text-xs text-muted-foreground mb-2 text-center font-medium">
+                      📷 下载照片后在小红书中选择
+                    </p>
+                    <div className="flex items-center justify-center gap-4">
+                      <img 
+                        src={selectedPhoto} 
+                        alt="Selected photo" 
+                        className="w-20 h-20 object-cover rounded-lg border-2 border-red-200 shadow-sm"
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleDownloadPhoto}
+                        className="flex items-center gap-2 border-red-300 text-red-600 hover:bg-red-50"
+                      >
+                        <Download className="w-4 h-4" />
+                        保存照片
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                <Button 
+                  onClick={handleXiaohongshuAction} 
+                  className="h-12 w-full bg-red-600 hover:bg-red-700 text-white" 
+                  data-testid="button-share-xhs"
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  打开小红书发布
                 </Button>
+                
+                <p className="text-xs text-muted-foreground text-center">
+                  最快发布到小红书，只需粘贴一次
+                </p>
               </>
             )}
 
