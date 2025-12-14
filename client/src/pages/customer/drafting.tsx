@@ -29,7 +29,7 @@ ${hashtagText}
 收藏不迷路 ❤️`;
 };
 
-const openXiaohongshu = () => {
+const openXiaohongshu = (profileUrl?: string) => {
   const userAgent = navigator.userAgent.toLowerCase();
   const isIOS = /iphone|ipad|ipod/.test(userAgent);
   const isAndroid = /android/.test(userAgent);
@@ -45,7 +45,8 @@ const openXiaohongshu = () => {
       window.open("https://play.google.com/store/apps/details?id=com.xingin.xhs", "_blank");
     }, 2000);
   } else {
-    window.open("https://www.xiaohongshu.com", "_blank");
+    // On desktop, open configured profile URL if available, otherwise generic site
+    window.open(profileUrl || "https://www.xiaohongshu.com", "_blank");
   }
 };
 
@@ -234,8 +235,8 @@ export default function CustomerDrafting() {
       );
       navigator.clipboard.writeText(formattedText).then(() => {
         toast({
-          title: "✅ 内容已复制",
-          description: "打开小红书后直接粘贴发布",
+          title: `✅ ${t.customer.platform?.xhsCopied || "Content Copied!"}`,
+          description: t.customer.platform?.xhsPasteReady || "Open Xiaohongshu and paste to post.",
         });
       }).catch((err) => {
         console.warn("XHS auto-copy failed:", err);
@@ -453,8 +454,8 @@ export default function CustomerDrafting() {
       await navigator.clipboard.writeText(formattedText);
       setXhsCopied(true);
       toast({
-        title: "✅ 内容已复制",
-        description: "打开小红书后直接粘贴发布",
+        title: `✅ ${t.customer.platform?.xhsCopied || "Content Copied!"}`,
+        description: t.customer.platform?.xhsPasteReady || "Open Xiaohongshu and paste to post.",
       });
     } catch (e) {
       console.warn("Clipboard failed:", e);
@@ -463,7 +464,7 @@ export default function CustomerDrafting() {
     await trackPlatformClick('xiaohongshu');
     
     setTimeout(() => {
-      openXiaohongshu();
+      openXiaohongshu(socialLinks.xiaohongshu);
       setIsModalOpen(false);
     }, 800);
   };
@@ -811,14 +812,14 @@ export default function CustomerDrafting() {
               <>
                 <div className="w-full p-4 bg-red-50 rounded-xl border border-red-200">
                   <p className="text-sm font-medium text-red-700 mb-3 text-center">
-                    📱 小红书分享流程
+                    📱 {t.customer.platform?.xhsFlow || "Xiaohongshu Sharing Flow"}
                   </p>
                   <div className="flex items-center justify-center gap-2 text-xs text-red-600 mb-4">
-                    <span className="bg-red-100 px-2 py-1 rounded-full">复制内容</span>
+                    <span className="bg-red-100 px-2 py-1 rounded-full">{t.customer.platform?.xhsStep1 || "Copy Content"}</span>
                     <span>→</span>
-                    <span className="bg-red-100 px-2 py-1 rounded-full">打开小红书</span>
+                    <span className="bg-red-100 px-2 py-1 rounded-full">{t.customer.platform?.xhsStep2 || "Open XHS"}</span>
                     <span>→</span>
-                    <span className="bg-red-100 px-2 py-1 rounded-full">粘贴发布</span>
+                    <span className="bg-red-100 px-2 py-1 rounded-full">{t.customer.platform?.xhsStep3 || "Paste & Post"}</span>
                   </div>
                   
                   {/* Preview formatted text */}
@@ -830,7 +831,7 @@ export default function CustomerDrafting() {
                 {selectedPhoto && (
                   <div className="w-full">
                     <p className="text-xs text-muted-foreground mb-2 text-center font-medium">
-                      📷 下载照片后在小红书中选择
+                      📷 {t.customer.platform?.xhsDownloadPhoto || "Download photo to select in Xiaohongshu"}
                     </p>
                     <div className="flex items-center justify-center gap-4">
                       <img 
@@ -845,7 +846,7 @@ export default function CustomerDrafting() {
                         className="flex items-center gap-2 border-red-300 text-red-600 hover:bg-red-50"
                       >
                         <Download className="w-4 h-4" />
-                        保存照片
+                        {t.customer.platform?.xhsSavePhoto || "Save Photo"}
                       </Button>
                     </div>
                   </div>
@@ -857,11 +858,11 @@ export default function CustomerDrafting() {
                   data-testid="button-share-xhs"
                 >
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  打开小红书发布
+                  {t.customer.platform?.xhsOpenApp || "Open Xiaohongshu"}
                 </Button>
                 
                 <p className="text-xs text-muted-foreground text-center">
-                  最快发布到小红书，只需粘贴一次
+                  {t.customer.platform?.xhsFastShare || "Fastest way to share on Xiaohongshu - just paste once!"}
                 </p>
               </>
             )}
