@@ -67,7 +67,8 @@ export default function AdminDashboard() {
     if (config) {
       setWebsiteUrl(config.websiteUrl || "");
       setGoogleReviewsUrl(config.googleReviewsUrl || "");
-      setGooglePlaceId(config.googlePlaceId || "");
+      // Google Place ID defaults to empty - user must verify each time
+      setGooglePlaceId("");
       setFbUrl(config.facebookUrl || "");
       setIgUrl(config.instagramUrl || "");
       setXhsUrl(config.xiaohongshuUrl || "");
@@ -80,38 +81,12 @@ export default function AdminDashboard() {
         setConfirmedBusinessName(config.businessName);
       }
       setIsDirty(false);
+      // Clear verified business state on Admin View open
+      setVerifiedBusiness(null);
     }
   }, [config]);
 
-  // Auto-verify business when googlePlaceId is available
-  useEffect(() => {
-    const autoVerifyBusiness = async () => {
-      if (config?.googlePlaceId && !verifiedBusiness && !isVerifyingPlace) {
-        try {
-          const result = await verifyGooglePlaceId(config.googlePlaceId);
-          if (result.success) {
-            setVerifiedBusiness({
-              businessName: result.businessName,
-              address: result.address,
-              rating: result.rating,
-              totalReviews: result.totalReviews,
-              googleMapsUrl: result.googleMapsUrl,
-              verifiedAt: result.verifiedAt,
-              fromCache: result.fromCache,
-            });
-            // Set confirmed name on initial load (existing verified business)
-            if (result.businessName && !confirmedBusinessName) {
-              setConfirmedBusinessName(result.businessName);
-            }
-          }
-        } catch (error) {
-          // Silent fail for auto-verification
-          console.log("Auto-verification failed:", error);
-        }
-      }
-    };
-    autoVerifyBusiness();
-  }, [config?.googlePlaceId]);
+  // Auto-verify is disabled - Place ID field starts empty and user must verify manually
 
   const checkDirty = () => {
     if (!config) return false;

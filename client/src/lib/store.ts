@@ -114,6 +114,9 @@ export const translations = {
       qrDownloaded: "QR Code Downloaded",
       imageSaved: "Image saved to your device.",
       downloadQR: "Download QR Code",
+      cardSaved: "Card Saved!",
+      cardImageSaved: "The card has been saved as an image.",
+      saveAsImage: "Save as Image",
     },
     customer: {
       drafting: {
@@ -301,6 +304,9 @@ export const translations = {
       qrDownloaded: "二维码已下载",
       imageSaved: "图片已保存到您的设备。",
       downloadQR: "下载二维码",
+      cardSaved: "卡片已保存！",
+      cardImageSaved: "卡片已保存为图片。",
+      saveAsImage: "保存为图片",
     },
     customer: {
       drafting: {
@@ -488,6 +494,9 @@ export const translations = {
       qrDownloaded: "QR குறியீடு பதிவிறக்கப்பட்டது",
       imageSaved: "படம் உங்கள் சாதனத்தில் சேமிக்கப்பட்டது.",
       downloadQR: "QR குறியீட்டைப் பதிவிறக்கு",
+      cardSaved: "அட்டை சேமிக்கப்பட்டது!",
+      cardImageSaved: "அட்டை படமாக சேமிக்கப்பட்டது.",
+      saveAsImage: "படமாக சேமி",
     },
     customer: {
       drafting: {
@@ -675,6 +684,9 @@ export const translations = {
       qrDownloaded: "Kod QR Dimuat Turun",
       imageSaved: "Imej disimpan ke peranti anda.",
       downloadQR: "Muat Turun Kod QR",
+      cardSaved: "Kad Disimpan!",
+      cardImageSaved: "Kad telah disimpan sebagai imej.",
+      saveAsImage: "Simpan sebagai Imej",
     },
     customer: {
       drafting: {

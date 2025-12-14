@@ -6,13 +6,14 @@ import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
-import { Facebook, Instagram, MapPin, MessageCircle, Download, Link as LinkIcon, RefreshCw, Building2 } from "lucide-react";
+import { Facebook, Instagram, MapPin, MessageCircle, Download, Link as LinkIcon, RefreshCw, Building2, Camera } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig } from "@/lib/api";
+import html2canvas from "html2canvas";
 
 export default function QuickView({ embedded = false }: { embedded?: boolean }) {
   const { language } = useStore();
@@ -20,6 +21,8 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
   const t = translations[language];
   const { toast } = useToast();
   const qrRef = useRef<SVGSVGElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isSavingImage, setIsSavingImage] = useState(false);
 
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
@@ -50,7 +53,6 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
       canvas.width = img.width;
       canvas.height = img.height;
       if (ctx) {
-        // Fill white background
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
@@ -71,6 +73,40 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
+  const handleSaveAsImage = async () => {
+    if (!cardRef.current) return;
+    
+    setIsSavingImage(true);
+    try {
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+      });
+      
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `JustShareNow-Card-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      toast({
+        title: t.quickView.cardSaved || "Card Saved!",
+        description: t.quickView.cardImageSaved || "The card has been saved as an image.",
+      });
+    } catch (error) {
+      console.error("Failed to save image:", error);
+      toast({
+        title: "Failed to save",
+        description: "Could not save the card as an image.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingImage(false);
+    }
+  };
+
   const socialIcons = [
     { icon: <MapPin className="w-5 h-5" />, color: "text-blue-600 bg-blue-50" }, // Google
     { icon: <span className="font-bold text-sm">小</span>, color: "text-red-600 bg-red-50" }, // XHS
@@ -81,14 +117,14 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
   ];
 
   const content = (
-      <div className="container max-w-md mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[80vh]">
+      <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[80vh]">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full"
+          className="w-full max-w-[375px]"
         >
-          <Card className="border-0 shadow-xl bg-gradient-to-b from-[#2D7FF9]/5 to-white overflow-hidden">
-            <CardContent className="p-8 flex flex-col items-center text-center">
+          <Card ref={cardRef} className="border-0 shadow-xl bg-gradient-to-b from-[#2D7FF9]/5 to-white overflow-hidden">
+            <CardContent className="p-6 flex flex-col items-center text-center">
               
               {/* Header */}
               <div className="mb-6 flex flex-col items-center">
@@ -119,10 +155,21 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
               </div>
 
               {/* Controls */}
-              <div className="w-full flex items-center justify-center bg-muted/30 p-3 rounded-lg mb-6">
+              <div className="w-full flex items-center justify-center gap-2 bg-muted/30 p-3 rounded-lg mb-6">
                 <Button variant="ghost" size="sm" onClick={handleDownload} className="text-xs text-muted-foreground hover:text-primary">
                    <Download className="w-4 h-4 mr-2" />
                    {t.quickView.downloadQR}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleSaveAsImage} 
+                  disabled={isSavingImage}
+                  className="text-xs text-muted-foreground hover:text-primary"
+                  data-testid="button-save-card-image"
+                >
+                   <Camera className="w-4 h-4 mr-2" />
+                   {isSavingImage ? "Saving..." : t.quickView.saveAsImage}
                 </Button>
               </div>
 
