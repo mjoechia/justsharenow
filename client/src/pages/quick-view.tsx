@@ -151,6 +151,12 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
                   includeMargin={true}
                   fgColor="#2D7FF9"
                   ref={qrRef}
+                  imageSettings={{
+                    src: justShareNowLogo,
+                    height: 40,
+                    width: 40,
+                    excavate: true,
+                  }}
                 />
               </div>
 
