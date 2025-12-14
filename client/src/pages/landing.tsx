@@ -376,6 +376,10 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
                 <ExternalLink className="mr-2 h-4 w-4" />
                 {t.customer.platform?.followOnFacebook || "Follow on Facebook"}
               </Button>
+              
+              <p className="text-xs text-muted-foreground">
+                Please allow pop-ups if prompted
+              </p>
             </div>
           </DialogContent>
         </Dialog>
@@ -418,6 +422,10 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
                 <ExternalLink className="mr-2 h-4 w-4" />
                 {t.customer.platform?.followOnInstagram || "Follow on Instagram"}
               </Button>
+              
+              <p className="text-xs text-muted-foreground">
+                Please allow pop-ups if prompted
+              </p>
             </div>
           </DialogContent>
         </Dialog>
@@ -508,6 +516,10 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
               <ExternalLink className="mr-2 h-4 w-4" />
               {t.customer.platform?.followOnFacebook || "Follow on Facebook"}
             </Button>
+            
+            <p className="text-xs text-muted-foreground">
+              Please allow pop-ups if prompted
+            </p>
           </div>
         </DialogContent>
       </Dialog>
@@ -550,6 +562,10 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
               <ExternalLink className="mr-2 h-4 w-4" />
               {t.customer.platform?.followOnInstagram || "Follow on Instagram"}
             </Button>
+            
+            <p className="text-xs text-muted-foreground">
+              Please allow pop-ups if prompted
+            </p>
           </div>
         </DialogContent>
       </Dialog>
