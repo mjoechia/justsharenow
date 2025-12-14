@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus, QrCode, Building2, ExternalLink } from "lucide-react";
+import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus, QrCode, Building2, ExternalLink, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig, trackPlatformClick } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
@@ -77,6 +78,8 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
   const [quickViewUrl, setQuickViewUrl] = useState("");
   const [followFbModalOpen, setFollowFbModalOpen] = useState(false);
   const [followIgModalOpen, setFollowIgModalOpen] = useState(false);
+  const [xhsModalOpen, setXhsModalOpen] = useState(false);
+  const [xhsCopied, setXhsCopied] = useState(false);
 
   useEffect(() => {
     setQuickViewUrl(`${window.location.origin}/quick-view`);
@@ -111,8 +114,55 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
       setFollowIgModalOpen(true);
       return;
     }
+    if (platformId === 'xiaohongshu') {
+      setXhsModalOpen(true);
+      setXhsCopied(false);
+      return;
+    }
     setSelectedPlatform(platformId);
     setLocation('/drafting');
+  };
+
+  const openXiaohongshu = (profileUrl?: string) => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+    
+    if (isIOS) {
+      window.location.href = "xhsdiscover://";
+      setTimeout(() => {
+        window.open("https://apps.apple.com/app/id741292507", "_blank");
+      }, 2000);
+    } else if (isAndroid) {
+      window.location.href = "intent://#Intent;scheme=xhsdiscover;package=com.xingin.xhs;end";
+      setTimeout(() => {
+        window.open("https://play.google.com/store/apps/details?id=com.xingin.xhs", "_blank");
+      }, 2000);
+    } else {
+      window.open(profileUrl || "https://www.xiaohongshu.com", "_blank");
+    }
+  };
+
+  const getXhsContent = () => {
+    const businessName = config?.businessName || "this place";
+    const hashtags = config?.reviewHashtags?.slice(0, 5).map(tag => `#${tag}`).join(' ') || '';
+    return `Just visited ${businessName}! Amazing experience! ${hashtags}`.trim();
+  };
+
+  const handleXhsCopyAndOpen = async () => {
+    const content = getXhsContent();
+    try {
+      await navigator.clipboard.writeText(content);
+      setXhsCopied(true);
+      toast.success(t.customer.platform?.copied || "Copied to clipboard!");
+      await trackPlatformClick('xiaohongshu');
+      setTimeout(() => {
+        openXiaohongshu(config?.xiaohongshuUrl || undefined);
+        setXhsModalOpen(false);
+      }, 500);
+    } catch (err) {
+      toast.error("Failed to copy");
+    }
   };
 
   const handleFollowFacebook = async () => {
@@ -346,6 +396,49 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
             </div>
           </DialogContent>
         </Dialog>
+        
+        {/* XiaoHongShu Modal */}
+        <Dialog open={xhsModalOpen} onOpenChange={setXhsModalOpen}>
+          <DialogContent className="max-w-sm mx-auto">
+            <DialogTitle className="sr-only">Share on XiaoHongShu</DialogTitle>
+            <div className="flex flex-col items-center text-center p-4 space-y-6">
+              <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center">
+                <span className="text-xl font-bold text-white">小红书</span>
+              </div>
+              
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-foreground">
+                  {t.customer.platform?.shareOnXhs || "Share on XiaoHongShu"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t.customer.platform?.xhsSubtitle || "Share your experience on XiaoHongShu!"}
+                </p>
+              </div>
+              
+              <div className="w-full p-3 bg-muted/50 rounded-lg text-left">
+                <p className="text-sm text-foreground whitespace-pre-wrap">{getXhsContent()}</p>
+              </div>
+              
+              <Button 
+                onClick={handleXhsCopyAndOpen}
+                className="w-full h-12 bg-red-500 hover:bg-red-600 text-white text-base font-medium"
+                data-testid="button-xhs-copy-open"
+              >
+                {xhsCopied ? (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    {t.customer.platform?.copied || "Copied!"}
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-2 h-4 w-4" />
+                    {t.customer.platform?.copyAndOpen || "Copy & Open XiaoHongShu"}
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
@@ -431,6 +524,49 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
             >
               <ExternalLink className="mr-2 h-4 w-4" />
               {t.customer.platform?.followOnInstagram || "Follow on Instagram"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* XiaoHongShu Modal */}
+      <Dialog open={xhsModalOpen} onOpenChange={setXhsModalOpen}>
+        <DialogContent className="max-w-sm mx-auto">
+          <DialogTitle className="sr-only">Share on XiaoHongShu</DialogTitle>
+          <div className="flex flex-col items-center text-center p-4 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center">
+              <span className="text-xl font-bold text-white">小红书</span>
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-foreground">
+                {t.customer.platform?.shareOnXhs || "Share on XiaoHongShu"}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {t.customer.platform?.xhsSubtitle || "Share your experience on XiaoHongShu!"}
+              </p>
+            </div>
+            
+            <div className="w-full p-3 bg-muted/50 rounded-lg text-left">
+              <p className="text-sm text-foreground whitespace-pre-wrap">{getXhsContent()}</p>
+            </div>
+            
+            <Button 
+              onClick={handleXhsCopyAndOpen}
+              className="w-full h-12 bg-red-500 hover:bg-red-600 text-white text-base font-medium"
+              data-testid="button-xhs-copy-open"
+            >
+              {xhsCopied ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  {t.customer.platform?.copied || "Copied!"}
+                </>
+              ) : (
+                <>
+                  <Copy className="mr-2 h-4 w-4" />
+                  {t.customer.platform?.copyAndOpen || "Copy & Open XiaoHongShu"}
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>
