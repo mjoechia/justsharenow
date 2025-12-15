@@ -659,6 +659,15 @@ export default function AdminDashboard() {
                 <h1 className="text-3xl font-heading font-bold text-foreground">{t.admin.dashboard.title}</h1>
                 <p className="text-muted-foreground">{t.admin.dashboard.subtitle}</p>
             </div>
+            <Button 
+              variant="outline" 
+              onClick={() => window.open('/docs/sharelor-help.md', '_blank')}
+              className="flex items-center gap-2"
+              data-testid="button-help"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Help Guide
+            </Button>
         </div>
 
         <div className="space-y-8">
