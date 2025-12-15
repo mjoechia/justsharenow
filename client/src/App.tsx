@@ -9,6 +9,7 @@ import Landing from "@/pages/landing";
 import CustomerDrafting from "@/pages/customer/drafting";
 import AdminDashboard from "@/pages/admin/dashboard";
 import QuickView from "@/pages/quick-view";
+import HelpPage from "@/pages/help";
 
 function Router() {
   return (
@@ -24,6 +25,9 @@ function Router() {
       
       {/* Admin Flow */}
       <Route path="/admin" component={AdminDashboard} />
+      
+      {/* Help Page */}
+      <Route path="/help" component={HelpPage} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />

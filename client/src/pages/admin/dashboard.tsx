@@ -661,7 +661,7 @@ export default function AdminDashboard() {
             </div>
             <Button 
               variant="outline" 
-              onClick={() => window.open('/docs/sharelor-help.md', '_blank')}
+              onClick={() => window.open('/help', '_blank')}
               className="flex items-center gap-2"
               data-testid="button-help"
             >
