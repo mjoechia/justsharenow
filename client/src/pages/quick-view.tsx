@@ -2,7 +2,7 @@ import { useStore, translations } from "@/lib/store";
 import { Layout } from "@/components/layout";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
@@ -42,7 +42,6 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
   const [_, setLocation] = useLocation();
   const t = translations[language];
   const { toast } = useToast();
-  const qrRef = useRef<SVGSVGElement>(null);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSavingImage, setIsSavingImage] = useState(false);
@@ -73,70 +72,32 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
   };
 
   const handleDownload = () => {
-    if (!qrRef.current) return;
+    if (!qrCanvasRef.current) return;
 
-    const svgData = new XMLSerializer().serializeToString(qrRef.current);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
+    const pngFile = qrCanvasRef.current.toDataURL("image/png");
+    const downloadLink = document.createElement("a");
+    downloadLink.download = `JustShareNow-QR.png`;
+    downloadLink.href = pngFile;
+    downloadLink.click();
     
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      if (ctx) {
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        
-        const pngFile = canvas.toDataURL("image/png");
-        const downloadLink = document.createElement("a");
-        downloadLink.download = `JustShareNow-QR.png`;
-        downloadLink.href = pngFile;
-        downloadLink.click();
-        
-        toast({
-            title: t.quickView.qrDownloaded,
-            description: t.quickView.imageSaved,
-        });
-      }
-    };
-    
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    toast({
+        title: t.quickView.qrDownloaded,
+        description: t.quickView.imageSaved,
+    });
   };
 
   const handleSaveAsImage = async () => {
-    if (!cardRef.current || !qrCanvasRef.current) return;
+    if (!cardRef.current) return;
     
     setIsSavingImage(true);
     try {
-      // Use html2canvas with SVG elements ignored, then overlay QR code
+      // Simple html2canvas capture - canvas elements are supported natively
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
         logging: false,
-        ignoreElements: (element) => {
-          // Ignore the SVG QR code - we'll add it manually
-          return element.tagName === 'svg' && element.closest('[data-qr-container]') !== null;
-        }
       });
-      
-      // Get the QR code canvas and draw it onto the main canvas
-      const ctx = canvas.getContext('2d');
-      if (ctx && qrCanvasRef.current) {
-        const qrCanvas = qrCanvasRef.current;
-        // Find position of QR container relative to card
-        const cardRect = cardRef.current.getBoundingClientRect();
-        const qrContainer = cardRef.current.querySelector('[data-qr-container]');
-        if (qrContainer) {
-          const qrRect = qrContainer.getBoundingClientRect();
-          const scale = 2; // matches html2canvas scale
-          const x = (qrRect.left - cardRect.left + 16) * scale; // 16px padding
-          const y = (qrRect.top - cardRect.top + 16) * scale;
-          const size = 200 * scale;
-          ctx.drawImage(qrCanvas, x, y, size, size);
-        }
-      }
       
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
@@ -198,21 +159,6 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
                 onClick={handleScan}
                 data-qr-container="true"
               >
-                <QRCodeSVG 
-                  value={shareUrl}
-                  size={200}
-                  level="H"
-                  includeMargin={true}
-                  fgColor="#2D7FF9"
-                  ref={qrRef}
-                  imageSettings={{
-                    src: justShareNowLogo,
-                    height: 40,
-                    width: 40,
-                    excavate: true,
-                  }}
-                />
-                {/* Hidden canvas for image export */}
                 <QRCodeCanvas 
                   value={shareUrl}
                   size={200}
@@ -221,12 +167,11 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
                   fgColor="#2D7FF9"
                   ref={qrCanvasRef}
                   imageSettings={{
-                    src: logoBase64 || justShareNowLogo,
+                    src: justShareNowLogo,
                     height: 40,
                     width: 40,
                     excavate: true,
                   }}
-                  style={{ display: 'none' }}
                 />
               </div>
 
