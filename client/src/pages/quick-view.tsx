@@ -15,6 +15,28 @@ import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig } from "@/lib/api";
 import html2canvas from "html2canvas";
 
+// Helper to convert image to base64
+const imageToBase64 = (src: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } else {
+        reject(new Error('Could not get canvas context'));
+      }
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = src;
+  });
+};
+
 export default function QuickView({ embedded = false }: { embedded?: boolean }) {
   const { language } = useStore();
   const [_, setLocation] = useLocation();
@@ -23,6 +45,7 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
   const qrRef = useRef<SVGSVGElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSavingImage, setIsSavingImage] = useState(false);
+  const [logoBase64, setLogoBase64] = useState<string>("");
 
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
@@ -34,6 +57,13 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
 
   useEffect(() => {
     setShareUrl(`${window.location.origin}/`);
+  }, []);
+
+  // Pre-load logo as base64 for html2canvas compatibility
+  useEffect(() => {
+    imageToBase64(justShareNowLogo)
+      .then(setLogoBase64)
+      .catch(console.error);
   }, []);
 
   const handleScan = () => {
@@ -78,12 +108,43 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
     
     setIsSavingImage(true);
     try {
-      const canvas = await html2canvas(cardRef.current, {
+      // Clone the card and replace images with base64 versions for html2canvas
+      const clone = cardRef.current.cloneNode(true) as HTMLElement;
+      
+      // Replace all images in the clone with base64 versions
+      const images = Array.from(clone.querySelectorAll('img'));
+      images.forEach(img => {
+        if (logoBase64 && img.alt === 'JustShareNow') {
+          img.src = logoBase64;
+        }
+      });
+      
+      // Temporarily append clone to document for rendering
+      clone.style.position = 'absolute';
+      clone.style.left = '-9999px';
+      clone.style.top = '-9999px';
+      document.body.appendChild(clone);
+      
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const canvas = await html2canvas(clone, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
+        logging: false,
+        onclone: (clonedDoc) => {
+          // Ensure SVGs are properly rendered
+          const svgs = clonedDoc.querySelectorAll('svg');
+          svgs.forEach(svg => {
+            svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+          });
+        }
       });
+      
+      // Clean up clone
+      document.body.removeChild(clone);
       
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
