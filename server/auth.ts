@@ -73,13 +73,20 @@ export async function initializeMasterAdmin(): Promise<void> {
     return;
   }
 
+  const passwordHash = await bcrypt.hash(masterAdminPassword, 12);
   const existingMaster = await storage.getUserByUsername(MASTER_ADMIN_USERNAME);
+  
   if (existingMaster) {
-    console.log("Master admin already exists");
+    // Update password hash if it changed
+    if (existingMaster.passwordHash !== passwordHash) {
+      await storage.updatePassword(existingMaster.id, passwordHash);
+      console.log("Master admin password updated");
+    } else {
+      console.log("Master admin already exists");
+    }
     return;
   }
 
-  const passwordHash = await bcrypt.hash(masterAdminPassword, 12);
   await storage.createUser({
     username: MASTER_ADMIN_USERNAME,
     passwordHash,

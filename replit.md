@@ -51,9 +51,19 @@ Preferred communication style: Simple, everyday language.
 - Vite middleware integration for development HMR
 
 **Database Schema:**
-- `store_config` table: Single-row configuration storing 6 social media URLs (googleReviewsUrl, facebookUrl, instagramUrl, xiaohongshuUrl, tiktokUrl, whatsappUrl), Google Place ID (googlePlaceId), website URL, shop photos (JSONB array), slider photos (JSONB array), and review hashtags (text array)
-- `analytics` table: Platform-specific click tracking with unique platform identifiers (google-reviews, facebook, instagram, xiaohongshu, tiktok, whatsapp) and click counts
+- `users` table: User accounts with roles (master_admin, admin, user), approval status (pending, approved, rejected), authentication fields (passwordHash for master admin, googleId for OAuth), and profile info
+- `admin_user_assignments` table: Many-to-many relationship mapping admins to their assigned users
+- `sessions` table: PostgreSQL-backed session storage for connect-pg-simple
+- `store_config` table: Per-user configuration storing 6 social media URLs (googleReviewsUrl, facebookUrl, instagramUrl, xiaohongshuUrl, tiktokUrl, whatsappUrl), Google Place ID (googlePlaceId), website URL, shop photos (JSONB array), slider photos (JSONB array), and review hashtags (text array). Now includes userId for multi-tenant isolation.
+- `analytics` table: Platform-specific click tracking with unique platform identifiers (google-reviews, facebook, instagram, xiaohongshu, tiktok, whatsapp) and click counts. Scoped by placeId.
 - `verified_businesses` table: Caches verified business data from Google Places API with 7-day cache duration. Stores placeId (unique), businessName, address, rating, totalReviews, website, googleMapsUrl, and verifiedAt timestamp
+
+**Authentication System (3-Tier):**
+- **Master Admin**: Username/password login (username: jc141319), password stored securely in MASTER_ADMIN_PASSWORD secret with bcrypt hashing. Full system control including user/admin management.
+- **Admins**: Google OAuth via Replit Auth (OpenID Connect). Require master admin approval after first login. Can manage their assigned users and email QR codes.
+- **Users**: Account created by master admin, each gets isolated store config. Access Shop View, Admin View, Quick View for their own data.
+- Session management: connect-pg-simple with PostgreSQL storage, 7-day sessions
+- Route protection: requireMasterAdmin, requireAdmin, requireApproved middleware enforce role-based access
 
 **Recent Features:**
 - 6-platform support: Google Reviews, Facebook, Instagram, XiaoHongShu, TikTok, WhatsApp
@@ -72,6 +82,17 @@ Preferred communication style: Simple, everyday language.
 - Separation of concerns: routes, storage, database connection, and static serving
 - Environment-based configuration (DATABASE_URL from environment variables)
 - Request/response logging with timestamp formatting
+
+**Security: Multi-Tenant Isolation (December 2025):**
+- All storage methods require explicit placeId or userId for tenant scoping
+- No fallback to "first record" - operations without tenant identifier throw errors
+- GET /api/config requires placeId parameter
+- GET /api/analytics requires placeId + ownership verification via store_config lookup
+- POST /api/analytics/track requires placeId + config existence verification
+- GET/PUT /api/admin/my-config uses userId with role-based access control
+- Admins can only access data for users assigned to them
+- Master admin bypasses all tenant restrictions
+- NaN/invalid userId parameters are rejected at route level
 
 ### Build and Deployment
 

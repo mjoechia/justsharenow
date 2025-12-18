@@ -35,10 +35,11 @@ export interface IStorage {
   setReviewHashtags(hashtags: string[], placeId?: string): Promise<StoreConfig>;
   getAllBusinesses(): Promise<StoreConfig[]>;
   
-  // Analytics - now scoped by placeId
+  // Analytics - now scoped by placeId (required for tenant isolation)
   getAllAnalytics(placeId?: string): Promise<Analytics[]>;
-  incrementPlatformClick(platform: string, placeId?: string): Promise<void>;
-  initializePlatforms(platforms: string[], placeId?: string): Promise<void>;
+  getAnalyticsByPlaceId(placeId: string): Promise<Analytics[]>;
+  incrementPlatformClick(platform: string, placeId: string): Promise<void>;
+  initializePlatforms(platforms: string[], placeId: string): Promise<void>;
   
   // Google Reviews
   getGoogleReviews(): Promise<GoogleReview[]>;
@@ -77,25 +78,32 @@ export interface IStorage {
   
   // Store Config by User
   getStoreConfigByUserId(userId: number): Promise<StoreConfig | undefined>;
+  getStoreConfigByPlaceId(placeId: string): Promise<StoreConfig | undefined>;
   createStoreConfigForUser(userId: number): Promise<StoreConfig>;
+  updateStoreConfigByUserId(userId: number, configData: InsertStoreConfig): Promise<StoreConfig>;
 }
 
 export class DatabaseStorage implements IStorage {
   async getStoreConfig(placeId?: string): Promise<StoreConfig | undefined> {
-    if (placeId) {
-      const [config] = await db.select().from(storeConfig).where(eq(storeConfig.placeId, placeId)).limit(1);
-      return config || undefined;
+    // placeId is now required for tenant isolation - throw if not provided
+    // Use getStoreConfigByPlaceId or getStoreConfigByUserId instead for explicit scoping
+    if (!placeId) {
+      throw new Error("placeId is required for getStoreConfig - use getStoreConfigByPlaceId or getStoreConfigByUserId for explicit tenant scoping");
     }
-    // Fallback: get first config (for backward compatibility)
-    const [config] = await db.select().from(storeConfig).limit(1);
+    const [config] = await db.select().from(storeConfig).where(eq(storeConfig.placeId, placeId)).limit(1);
     return config || undefined;
   }
 
   async updateStoreConfig(configData: InsertStoreConfig, placeId?: string): Promise<StoreConfig> {
     const targetPlaceId = placeId || configData.placeId;
     
+    // placeId is now required for tenant isolation
+    if (!targetPlaceId) {
+      throw new Error("placeId is required for updateStoreConfig - use updateStoreConfigByUserId for user-scoped updates");
+    }
+    
     // Check if config exists for this business
-    const existing = targetPlaceId ? await this.getStoreConfig(targetPlaceId) : await this.getStoreConfig();
+    const existing = await this.getStoreConfigByPlaceId(targetPlaceId);
     
     if (existing) {
       // Update existing config
@@ -117,7 +125,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addShopPhoto(photoBase64: string, placeId?: string): Promise<StoreConfig> {
-    const existing = await this.getStoreConfig(placeId);
+    // placeId is now required for tenant isolation
+    if (!placeId) {
+      throw new Error("placeId is required for addShopPhoto");
+    }
+    
+    const existing = await this.getStoreConfigByPlaceId(placeId);
     const currentPhotos = existing?.shopPhotos || [];
     
     if (currentPhotos.length >= 9) {
@@ -146,7 +159,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addSliderPhoto(photoBase64: string, placeId?: string): Promise<StoreConfig> {
-    const existing = await this.getStoreConfig(placeId);
+    // placeId is now required for tenant isolation
+    if (!placeId) {
+      throw new Error("placeId is required for addSliderPhoto");
+    }
+    
+    const existing = await this.getStoreConfigByPlaceId(placeId);
     const currentPhotos = existing?.sliderPhotos || [];
     
     if (currentPhotos.length >= 3) {
@@ -175,7 +193,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setReviewHashtags(hashtags: string[], placeId?: string): Promise<StoreConfig> {
-    const existing = await this.getStoreConfig(placeId);
+    // placeId is now required for tenant isolation
+    if (!placeId) {
+      throw new Error("placeId is required for setReviewHashtags");
+    }
+    
+    const existing = await this.getStoreConfigByPlaceId(placeId);
     
     // Normalize hashtags: ensure # prefix, dedupe, limit to 12
     const withPrefix = hashtags
@@ -207,19 +230,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllAnalytics(placeId?: string): Promise<Analytics[]> {
-    if (placeId) {
-      return await db.select().from(analytics).where(eq(analytics.placeId, placeId));
+    // Always require placeId for tenant isolation - the optional parameter
+    // is kept for interface compatibility but we throw if not provided
+    if (!placeId) {
+      throw new Error("placeId is required for getAllAnalytics - use getAnalyticsByPlaceId instead");
     }
-    return await db.select().from(analytics);
+    return await db.select().from(analytics).where(eq(analytics.placeId, placeId));
   }
 
-  async incrementPlatformClick(platform: string, placeId?: string): Promise<void> {
-    // Insert new record for each click (no unique constraint on platform now)
+  async getAnalyticsByPlaceId(placeId: string): Promise<Analytics[]> {
+    return await db.select().from(analytics).where(eq(analytics.placeId, placeId));
+  }
+
+  async incrementPlatformClick(platform: string, placeId: string): Promise<void> {
+    // placeId is now required for tenant isolation
     const existing = await db.select().from(analytics)
-      .where(placeId 
-        ? and(eq(analytics.platform, platform), eq(analytics.placeId, placeId))
-        : eq(analytics.platform, platform)
-      )
+      .where(and(eq(analytics.platform, platform), eq(analytics.placeId, placeId)))
       .limit(1);
     
     if (existing.length > 0) {
@@ -234,14 +260,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async initializePlatforms(platforms: string[], placeId?: string): Promise<void> {
-    // Initialize platforms with 0 clicks if they don't exist
+  async initializePlatforms(platforms: string[], placeId: string): Promise<void> {
+    // placeId is now required for tenant isolation
     for (const platform of platforms) {
       const existing = await db.select().from(analytics)
-        .where(placeId 
-          ? and(eq(analytics.platform, platform), eq(analytics.placeId, placeId))
-          : eq(analytics.platform, platform)
-        )
+        .where(and(eq(analytics.platform, platform), eq(analytics.placeId, placeId)))
         .limit(1);
       
       if (existing.length === 0) {
@@ -465,12 +488,41 @@ export class DatabaseStorage implements IStorage {
     return config || undefined;
   }
 
+  async getStoreConfigByPlaceId(placeId: string): Promise<StoreConfig | undefined> {
+    const [config] = await db.select().from(storeConfig).where(eq(storeConfig.placeId, placeId)).limit(1);
+    return config || undefined;
+  }
+
   async createStoreConfigForUser(userId: number): Promise<StoreConfig> {
     const [created] = await db
       .insert(storeConfig)
       .values({ userId } as any)
       .returning();
     return created;
+  }
+
+  async updateStoreConfigByUserId(userId: number, configData: InsertStoreConfig): Promise<StoreConfig> {
+    const existing = await this.getStoreConfigByUserId(userId);
+    
+    if (existing) {
+      // Prevent tampering: ignore caller-supplied userId/placeId if config already exists
+      // placeId should remain consistent once set, and userId is always the target
+      const { userId: _, placeId: __, ...safeData } = configData as any;
+      const updateData: any = { ...safeData, updatedAt: sql`NOW()` };
+      const [updated] = await db
+        .update(storeConfig)
+        .set(updateData)
+        .where(and(eq(storeConfig.id, existing.id), eq(storeConfig.userId, userId)))
+        .returning();
+      return updated;
+    } else {
+      // Create new config for this user - allow setting placeId on first creation
+      const [created] = await db
+        .insert(storeConfig)
+        .values({ ...configData, userId } as any)
+        .returning();
+      return created;
+    }
   }
 }
 

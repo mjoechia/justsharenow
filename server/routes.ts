@@ -55,9 +55,8 @@ export async function registerRoutes(
   // Setup authentication
   await setupAuth(app);
   
-  // Initialize default platforms
-  const defaultPlatforms = ['google-reviews', 'facebook', 'instagram', 'xiaohongshu', 'tiktok', 'whatsapp'];
-  await storage.initializePlatforms(defaultPlatforms);
+  // Note: Platform initialization is now done per-tenant when store configs are created
+  // to maintain proper tenant isolation
 
   // ========== ADMIN MANAGEMENT ROUTES (Master Admin Only) ==========
   
@@ -356,9 +355,17 @@ export async function registerRoutes(
   });
 
   // Store Configuration Routes
-  app.get("/api/config", async (_req, res) => {
+  // Public route - for customer-facing quick view (requires placeId)
+  app.get("/api/config", async (req, res) => {
     try {
-      const config = await storage.getStoreConfig();
+      const placeId = req.query.placeId as string | undefined;
+      
+      // Require placeId to prevent cross-tenant data exposure
+      if (!placeId) {
+        return res.status(400).json({ error: "placeId parameter is required" });
+      }
+      
+      const config = await storage.getStoreConfigByPlaceId(placeId);
       res.json(config || {
         websiteUrl: null,
         googleReviewsUrl: null,
@@ -378,10 +385,91 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/config", async (req, res) => {
+  // Protected route - for admin config management (user-scoped)
+  app.get("/api/admin/my-config", requireApproved, async (req, res) => {
     try {
+      const authUser = req.user as Express.User;
+      let targetUserId = authUser.id;
+      
+      if (req.query.userId) {
+        targetUserId = parseInt(req.query.userId as string);
+        if (isNaN(targetUserId) || targetUserId <= 0) {
+          return res.status(400).json({ error: "Invalid userId parameter" });
+        }
+      }
+      
+      // Enforce tenant isolation
+      if (targetUserId !== authUser.id) {
+        if (authUser.role === 'master_admin') {
+          // Master admin can access any user's config
+        } else if (authUser.role === 'admin') {
+          // Admin can only access assigned users' configs
+          const assignedUsers = await storage.getUsersForAdmin(authUser.id);
+          const isAssigned = assignedUsers.some(u => u.id === targetUserId);
+          if (!isAssigned) {
+            return res.status(403).json({ error: "Access denied - user not assigned to you" });
+          }
+        } else {
+          // Regular users can only access their own config
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
+      const config = await storage.getStoreConfigByUserId(targetUserId);
+      res.json(config || {
+        userId: targetUserId,
+        websiteUrl: null,
+        googleReviewsUrl: null,
+        googlePlaceId: null,
+        facebookUrl: null,
+        instagramUrl: null,
+        xiaohongshuUrl: null,
+        tiktokUrl: null,
+        whatsappUrl: null,
+        shopPhotos: [],
+        sliderPhotos: [],
+        reviewHashtags: [],
+      });
+    } catch (error) {
+      console.error("Error fetching user config:", error);
+      res.status(500).json({ error: "Failed to fetch configuration" });
+    }
+  });
+
+  // Protected route - update config (user-scoped)
+  app.put("/api/config", requireApproved, async (req, res) => {
+    try {
+      const authUser = req.user as Express.User;
       const validatedData = insertStoreConfigSchema.parse(req.body);
-      const config = await storage.updateStoreConfig(validatedData);
+      
+      // Determine and validate target user for the update
+      let targetUserId = authUser.id;
+      if (validatedData.userId !== undefined && validatedData.userId !== null) {
+        targetUserId = validatedData.userId;
+        if (isNaN(targetUserId) || targetUserId <= 0) {
+          return res.status(400).json({ error: "Invalid userId parameter" });
+        }
+      }
+      
+      // Enforce tenant isolation for updates
+      if (targetUserId !== authUser.id) {
+        if (authUser.role === 'master_admin') {
+          // Master admin can update any user's config
+        } else if (authUser.role === 'admin') {
+          // Admin can only update assigned users' configs
+          const assignedUsers = await storage.getUsersForAdmin(authUser.id);
+          const isAssigned = assignedUsers.some(u => u.id === targetUserId);
+          if (!isAssigned) {
+            return res.status(403).json({ error: "Access denied - user not assigned to you" });
+          }
+        } else {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+      
+      // Always scope update to specific user
+      validatedData.userId = targetUserId;
+      const config = await storage.updateStoreConfigByUserId(targetUserId, validatedData);
       res.json(config);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -393,10 +481,44 @@ export async function registerRoutes(
     }
   });
 
-  // Analytics Routes
-  app.get("/api/analytics", async (_req, res) => {
+  // Analytics Routes - Protected for reading (tenant-scoped)
+  app.get("/api/analytics", requireApproved, async (req, res) => {
     try {
-      const analytics = await storage.getAllAnalytics();
+      const authUser = req.user as Express.User;
+      const placeId = req.query.placeId as string | undefined;
+      
+      // Require placeId to prevent cross-tenant data exposure
+      if (!placeId || typeof placeId !== 'string' || placeId.trim() === '') {
+        return res.status(400).json({ error: "placeId parameter is required" });
+      }
+      
+      // Verify the placeId exists and is owned by a user in our system
+      const configOwner = await storage.getStoreConfigByPlaceId(placeId);
+      if (!configOwner) {
+        // No config exists for this placeId - return empty analytics
+        return res.json([]);
+      }
+      
+      // Verify the requesting user has access to this placeId's analytics
+      if (authUser.role !== 'master_admin') {
+        if (authUser.role === 'admin') {
+          // Admin can view analytics for assigned users' place IDs
+          const assignedUsers = await storage.getUsersForAdmin(authUser.id);
+          const assignedUserIds = assignedUsers.map(u => u.id);
+          
+          // Check if the config's owner is in the admin's assigned users
+          if (configOwner.userId !== authUser.id && !assignedUserIds.includes(configOwner.userId!)) {
+            return res.status(403).json({ error: "Access denied - placeId not in your scope" });
+          }
+        } else {
+          // Regular user can only view analytics for their own placeId
+          if (configOwner.userId !== authUser.id) {
+            return res.status(403).json({ error: "Access denied" });
+          }
+        }
+      }
+      
+      const analytics = await storage.getAnalyticsByPlaceId(placeId);
       res.json(analytics);
     } catch (error) {
       console.error("Error fetching analytics:", error);
@@ -406,12 +528,21 @@ export async function registerRoutes(
 
   app.post("/api/analytics/track", async (req, res) => {
     try {
-      const { platform } = req.body;
+      const { platform, placeId } = req.body;
       if (!platform || typeof platform !== 'string') {
-        res.status(400).json({ error: "Platform is required" });
-        return;
+        return res.status(400).json({ error: "Platform is required" });
       }
-      await storage.incrementPlatformClick(platform);
+      if (!placeId || typeof placeId !== 'string' || placeId.trim() === '') {
+        return res.status(400).json({ error: "placeId is required for analytics tracking" });
+      }
+      
+      // Verify placeId exists in our system to prevent orphaned analytics
+      const config = await storage.getStoreConfigByPlaceId(placeId);
+      if (!config) {
+        return res.status(404).json({ error: "Unknown placeId" });
+      }
+      
+      await storage.incrementPlatformClick(platform, placeId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error tracking click:", error);
