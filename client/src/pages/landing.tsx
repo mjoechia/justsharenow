@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus, QrCode, Building2, ExternalLink, Copy, Check } from "lucide-react";
+import { Facebook, Instagram, MapPin, ThumbsUp, UserPlus, QrCode, Building2, ExternalLink, Copy, Check, LogIn } from "lucide-react";
+import { Link } from "wouter";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig, trackPlatformClick } from "@/lib/api";
@@ -330,6 +331,21 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
+
+          {/* Admin Login Link */}
+          <motion.div 
+            className="mt-4 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Link href="/login">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" data-testid="button-admin-login">
+                <LogIn className="w-4 h-4 mr-2" />
+                Admin Login
+              </Button>
+            </Link>
           </motion.div>
         </div>
       </div>
