@@ -201,6 +201,14 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
+      // Master admin bypasses approval check, others must be approved
+      if (user.role !== 'master_admin' && user.approvalStatus !== 'approved') {
+        if (user.approvalStatus === 'pending') {
+          return res.status(403).json({ error: "Account pending approval. Please contact your administrator." });
+        }
+        return res.status(403).json({ error: "Account access denied" });
+      }
+
       const sessionUser: Express.User = {
         id: user.id,
         role: user.role,
