@@ -74,11 +74,6 @@ export function Layout({
             )}
             
             <div className="flex items-center gap-2">
-              {!isAdmin && (
-                 <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground">
-                    <Link href="/admin">Admin View</Link>
-                 </Button>
-              )}
               <LanguageSelector />
             </div>
           </div>
@@ -94,8 +89,7 @@ export function Layout({
               </SheetTrigger>
               <SheetContent side="right">
                 <div className="flex flex-col gap-4 mt-8">
-                  <Link href="/" className="text-lg font-medium">Customer Demo</Link>
-                  <Link href="/admin" className="text-lg font-medium">Admin Dashboard</Link>
+                  <Link href="/" className="text-lg font-medium">Home</Link>
                 </div>
               </SheetContent>
             </Sheet>
