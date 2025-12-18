@@ -1,10 +1,71 @@
-import { pgTable, text, serial, integer, timestamp, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, jsonb, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Store Configuration - now scoped by business (placeId)
+// User Roles
+export type UserRole = 'master_admin' | 'admin' | 'user';
+
+// Approval Status
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+// Users table - stores all users with roles
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").unique(),
+  username: text("username").unique(),
+  passwordHash: text("password_hash"), // For master admin (username/password login)
+  googleId: text("google_id").unique(), // For Google OAuth (admins)
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url"),
+  role: text("role").$type<UserRole>().notNull().default('user'),
+  approvalStatus: text("approval_status").$type<ApprovalStatus>().notNull().default('pending'),
+  approvedBy: integer("approved_by"), // References users.id of who approved
+  approvedAt: timestamp("approved_at"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  approvedAt: true,
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+// Admin-User Assignments - which users are managed by which admin
+export const adminUserAssignments = pgTable("admin_user_assignments", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id").notNull(), // References users.id (must be role='admin')
+  userId: integer("user_id").notNull(), // References users.id (must be role='user')
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+  assignedBy: integer("assigned_by"), // References users.id of master admin who made assignment
+});
+
+export const insertAdminUserAssignmentSchema = createInsertSchema(adminUserAssignments).omit({
+  id: true,
+  assignedAt: true,
+});
+
+export type InsertAdminUserAssignment = z.infer<typeof insertAdminUserAssignmentSchema>;
+export type AdminUserAssignment = typeof adminUserAssignments.$inferSelect;
+
+// Sessions table for connect-pg-simple (Replit Auth / Express Session)
+export const sessions = pgTable("sessions", {
+  sid: text("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+});
+
+export type Session = typeof sessions.$inferSelect;
+
+// Store Configuration - now scoped by user and business (placeId)
 export const storeConfig = pgTable("store_config", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id"), // References users.id - each user has their own store config
   placeId: text("place_id").unique(),
   businessName: text("business_name"),
   websiteUrl: text("website_url"),

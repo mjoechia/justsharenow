@@ -4,6 +4,8 @@ import {
   googleReviews,
   verifiedBusinesses,
   testimonials,
+  users,
+  adminUserAssignments,
   type StoreConfig, 
   type InsertStoreConfig,
   type Analytics,
@@ -13,10 +15,16 @@ import {
   type VerifiedBusiness,
   type InsertVerifiedBusiness,
   type Testimonial,
-  type InsertTestimonial
+  type InsertTestimonial,
+  type User,
+  type InsertUser,
+  type AdminUserAssignment,
+  type InsertAdminUserAssignment,
+  type UserRole,
+  type ApprovalStatus
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, and, desc } from "drizzle-orm";
+import { eq, sql, and, desc, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Store Configuration - now scoped by placeId
@@ -44,6 +52,32 @@ export interface IStorage {
   // Testimonials
   getTestimonials(placeId: string): Promise<Testimonial[]>;
   saveTestimonial(testimonial: InsertTestimonial): Promise<Testimonial>;
+  
+  // User Authentication & Management
+  getUserById(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
+  deleteUser(id: number): Promise<void>;
+  getAllUsers(): Promise<User[]>;
+  getUsersByRole(role: UserRole): Promise<User[]>;
+  getPendingApprovals(): Promise<User[]>;
+  approveUser(userId: number, approvedBy: number): Promise<User>;
+  rejectUser(userId: number): Promise<User>;
+  updatePassword(userId: number, passwordHash: string): Promise<User>;
+  
+  // Admin-User Assignments
+  assignUserToAdmin(adminId: number, userId: number, assignedBy: number): Promise<AdminUserAssignment>;
+  removeUserFromAdmin(adminId: number, userId: number): Promise<void>;
+  getUsersForAdmin(adminId: number): Promise<User[]>;
+  getAdminForUser(userId: number): Promise<User | undefined>;
+  getAssignmentsForAdmin(adminId: number): Promise<AdminUserAssignment[]>;
+  
+  // Store Config by User
+  getStoreConfigByUserId(userId: number): Promise<StoreConfig | undefined>;
+  createStoreConfigForUser(userId: number): Promise<StoreConfig>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -283,6 +317,160 @@ export class DatabaseStorage implements IStorage {
       .values(testimonial)
       .returning();
     return saved;
+  }
+
+  // User Authentication & Management
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return user || undefined;
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+    return user || undefined;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [created] = await db.insert(users).values(user).returning();
+    return created;
+  }
+
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: sql`NOW()` })
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(adminUserAssignments).where(
+      or(eq(adminUserAssignments.adminId, id), eq(adminUserAssignments.userId, id))
+    );
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async getUsersByRole(role: UserRole): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, role)).orderBy(desc(users.createdAt));
+  }
+
+  async getPendingApprovals(): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.approvalStatus, 'pending')).orderBy(users.createdAt);
+  }
+
+  async approveUser(userId: number, approvedBy: number): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ 
+        approvalStatus: 'approved', 
+        approvedBy, 
+        approvedAt: sql`NOW()`,
+        updatedAt: sql`NOW()` 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async rejectUser(userId: number): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ 
+        approvalStatus: 'rejected',
+        updatedAt: sql`NOW()` 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async updatePassword(userId: number, passwordHash: string): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ passwordHash, updatedAt: sql`NOW()` })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  // Admin-User Assignments
+  async assignUserToAdmin(adminId: number, userId: number, assignedBy: number): Promise<AdminUserAssignment> {
+    // Remove existing assignment if any
+    await db.delete(adminUserAssignments).where(eq(adminUserAssignments.userId, userId));
+    
+    // Create new assignment
+    const [assignment] = await db
+      .insert(adminUserAssignments)
+      .values({ adminId, userId, assignedBy })
+      .returning();
+    return assignment;
+  }
+
+  async removeUserFromAdmin(adminId: number, userId: number): Promise<void> {
+    await db.delete(adminUserAssignments).where(
+      and(eq(adminUserAssignments.adminId, adminId), eq(adminUserAssignments.userId, userId))
+    );
+  }
+
+  async getUsersForAdmin(adminId: number): Promise<User[]> {
+    const assignments = await db
+      .select({ userId: adminUserAssignments.userId })
+      .from(adminUserAssignments)
+      .where(eq(adminUserAssignments.adminId, adminId));
+    
+    if (assignments.length === 0) return [];
+    
+    const userIds = assignments.map(a => a.userId);
+    const result: User[] = [];
+    for (const userId of userIds) {
+      const user = await this.getUserById(userId);
+      if (user) result.push(user);
+    }
+    return result;
+  }
+
+  async getAdminForUser(userId: number): Promise<User | undefined> {
+    const [assignment] = await db
+      .select()
+      .from(adminUserAssignments)
+      .where(eq(adminUserAssignments.userId, userId))
+      .limit(1);
+    
+    if (!assignment) return undefined;
+    return this.getUserById(assignment.adminId);
+  }
+
+  async getAssignmentsForAdmin(adminId: number): Promise<AdminUserAssignment[]> {
+    return await db.select().from(adminUserAssignments).where(eq(adminUserAssignments.adminId, adminId));
+  }
+
+  // Store Config by User
+  async getStoreConfigByUserId(userId: number): Promise<StoreConfig | undefined> {
+    const [config] = await db.select().from(storeConfig).where(eq(storeConfig.userId, userId)).limit(1);
+    return config || undefined;
+  }
+
+  async createStoreConfigForUser(userId: number): Promise<StoreConfig> {
+    const [created] = await db
+      .insert(storeConfig)
+      .values({ userId } as any)
+      .returning();
+    return created;
   }
 }
 

@@ -5,6 +5,8 @@ import { insertStoreConfigSchema } from "@shared/schema";
 import { z } from "zod";
 import * as cheerio from "cheerio";
 import OpenAI from "openai";
+import bcrypt from "bcryptjs";
+import { setupAuth, isAuthenticated, requireMasterAdmin, requireAdmin, requireApproved } from "./auth";
 
 function getOpenAIClient(): OpenAI | null {
   if (!process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || !process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
@@ -50,9 +52,308 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Setup authentication
+  await setupAuth(app);
+  
   // Initialize default platforms
   const defaultPlatforms = ['google-reviews', 'facebook', 'instagram', 'xiaohongshu', 'tiktok', 'whatsapp'];
   await storage.initializePlatforms(defaultPlatforms);
+
+  // ========== ADMIN MANAGEMENT ROUTES (Master Admin Only) ==========
+  
+  // Get all users
+  app.get("/api/admin/users", requireMasterAdmin, async (_req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      res.json(allUsers.map(u => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        displayName: u.displayName,
+        avatarUrl: u.avatarUrl,
+        role: u.role,
+        approvalStatus: u.approvalStatus,
+        isActive: u.isActive,
+        createdAt: u.createdAt,
+      })));
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Get pending approvals
+  app.get("/api/admin/pending-approvals", requireMasterAdmin, async (_req, res) => {
+    try {
+      const pending = await storage.getPendingApprovals();
+      res.json(pending.map(u => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        displayName: u.displayName,
+        avatarUrl: u.avatarUrl,
+        role: u.role,
+        approvalStatus: u.approvalStatus,
+        createdAt: u.createdAt,
+      })));
+    } catch (error) {
+      console.error("Error fetching pending approvals:", error);
+      res.status(500).json({ error: "Failed to fetch pending approvals" });
+    }
+  });
+
+  // Approve user
+  app.post("/api/admin/users/:userId/approve", requireMasterAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const adminUser = req.user as Express.User;
+      const user = await storage.approveUser(userId, adminUser.id);
+      res.json({ 
+        success: true, 
+        user: {
+          id: user.id,
+          displayName: user.displayName,
+          role: user.role,
+          approvalStatus: user.approvalStatus,
+        }
+      });
+    } catch (error) {
+      console.error("Error approving user:", error);
+      res.status(500).json({ error: "Failed to approve user" });
+    }
+  });
+
+  // Reject user
+  app.post("/api/admin/users/:userId/reject", requireMasterAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const user = await storage.rejectUser(userId);
+      res.json({ 
+        success: true, 
+        user: {
+          id: user.id,
+          displayName: user.displayName,
+          role: user.role,
+          approvalStatus: user.approvalStatus,
+        }
+      });
+    } catch (error) {
+      console.error("Error rejecting user:", error);
+      res.status(500).json({ error: "Failed to reject user" });
+    }
+  });
+
+  // Create new user (by master admin)
+  app.post("/api/admin/users", requireMasterAdmin, async (req, res) => {
+    try {
+      const { email, displayName, role } = req.body;
+      
+      if (!email || !displayName || !role) {
+        return res.status(400).json({ error: "Email, display name, and role are required" });
+      }
+      
+      if (!['admin', 'user'].includes(role)) {
+        return res.status(400).json({ error: "Role must be 'admin' or 'user'" });
+      }
+
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "User with this email already exists" });
+      }
+
+      const adminUser = req.user as Express.User;
+      const user = await storage.createUser({
+        email,
+        displayName,
+        role,
+        approvalStatus: 'approved',
+        approvedBy: adminUser.id,
+        isActive: true,
+      });
+
+      // Create store config for new user
+      if (role === 'user') {
+        await storage.createStoreConfigForUser(user.id);
+      }
+
+      res.json({ 
+        success: true, 
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          role: user.role,
+        }
+      });
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  // Delete user
+  app.delete("/api/admin/users/:userId", requireMasterAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      if (user.role === 'master_admin') {
+        return res.status(403).json({ error: "Cannot delete master admin" });
+      }
+
+      await storage.deleteUser(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
+  // Toggle user active status
+  app.post("/api/admin/users/:userId/toggle-active", requireMasterAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      if (user.role === 'master_admin') {
+        return res.status(403).json({ error: "Cannot deactivate master admin" });
+      }
+
+      const updated = await storage.updateUser(userId, { isActive: !user.isActive });
+      res.json({ 
+        success: true, 
+        user: {
+          id: updated.id,
+          isActive: updated.isActive,
+        }
+      });
+    } catch (error) {
+      console.error("Error toggling user status:", error);
+      res.status(500).json({ error: "Failed to toggle user status" });
+    }
+  });
+
+  // Reset password for user
+  app.post("/api/admin/users/:userId/reset-password", requireMasterAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { newPassword } = req.body;
+      
+      if (!newPassword || newPassword.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, 12);
+      await storage.updatePassword(userId, passwordHash);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
+  // Assign user to admin
+  app.post("/api/admin/assign-user", requireMasterAdmin, async (req, res) => {
+    try {
+      const { adminId, userId } = req.body;
+      
+      if (!adminId || !userId) {
+        return res.status(400).json({ error: "Admin ID and User ID are required" });
+      }
+
+      const admin = await storage.getUserById(adminId);
+      const user = await storage.getUserById(userId);
+
+      if (!admin || admin.role !== 'admin') {
+        return res.status(400).json({ error: "Invalid admin" });
+      }
+
+      if (!user || user.role !== 'user') {
+        return res.status(400).json({ error: "Invalid user" });
+      }
+
+      const masterUser = req.user as Express.User;
+      const assignment = await storage.assignUserToAdmin(adminId, userId, masterUser.id);
+      
+      res.json({ success: true, assignment });
+    } catch (error) {
+      console.error("Error assigning user:", error);
+      res.status(500).json({ error: "Failed to assign user" });
+    }
+  });
+
+  // Get all admins with their assigned users
+  app.get("/api/admin/admins-with-users", requireMasterAdmin, async (_req, res) => {
+    try {
+      const admins = await storage.getUsersByRole('admin');
+      const result = await Promise.all(admins.map(async (admin) => {
+        const assignedUsers = await storage.getUsersForAdmin(admin.id);
+        return {
+          id: admin.id,
+          email: admin.email,
+          displayName: admin.displayName,
+          avatarUrl: admin.avatarUrl,
+          approvalStatus: admin.approvalStatus,
+          isActive: admin.isActive,
+          assignedUsers: assignedUsers.map(u => ({
+            id: u.id,
+            email: u.email,
+            displayName: u.displayName,
+            isActive: u.isActive,
+          })),
+        };
+      }));
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching admins:", error);
+      res.status(500).json({ error: "Failed to fetch admins" });
+    }
+  });
+
+  // ========== ADMIN ROUTES (For admins managing their users) ==========
+  
+  // Get users assigned to current admin
+  app.get("/api/my-users", requireAdmin, async (req, res) => {
+    try {
+      const adminUser = req.user as Express.User;
+      
+      // Master admin sees all users
+      if (adminUser.role === 'master_admin') {
+        const allUsers = await storage.getUsersByRole('user');
+        return res.json(allUsers.map(u => ({
+          id: u.id,
+          email: u.email,
+          displayName: u.displayName,
+          isActive: u.isActive,
+        })));
+      }
+
+      const users = await storage.getUsersForAdmin(adminUser.id);
+      res.json(users.map(u => ({
+        id: u.id,
+        email: u.email,
+        displayName: u.displayName,
+        isActive: u.isActive,
+      })));
+    } catch (error) {
+      console.error("Error fetching assigned users:", error);
+      res.status(500).json({ error: "Failed to fetch assigned users" });
+    }
+  });
 
   // Store Configuration Routes
   app.get("/api/config", async (_req, res) => {
