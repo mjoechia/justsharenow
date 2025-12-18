@@ -145,24 +145,38 @@ export async function registerRoutes(
   // Create new user (by master admin)
   app.post("/api/admin/users", requireMasterAdmin, async (req, res) => {
     try {
-      const { email, displayName, role } = req.body;
+      const { username, password, email, displayName, role } = req.body;
       
-      if (!email || !displayName || !role) {
-        return res.status(400).json({ error: "Email, display name, and role are required" });
+      if (!username || !password || !displayName || !role) {
+        return res.status(400).json({ error: "Username, password, display name, and role are required" });
+      }
+      
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
       }
       
       if (!['admin', 'user'].includes(role)) {
         return res.status(400).json({ error: "Role must be 'admin' or 'user'" });
       }
 
-      const existingUser = await storage.getUserByEmail(email);
+      const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
-        return res.status(400).json({ error: "User with this email already exists" });
+        return res.status(400).json({ error: "User with this username already exists" });
       }
 
+      if (email) {
+        const existingEmail = await storage.getUserByEmail(email);
+        if (existingEmail) {
+          return res.status(400).json({ error: "User with this email already exists" });
+        }
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
       const adminUser = req.user as Express.User;
       const user = await storage.createUser({
-        email,
+        username,
+        passwordHash,
+        email: email || null,
         displayName,
         role,
         approvalStatus: 'approved',
@@ -179,6 +193,7 @@ export async function registerRoutes(
         success: true, 
         user: {
           id: user.id,
+          username: user.username,
           email: user.email,
           displayName: user.displayName,
           role: user.role,

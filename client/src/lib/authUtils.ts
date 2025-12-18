@@ -2,9 +2,9 @@ export function isUnauthorizedError(error: Error): boolean {
   return /^401: .*Unauthorized/.test(error.message);
 }
 
-export async function masterLogin(username: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function login(username: string, password: string): Promise<{ success: boolean; error?: string; user?: any }> {
   try {
-    const response = await fetch('/api/auth/master-login', {
+    const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -16,14 +16,14 @@ export async function masterLogin(username: string, password: string): Promise<{
       return { success: false, error: data.error || 'Login failed' };
     }
     
-    return { success: true };
+    return { success: true, user: data.user };
   } catch (error) {
     return { success: false, error: 'Network error' };
   }
 }
 
-export function redirectToGoogleLogin() {
-  window.location.href = '/api/login';
+export async function masterLogin(username: string, password: string): Promise<{ success: boolean; error?: string }> {
+  return login(username, password);
 }
 
 export function logout() {
