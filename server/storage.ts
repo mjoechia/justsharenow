@@ -6,6 +6,7 @@ import {
   testimonials,
   users,
   adminUserAssignments,
+  passwordEvents,
   type StoreConfig, 
   type InsertStoreConfig,
   type Analytics,
@@ -21,7 +22,9 @@ import {
   type AdminUserAssignment,
   type InsertAdminUserAssignment,
   type UserRole,
-  type ApprovalStatus
+  type ApprovalStatus,
+  type PasswordEvent,
+  type InsertPasswordEvent
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, and, desc, or, isNull } from "drizzle-orm";
@@ -81,6 +84,13 @@ export interface IStorage {
   getStoreConfigByPlaceId(placeId: string): Promise<StoreConfig | undefined>;
   createStoreConfigForUser(userId: number): Promise<StoreConfig>;
   updateStoreConfigByUserId(userId: number, configData: InsertStoreConfig): Promise<StoreConfig>;
+  
+  // Password Audit Events
+  logPasswordEvent(event: InsertPasswordEvent): Promise<PasswordEvent>;
+  getPasswordEvents(targetUserId?: number): Promise<PasswordEvent[]>;
+  
+  // Active Admins
+  getActiveAdmins(): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -364,14 +374,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [created] = await db.insert(users).values(user).returning();
+    const [created] = await db.insert(users).values(user as any).returning();
     return created;
   }
 
   async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
     const [updated] = await db
       .update(users)
-      .set({ ...updates, updatedAt: sql`NOW()` })
+      .set({ ...updates, updatedAt: sql`NOW()` } as any)
       .where(eq(users.id, id))
       .returning();
     return updated;
@@ -523,6 +533,37 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  // Password Audit Events
+  async logPasswordEvent(event: InsertPasswordEvent): Promise<PasswordEvent> {
+    const [created] = await db.insert(passwordEvents).values(event as any).returning();
+    return created;
+  }
+
+  async getPasswordEvents(targetUserId?: number): Promise<PasswordEvent[]> {
+    if (targetUserId) {
+      return await db
+        .select()
+        .from(passwordEvents)
+        .where(eq(passwordEvents.targetUserId, targetUserId))
+        .orderBy(desc(passwordEvents.createdAt));
+    }
+    return await db.select().from(passwordEvents).orderBy(desc(passwordEvents.createdAt));
+  }
+
+  // Active Admins
+  async getActiveAdmins(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.role, 'admin'),
+          eq(users.isActive, true),
+          eq(users.approvalStatus, 'approved')
+        )
+      );
   }
 }
 

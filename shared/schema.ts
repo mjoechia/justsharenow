@@ -168,3 +168,25 @@ export const insertVerifiedBusinessSchema = createInsertSchema(verifiedBusinesse
 
 export type InsertVerifiedBusiness = z.infer<typeof insertVerifiedBusinessSchema>;
 export type VerifiedBusiness = typeof verifiedBusinesses.$inferSelect;
+
+// Password Event Types
+export type PasswordEventAction = 'create' | 'reset' | 'change';
+
+// Password Events - audit trail for password operations
+export const passwordEvents = pgTable("password_events", {
+  id: serial("id").primaryKey(),
+  actorUserId: integer("actor_user_id").notNull(), // Who performed the action
+  targetUserId: integer("target_user_id").notNull(), // Who the action was performed on
+  action: text("action").$type<PasswordEventAction>().notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPasswordEventSchema = createInsertSchema(passwordEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPasswordEvent = z.infer<typeof insertPasswordEventSchema>;
+export type PasswordEvent = typeof passwordEvents.$inferSelect;

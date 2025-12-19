@@ -184,6 +184,15 @@ export async function registerRoutes(
         isActive: true,
       });
 
+      // Log audit event for password creation
+      await storage.logPasswordEvent({
+        actorUserId: adminUser.id,
+        targetUserId: user.id,
+        action: 'create',
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      });
+
       // Create store config for new user
       if (role === 'user') {
         await storage.createStoreConfigForUser(user.id);
@@ -255,11 +264,12 @@ export async function registerRoutes(
     }
   });
 
-  // Reset password for user
+  // Reset password for user (master admin only)
   app.post("/api/admin/users/:userId/reset-password", requireMasterAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const { newPassword } = req.body;
+      const actorUser = req.user as Express.User;
       
       if (!newPassword || newPassword.length < 8) {
         return res.status(400).json({ error: "Password must be at least 8 characters" });
@@ -273,10 +283,35 @@ export async function registerRoutes(
       const passwordHash = await bcrypt.hash(newPassword, 12);
       await storage.updatePassword(userId, passwordHash);
       
+      // Log audit event
+      await storage.logPasswordEvent({
+        actorUserId: actorUser.id,
+        targetUserId: userId,
+        action: 'reset',
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      });
+      
       res.json({ success: true });
     } catch (error) {
       console.error("Error resetting password:", error);
       res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
+  // Get active admins (for dropdowns)
+  app.get("/api/admin/active-admins", requireMasterAdmin, async (_req, res) => {
+    try {
+      const activeAdmins = await storage.getActiveAdmins();
+      res.json(activeAdmins.map(a => ({
+        id: a.id,
+        username: a.username,
+        email: a.email,
+        displayName: a.displayName,
+      })));
+    } catch (error) {
+      console.error("Error fetching active admins:", error);
+      res.status(500).json({ error: "Failed to fetch active admins" });
     }
   });
 

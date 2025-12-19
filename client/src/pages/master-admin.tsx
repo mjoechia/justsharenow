@@ -41,11 +41,26 @@ export default function MasterAdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Create Admin form state
+  const [newAdminUsername, setNewAdminUsername] = useState("");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [newAdminDisplayName, setNewAdminDisplayName] = useState("");
   const [newAdminEmail, setNewAdminEmail] = useState("");
+  
+  // Create User form state
+  const [newUserUsername, setNewUserUsername] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserDisplayName, setNewUserDisplayName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [selectedAdmin, setSelectedAdmin] = useState<string>("");
+  
+  // Dialog state
   const [isCreateAdminOpen, setIsCreateAdminOpen] = useState(false);
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  
+  // Reset password state
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -54,6 +69,19 @@ export default function MasterAdminDashboard() {
 
   const { data: adminsWithUsers = [] } = useQuery<AdminWithUsers[]>({
     queryKey: ["/api/admin/admins-with-users"],
+    enabled: isMasterAdmin,
+  });
+
+  // Only active admins for assignment dropdown
+  interface ActiveAdmin {
+    id: number;
+    username?: string;
+    email?: string;
+    displayName?: string;
+  }
+  
+  const { data: activeAdmins = [] } = useQuery<ActiveAdmin[]>({
+    queryKey: ["/api/admin/active-admins"],
     enabled: isMasterAdmin,
   });
 
@@ -88,23 +116,67 @@ export default function MasterAdminDashboard() {
   });
 
   const createUserMutation = useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: 'admin' | 'user' }) => {
-      const displayName = email.split('@')[0];
+    mutationFn: async ({ username, password, displayName, email, role }: { 
+      username: string; 
+      password: string; 
+      displayName: string;
+      email?: string;
+      role: 'admin' | 'user';
+    }) => {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, displayName, role }),
+        body: JSON.stringify({ username, password, displayName, email, role }),
       });
-      if (!res.ok) throw new Error('Failed to create user');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to create user');
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/active-admins"] });
       toast({ title: "User created successfully" });
+      // Reset admin form
+      setNewAdminUsername("");
+      setNewAdminPassword("");
+      setNewAdminDisplayName("");
       setNewAdminEmail("");
+      // Reset user form
+      setNewUserUsername("");
+      setNewUserPassword("");
+      setNewUserDisplayName("");
       setNewUserEmail("");
+      setSelectedAdmin("");
       setIsCreateAdminOpen(false);
       setIsCreateUserOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: number; newPassword: string }) => {
+      const res = await fetch(`/api/admin/users/${userId}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to reset password');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Password reset successfully" });
+      setResetPasswordUserId(null);
+      setResetPasswordValue("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -270,12 +342,45 @@ export default function MasterAdminDashboard() {
                     <DialogHeader>
                       <DialogTitle>Create New Admin</DialogTitle>
                       <DialogDescription>
-                        Enter the email address for the new admin. They'll sign in with Google.
+                        Create a new admin account with username and password.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="admin-email">Email Address</Label>
+                        <Label htmlFor="admin-username">Username *</Label>
+                        <Input
+                          id="admin-username"
+                          type="text"
+                          value={newAdminUsername}
+                          onChange={(e) => setNewAdminUsername(e.target.value)}
+                          placeholder="admin_username"
+                          data-testid="input-admin-username"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-password">Password *</Label>
+                        <Input
+                          id="admin-password"
+                          type="password"
+                          value={newAdminPassword}
+                          onChange={(e) => setNewAdminPassword(e.target.value)}
+                          placeholder="Minimum 8 characters"
+                          data-testid="input-admin-password"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-displayname">Display Name *</Label>
+                        <Input
+                          id="admin-displayname"
+                          type="text"
+                          value={newAdminDisplayName}
+                          onChange={(e) => setNewAdminDisplayName(e.target.value)}
+                          placeholder="John Doe"
+                          data-testid="input-admin-displayname"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-email">Email (optional)</Label>
                         <Input
                           id="admin-email"
                           type="email"
@@ -288,8 +393,14 @@ export default function MasterAdminDashboard() {
                     </div>
                     <DialogFooter>
                       <Button 
-                        onClick={() => createUserMutation.mutate({ email: newAdminEmail, role: 'admin' })}
-                        disabled={!newAdminEmail || createUserMutation.isPending}
+                        onClick={() => createUserMutation.mutate({ 
+                          username: newAdminUsername,
+                          password: newAdminPassword,
+                          displayName: newAdminDisplayName,
+                          email: newAdminEmail || undefined,
+                          role: 'admin' 
+                        })}
+                        disabled={!newAdminUsername || !newAdminPassword || newAdminPassword.length < 8 || !newAdminDisplayName || createUserMutation.isPending}
                         data-testid="button-confirm-create-admin"
                       >
                         {createUserMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -315,13 +426,24 @@ export default function MasterAdminDashboard() {
                         data-testid={`admin-row-${admin.id}`}
                       >
                         <div>
-                          <p className="font-medium">{admin.displayName || admin.email}</p>
-                          <p className="text-sm text-gray-500">{admin.email}</p>
+                          <p className="font-medium">{admin.displayName || admin.username || admin.email}</p>
+                          <p className="text-sm text-gray-500">{admin.username || admin.email}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge variant={admin.isActive ? "default" : "secondary"}>
                             {admin.isActive ? 'Active' : 'Inactive'}
                           </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setResetPasswordUserId(admin.id);
+                              setResetPasswordValue("");
+                            }}
+                            data-testid={`button-reset-password-admin-${admin.id}`}
+                          >
+                            Reset Password
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -357,12 +479,45 @@ export default function MasterAdminDashboard() {
                     <DialogHeader>
                       <DialogTitle>Create New User</DialogTitle>
                       <DialogDescription>
-                        Create a new user account and assign them to an admin.
+                        Create a new user account with username and password.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="user-email">Email Address</Label>
+                        <Label htmlFor="user-username">Username *</Label>
+                        <Input
+                          id="user-username"
+                          type="text"
+                          value={newUserUsername}
+                          onChange={(e) => setNewUserUsername(e.target.value)}
+                          placeholder="user_username"
+                          data-testid="input-user-username"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="user-password">Password *</Label>
+                        <Input
+                          id="user-password"
+                          type="password"
+                          value={newUserPassword}
+                          onChange={(e) => setNewUserPassword(e.target.value)}
+                          placeholder="Minimum 8 characters"
+                          data-testid="input-user-password"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="user-displayname">Display Name *</Label>
+                        <Input
+                          id="user-displayname"
+                          type="text"
+                          value={newUserDisplayName}
+                          onChange={(e) => setNewUserDisplayName(e.target.value)}
+                          placeholder="John Doe"
+                          data-testid="input-user-displayname"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="user-email">Email (optional)</Label>
                         <Input
                           id="user-email"
                           type="email"
@@ -373,15 +528,15 @@ export default function MasterAdminDashboard() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="assign-admin">Assign to Admin (optional)</Label>
+                        <Label htmlFor="assign-admin">Assign to Admin (optional, active admins only)</Label>
                         <Select value={selectedAdmin} onValueChange={setSelectedAdmin}>
                           <SelectTrigger data-testid="select-assign-admin">
-                            <SelectValue placeholder="Select an admin" />
+                            <SelectValue placeholder="Select an active admin" />
                           </SelectTrigger>
                           <SelectContent>
-                            {admins.map(admin => (
+                            {activeAdmins.map(admin => (
                               <SelectItem key={admin.id} value={admin.id.toString()}>
-                                {admin.displayName || admin.email}
+                                {admin.displayName || admin.username || admin.email}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -391,15 +546,18 @@ export default function MasterAdminDashboard() {
                     <DialogFooter>
                       <Button 
                         onClick={async () => {
-                          await createUserMutation.mutateAsync({ email: newUserEmail, role: 'user' });
-                          if (selectedAdmin) {
-                            const newUser = allUsers.find(u => u.email === newUserEmail);
-                            if (newUser) {
-                              assignMutation.mutate({ userId: newUser.id, adminId: parseInt(selectedAdmin) });
-                            }
+                          const result = await createUserMutation.mutateAsync({ 
+                            username: newUserUsername,
+                            password: newUserPassword,
+                            displayName: newUserDisplayName,
+                            email: newUserEmail || undefined,
+                            role: 'user' 
+                          });
+                          if (selectedAdmin && result.user) {
+                            assignMutation.mutate({ userId: result.user.id, adminId: parseInt(selectedAdmin) });
                           }
                         }}
-                        disabled={!newUserEmail || createUserMutation.isPending}
+                        disabled={!newUserUsername || !newUserPassword || newUserPassword.length < 8 || !newUserDisplayName || createUserMutation.isPending}
                         data-testid="button-confirm-create-user"
                       >
                         {createUserMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -450,13 +608,24 @@ export default function MasterAdminDashboard() {
                                 <SelectValue placeholder="Assign admin" />
                               </SelectTrigger>
                               <SelectContent>
-                                {admins.map(admin => (
+                                {activeAdmins.map(admin => (
                                   <SelectItem key={admin.id} value={admin.id.toString()}>
-                                    {admin.displayName || admin.email}
+                                    {admin.displayName || admin.username || admin.email}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setResetPasswordUserId(userItem.id);
+                                setResetPasswordValue("");
+                              }}
+                              data-testid={`button-reset-password-user-${userItem.id}`}
+                            >
+                              Reset Password
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
@@ -475,6 +644,62 @@ export default function MasterAdminDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Reset Password Dialog */}
+        <Dialog open={resetPasswordUserId !== null} onOpenChange={(open) => {
+          if (!open) {
+            setResetPasswordUserId(null);
+            setResetPasswordValue("");
+          }
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reset Password</DialogTitle>
+              <DialogDescription>
+                Enter a new password for this account. Minimum 8 characters.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={resetPasswordValue}
+                  onChange={(e) => setResetPasswordValue(e.target.value)}
+                  placeholder="Minimum 8 characters"
+                  data-testid="input-reset-password"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setResetPasswordUserId(null);
+                  setResetPasswordValue("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (resetPasswordUserId) {
+                    resetPasswordMutation.mutate({ 
+                      userId: resetPasswordUserId, 
+                      newPassword: resetPasswordValue 
+                    });
+                  }
+                }}
+                disabled={!resetPasswordValue || resetPasswordValue.length < 8 || resetPasswordMutation.isPending}
+                data-testid="button-confirm-reset-password"
+              >
+                {resetPasswordMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Reset Password
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
