@@ -62,6 +62,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserBySlug(slug: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
   deleteUser(id: number): Promise<void>;
@@ -91,6 +92,9 @@ export interface IStorage {
   
   // Active Admins
   getActiveAdmins(): Promise<User[]>;
+  
+  // Recent Users for Admins
+  addRecentUser(adminId: number, userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -373,6 +377,11 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUserBySlug(slug: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.slug, slug)).limit(1);
+    return user || undefined;
+  }
+
   async createUser(user: InsertUser): Promise<User> {
     const [created] = await db.insert(users).values(user as any).returning();
     return created;
@@ -564,6 +573,22 @@ export class DatabaseStorage implements IStorage {
           eq(users.approvalStatus, 'approved')
         )
       );
+  }
+
+  // Add to recent users list for an admin (keep last 3)
+  async addRecentUser(adminId: number, userId: number): Promise<void> {
+    const admin = await this.getUserById(adminId);
+    if (!admin) return;
+    
+    const currentRecent = (admin.recentUserIds as number[]) || [];
+    // Remove userId if already exists, then add to front
+    const filtered = currentRecent.filter(id => id !== userId);
+    const newRecent = [userId, ...filtered].slice(0, 3);
+    
+    await db
+      .update(users)
+      .set({ recentUserIds: newRecent } as any)
+      .where(eq(users.id, adminId));
   }
 }
 

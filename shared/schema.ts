@@ -17,6 +17,8 @@ export const users = pgTable("users", {
   googleId: text("google_id").unique(), // For Google OAuth (admins)
   displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
+  slug: text("slug").unique(), // URL slug for accessing user's shop/quick view (e.g., /carin141319)
+  recentUserIds: jsonb("recent_user_ids").$type<number[]>().default([]), // For admins: last 3 users they viewed
   role: text("role").$type<UserRole>().notNull().default('user'),
   approvalStatus: text("approval_status").$type<ApprovalStatus>().notNull().default('pending'),
   approvedBy: integer("approved_by"), // References users.id of who approved

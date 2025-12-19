@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Loader2, Shield } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
+import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
 
 async function login(username: string, password: string): Promise<{ success: boolean; error?: string; user?: any }> {
   try {
@@ -82,10 +83,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
-            <Shield className="w-8 h-8 text-purple-600" />
+          <div className="mx-auto mb-4">
+            <img src={justShareNowLogo} alt="JustShareNow" className="w-32 h-auto object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">ShareLor</CardTitle>
+          <CardTitle className="text-2xl font-bold text-gray-900">JustShareNow</CardTitle>
           <CardDescription>Sign in to manage your review campaigns</CardDescription>
         </CardHeader>
         <CardContent>

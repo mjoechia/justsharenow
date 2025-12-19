@@ -13,6 +13,7 @@ import HelpPage from "@/pages/help";
 import LoginPage from "@/pages/login";
 import MasterAdminDashboard from "@/pages/master-admin";
 import AdminDashboardPage from "@/pages/admin-dashboard";
+import UserLanding from "@/pages/user-landing";
 
 function Router() {
   return (
@@ -23,10 +24,10 @@ function Router() {
       <Route path="/admin-dashboard" component={AdminDashboardPage} />
       
       {/* Landing / Shop View (QR Code Preview) */}
-      <Route path="/" component={Landing} />
+      <Route path="/">{() => <Landing />}</Route>
       
       {/* Quick View (User Scan) */}
-      <Route path="/quick-view" component={QuickView} />
+      <Route path="/quick-view">{() => <QuickView />}</Route>
 
       {/* Customer Flow */}
       <Route path="/drafting" component={CustomerDrafting} />
@@ -36,6 +37,10 @@ function Router() {
       
       {/* Help Page */}
       <Route path="/help" component={HelpPage} />
+      
+      {/* User-specific landing page by slug (e.g., /carin141319) */}
+      <Route path="/:slug" component={UserLanding} />
+      <Route path="/:slug/drafting" component={CustomerDrafting} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />

@@ -11,14 +11,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertCircle, Check, X, Loader2, Shield, Users, UserPlus, LogOut, RefreshCw, Link2 } from "lucide-react";
+import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
 
 interface User {
   id: number;
   username?: string;
   email?: string;
   displayName?: string;
+  slug?: string;
   role: 'master_admin' | 'admin' | 'user';
   approvalStatus: 'pending' | 'approved' | 'rejected';
   isActive: boolean;
@@ -61,6 +63,10 @@ export default function MasterAdminDashboard() {
   // Reset password state
   const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
+  
+  // Edit slug state
+  const [editSlugUserId, setEditSlugUserId] = useState<number | null>(null);
+  const [editSlugValue, setEditSlugValue] = useState("");
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -211,6 +217,30 @@ export default function MasterAdminDashboard() {
     },
   });
 
+  const updateSlugMutation = useMutation({
+    mutationFn: async ({ userId, slug }: { userId: number; slug: string }) => {
+      const res = await fetch(`/api/admin/users/${userId}/slug`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update slug');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "URL slug updated successfully" });
+      setEditSlugUserId(null);
+      setEditSlugValue("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">
@@ -242,9 +272,7 @@ export default function MasterAdminDashboard() {
       <header className="bg-white border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <Shield className="w-5 h-5 text-purple-600" />
-            </div>
+            <img src={justShareNowLogo} alt="JustShareNow" className="w-12 h-auto object-contain" />
             <div>
               <h1 className="font-bold text-gray-900">Master Admin Dashboard</h1>
               <p className="text-sm text-gray-500">Logged in as {user.displayName || user.username}</p>
@@ -315,7 +343,7 @@ export default function MasterAdminDashboard() {
         <Tabs defaultValue="admins" className="space-y-6">
           <TabsList>
             <TabsTrigger value="admins" data-testid="tab-admins">
-              <Shield className="w-4 h-4 mr-2" />
+              <UserPlus className="w-4 h-4 mr-2" />
               Admins ({admins.length})
             </TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">
@@ -586,8 +614,14 @@ export default function MasterAdminDashboard() {
                         >
                           <div>
                             <p className="font-medium">{userItem.displayName || userItem.email}</p>
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                               <span>{userItem.email}</span>
+                              {userItem.slug && (
+                                <span className="flex items-center gap-1 text-purple-600">
+                                  <ExternalLink className="w-3 h-3" />
+                                  /{userItem.slug}
+                                </span>
+                              )}
                               {assignedAdmin && (
                                 <span className="flex items-center gap-1">
                                   <Link2 className="w-3 h-3" />
@@ -615,6 +649,18 @@ export default function MasterAdminDashboard() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditSlugUserId(userItem.id);
+                                setEditSlugValue(userItem.slug || "");
+                              }}
+                              data-testid={`button-edit-slug-${userItem.id}`}
+                            >
+                              <Edit2 className="w-3 h-3 mr-1" />
+                              Edit URL
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
@@ -696,6 +742,66 @@ export default function MasterAdminDashboard() {
               >
                 {resetPasswordMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Reset Password
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Slug Dialog */}
+        <Dialog open={editSlugUserId !== null} onOpenChange={(open) => {
+          if (!open) {
+            setEditSlugUserId(null);
+            setEditSlugValue("");
+          }
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit URL Slug</DialogTitle>
+              <DialogDescription>
+                This is the custom URL path for this user's shop (e.g., yourdomain.com/<strong>{editSlugValue || 'username'}</strong>).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-slug">URL Slug</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">/</span>
+                  <Input
+                    id="new-slug"
+                    type="text"
+                    value={editSlugValue}
+                    onChange={(e) => setEditSlugValue(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                    placeholder="username"
+                    data-testid="input-edit-slug"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">Only lowercase letters and numbers allowed.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditSlugUserId(null);
+                  setEditSlugValue("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (editSlugUserId && editSlugValue) {
+                    updateSlugMutation.mutate({ 
+                      userId: editSlugUserId, 
+                      slug: editSlugValue 
+                    });
+                  }
+                }}
+                disabled={!editSlugValue || editSlugValue.length < 2 || updateSlugMutation.isPending}
+                data-testid="button-confirm-edit-slug"
+              >
+                {updateSlugMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Save URL
               </Button>
             </DialogFooter>
           </DialogContent>

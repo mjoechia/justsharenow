@@ -1,28 +1,52 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { logout } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle } from "lucide-react";
+import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle, Clock, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
 
 interface AssignedUser {
   id: number;
   email?: string;
   displayName?: string;
+  slug?: string;
   isActive: boolean;
+}
+
+interface RecentUser {
+  id: number;
+  email?: string;
+  displayName?: string;
+  slug?: string;
 }
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const { user, isLoading: authLoading, isAdmin, isApproved, isPending } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: myUsers = [], isLoading: usersLoading } = useQuery<AssignedUser[]>({
     queryKey: ["/api/my-users"],
     enabled: isAdmin && isApproved,
+  });
+
+  const { data: recentUsers = [] } = useQuery<RecentUser[]>({
+    queryKey: ["/api/my-recent-users"],
+    enabled: isAdmin && isApproved,
+  });
+
+  const trackViewMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await fetch(`/api/track-view/${userId}`, { method: 'POST' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-recent-users"] });
+    },
   });
 
   if (authLoading) {
@@ -79,9 +103,7 @@ export default function AdminDashboard() {
       <header className="bg-white border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <Users className="w-5 h-5 text-purple-600" />
-            </div>
+            <img src={justShareNowLogo} alt="JustShareNow" className="w-12 h-auto object-contain" />
             <div>
               <h1 className="font-bold text-gray-900">Admin Dashboard</h1>
               <p className="text-sm text-gray-500">Logged in as {user.displayName || user.email}</p>
@@ -94,7 +116,42 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        {/* Recent Users Quick Switch */}
+        {recentUsers.length > 0 && (
+          <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-purple-900">
+                <Clock className="w-5 h-5" />
+                Recent Businesses
+              </CardTitle>
+              <CardDescription>Quick access to your recently viewed businesses</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                {recentUsers.map((recentUser) => (
+                  <Button
+                    key={recentUser.id}
+                    variant="outline"
+                    className="flex items-center gap-2 bg-white hover:bg-purple-50 border-purple-200"
+                    onClick={() => {
+                      trackViewMutation.mutate(recentUser.id);
+                      setLocation(`/admin?userId=${recentUser.id}`);
+                    }}
+                    data-testid={`button-recent-${recentUser.id}`}
+                  >
+                    <span>{recentUser.displayName || recentUser.email}</span>
+                    {recentUser.slug && (
+                      <span className="text-xs text-purple-500">/{recentUser.slug}</span>
+                    )}
+                    <ExternalLink className="w-3 h-3 text-gray-400" />
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -126,7 +183,12 @@ export default function AdminDashboard() {
                   >
                     <div>
                       <p className="font-medium">{assignedUser.displayName || assignedUser.email}</p>
-                      <p className="text-sm text-gray-500">{assignedUser.email}</p>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span>{assignedUser.email}</span>
+                        {assignedUser.slug && (
+                          <span className="text-purple-600">/{assignedUser.slug}</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge variant={assignedUser.isActive ? "default" : "secondary"}>
@@ -135,7 +197,10 @@ export default function AdminDashboard() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setLocation(`/admin?userId=${assignedUser.id}`)}
+                        onClick={() => {
+                          trackViewMutation.mutate(assignedUser.id);
+                          setLocation(`/admin?userId=${assignedUser.id}`);
+                        }}
                         data-testid={`button-view-config-${assignedUser.id}`}
                       >
                         <QrCode className="w-4 h-4 mr-1" />

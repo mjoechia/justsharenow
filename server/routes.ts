@@ -70,6 +70,7 @@ export async function registerRoutes(
         email: u.email,
         displayName: u.displayName,
         avatarUrl: u.avatarUrl,
+        slug: u.slug,
         role: u.role,
         approvalStatus: u.approvalStatus,
         isActive: u.isActive,
@@ -171,6 +172,18 @@ export async function registerRoutes(
         }
       }
 
+      // Generate slug from email prefix or username
+      let baseSlug = email ? email.split('@')[0] : username;
+      baseSlug = baseSlug.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      // Ensure unique slug
+      let slug = baseSlug;
+      let counter = 1;
+      while (await storage.getUserBySlug(slug)) {
+        slug = `${baseSlug}${counter}`;
+        counter++;
+      }
+
       const passwordHash = await bcrypt.hash(password, 12);
       const adminUser = req.user as Express.User;
       const user = await storage.createUser({
@@ -179,6 +192,7 @@ export async function registerRoutes(
         email: email || null,
         displayName,
         role,
+        slug,
         approvalStatus: 'approved',
         approvedBy: adminUser.id,
         isActive: true,
@@ -345,6 +359,96 @@ export async function registerRoutes(
     }
   });
 
+  // Update user slug (master admin or admin for their assigned users)
+  app.put("/api/admin/users/:userId/slug", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { slug } = req.body;
+      const adminUser = req.user as Express.User;
+      
+      if (!slug || typeof slug !== 'string') {
+        return res.status(400).json({ error: "Slug is required" });
+      }
+      
+      // Validate slug format (alphanumeric, lowercase)
+      const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (cleanSlug.length < 2) {
+        return res.status(400).json({ error: "Slug must be at least 2 characters" });
+      }
+      
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Check permission: master admin can edit any, admin can only edit assigned users
+      if (adminUser.role !== 'master_admin') {
+        const assignedUsers = await storage.getUsersForAdmin(adminUser.id);
+        if (!assignedUsers.some(u => u.id === userId)) {
+          return res.status(403).json({ error: "You can only edit slugs for your assigned users" });
+        }
+      }
+      
+      // Check for duplicate slug
+      const existingSlugUser = await storage.getUserBySlug(cleanSlug);
+      if (existingSlugUser && existingSlugUser.id !== userId) {
+        return res.status(400).json({ error: "This slug is already taken" });
+      }
+      
+      const updated = await storage.updateUser(userId, { slug: cleanSlug });
+      res.json({ 
+        success: true, 
+        user: { id: updated.id, slug: updated.slug }
+      });
+    } catch (error) {
+      console.error("Error updating slug:", error);
+      res.status(500).json({ error: "Failed to update slug" });
+    }
+  });
+
+  // Get user and config by slug (public - for shop/quick view)
+  app.get("/api/public/by-slug/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      const user = await storage.getUserBySlug(slug);
+      if (!user || !user.isActive || user.approvalStatus !== 'approved') {
+        return res.status(404).json({ error: "Not found" });
+      }
+      
+      // Only return user role accounts (not admins or master admin)
+      if (user.role !== 'user') {
+        return res.status(404).json({ error: "Not found" });
+      }
+      
+      const config = await storage.getStoreConfigByUserId(user.id);
+      
+      res.json({
+        user: {
+          displayName: user.displayName,
+          slug: user.slug,
+        },
+        config: config ? {
+          placeId: config.placeId,
+          businessName: config.businessName,
+          googleReviewsUrl: config.googleReviewsUrl,
+          googlePlaceId: config.googlePlaceId,
+          facebookUrl: config.facebookUrl,
+          instagramUrl: config.instagramUrl,
+          xiaohongshuUrl: config.xiaohongshuUrl,
+          tiktokUrl: config.tiktokUrl,
+          whatsappUrl: config.whatsappUrl,
+          shopPhotos: config.shopPhotos,
+          sliderPhotos: config.sliderPhotos,
+          reviewHashtags: config.reviewHashtags,
+        } : null,
+      });
+    } catch (error) {
+      console.error("Error fetching by slug:", error);
+      res.status(500).json({ error: "Failed to fetch data" });
+    }
+  });
+
   // Get all admins with their assigned users
   app.get("/api/admin/admins-with-users", requireMasterAdmin, async (_req, res) => {
     try {
@@ -396,11 +500,72 @@ export async function registerRoutes(
         id: u.id,
         email: u.email,
         displayName: u.displayName,
+        slug: u.slug,
         isActive: u.isActive,
       })));
     } catch (error) {
       console.error("Error fetching assigned users:", error);
       res.status(500).json({ error: "Failed to fetch assigned users" });
+    }
+  });
+
+  // Get recent users for current admin
+  app.get("/api/my-recent-users", requireAdmin, async (req, res) => {
+    try {
+      const adminUser = req.user as Express.User;
+      const admin = await storage.getUserById(adminUser.id);
+      
+      if (!admin || !admin.recentUserIds || admin.recentUserIds.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get the recent user details
+      const recentUsers = await Promise.all(
+        (admin.recentUserIds as number[]).map(async (userId) => {
+          const user = await storage.getUserById(userId);
+          if (!user || !user.isActive) return null;
+          return {
+            id: user.id,
+            displayName: user.displayName,
+            email: user.email,
+            slug: user.slug,
+          };
+        })
+      );
+      
+      res.json(recentUsers.filter(Boolean));
+    } catch (error) {
+      console.error("Error fetching recent users:", error);
+      res.status(500).json({ error: "Failed to fetch recent users" });
+    }
+  });
+
+  // Track when admin views a user (for recent users list)
+  app.post("/api/track-view/:userId", requireAdmin, async (req, res) => {
+    try {
+      const adminUser = req.user as Express.User;
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      // Only track for admins (not master admin)
+      if (adminUser.role === 'admin') {
+        // Validate that the user is assigned to this admin
+        const assignedUsers = await storage.getUsersForAdmin(adminUser.id);
+        const isAssigned = assignedUsers.some(u => u.id === userId);
+        if (!isAssigned) {
+          return res.status(403).json({ error: "User not assigned to you" });
+        }
+        
+        await storage.addRecentUser(adminUser.id, userId);
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking view:", error);
+      res.status(500).json({ error: "Failed to track view" });
     }
   });
 
