@@ -70,8 +70,8 @@ export default function AdminDashboard() {
     if (config) {
       setWebsiteUrl(config.websiteUrl || "");
       setGoogleReviewsUrl(config.googleReviewsUrl || "");
-      // Google Place ID defaults to empty - user must verify each time
-      setGooglePlaceId("");
+      // Preserve Google Place ID from saved config
+      setGooglePlaceId(config.googlePlaceId || "");
       setFbUrl(config.facebookUrl || "");
       setIgUrl(config.instagramUrl || "");
       setXhsUrl(config.xiaohongshuUrl || "");
@@ -84,8 +84,32 @@ export default function AdminDashboard() {
         setConfirmedBusinessName(config.businessName);
       }
       setIsDirty(false);
-      // Clear verified business state on Admin View open
-      setVerifiedBusiness(null);
+      
+      // Auto-fetch verified business info if Place ID is saved
+      if (config.googlePlaceId && !verifiedBusiness) {
+        fetch('/api/google-place/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ placeId: config.googlePlaceId }),
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (result.success) {
+              setVerifiedBusiness({
+                businessName: result.businessName,
+                address: result.address,
+                rating: result.rating,
+                totalReviews: result.totalReviews || 0,
+                googleMapsUrl: result.googleMapsUrl,
+                verifiedAt: result.verifiedAt,
+                fromCache: result.fromCache,
+              });
+            }
+          })
+          .catch(() => {
+            // Silently fail - just won't show cached business info
+          });
+      }
     }
   }, [config]);
 

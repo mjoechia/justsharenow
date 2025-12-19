@@ -666,19 +666,27 @@ export async function registerRoutes(
       }
 
       const config = await storage.getStoreConfigByUserId(targetUserId);
-      res.json(config || {
-        userId: targetUserId,
-        websiteUrl: null,
-        googleReviewsUrl: null,
-        googlePlaceId: null,
-        facebookUrl: null,
-        instagramUrl: null,
-        xiaohongshuUrl: null,
-        tiktokUrl: null,
-        whatsappUrl: null,
-        shopPhotos: [],
-        sliderPhotos: [],
-        reviewHashtags: [],
+      
+      // Get user's slug for QR code URL
+      const targetUser = await storage.getUserById(targetUserId);
+      const userSlug = targetUser?.slug || null;
+      
+      res.json({
+        ...(config || {
+          userId: targetUserId,
+          websiteUrl: null,
+          googleReviewsUrl: null,
+          googlePlaceId: null,
+          facebookUrl: null,
+          instagramUrl: null,
+          xiaohongshuUrl: null,
+          tiktokUrl: null,
+          whatsappUrl: null,
+          shopPhotos: [],
+          sliderPhotos: [],
+          reviewHashtags: [],
+        }),
+        userSlug, // Include user's slug for QR code URL
       });
     } catch (error) {
       console.error("Error fetching user config:", error);
@@ -1067,15 +1075,11 @@ ${pageText}`
         return;
       }
 
-      // Get the user's store config to find their placeId
+      // Get the user's store config to check photo limit
       const userConfig = await storage.getStoreConfigByUserId(authUser.id);
-      if (!userConfig || !userConfig.googlePlaceId) {
-        res.status(400).json({ error: "Please set up your Google Place ID first" });
-        return;
-      }
 
       // Check photo limit first
-      const currentPhotos = userConfig.shopPhotos || [];
+      const currentPhotos = userConfig?.shopPhotos || [];
       
       if (currentPhotos.length >= 9) {
         res.status(400).json({ error: "Maximum of 9 photos allowed. Please remove some photos first." });
@@ -1126,8 +1130,8 @@ ${pageText}`
         const base64 = Buffer.from(arrayBuffer).toString('base64');
         const dataUrl = `data:${contentType};base64,${base64}`;
 
-        // Add to shop photos using dedicated method (preserves other config fields)
-        const updatedConfig = await storage.addShopPhoto(dataUrl, userConfig.googlePlaceId);
+        // Add to shop photos using userId-based method (no placeId requirement)
+        const updatedConfig = await storage.addShopPhotoByUserId(authUser.id, dataUrl);
 
         res.json({
           success: true,
@@ -1168,15 +1172,11 @@ ${pageText}`
         return;
       }
 
-      // Get the user's store config to find their placeId
+      // Get the user's store config to check photo limit
       const userConfig = await storage.getStoreConfigByUserId(authUser.id);
-      if (!userConfig || !userConfig.googlePlaceId) {
-        res.status(400).json({ error: "Please set up your Google Place ID first" });
-        return;
-      }
 
       // Check photo limit first
-      const currentPhotos = userConfig.sliderPhotos || [];
+      const currentPhotos = userConfig?.sliderPhotos || [];
       
       if (currentPhotos.length >= 3) {
         res.status(400).json({ error: "Maximum of 3 slider photos allowed. Please remove some photos first." });
@@ -1227,8 +1227,8 @@ ${pageText}`
         const base64 = Buffer.from(arrayBuffer).toString('base64');
         const dataUrl = `data:${contentType};base64,${base64}`;
 
-        // Add to slider photos using dedicated method (preserves other config fields)
-        const updatedConfig = await storage.addSliderPhoto(dataUrl, userConfig.googlePlaceId);
+        // Add to slider photos using userId-based method (no placeId requirement)
+        const updatedConfig = await storage.addSliderPhotoByUserId(authUser.id, dataUrl);
 
         res.json({
           success: true,

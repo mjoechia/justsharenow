@@ -82,14 +82,20 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
   const [xhsModalOpen, setXhsModalOpen] = useState(false);
   const [xhsCopied, setXhsCopied] = useState(false);
 
-  useEffect(() => {
-    setQuickViewUrl(`${window.location.origin}/quick-view`);
-  }, []);
-
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
     queryFn: getStoreConfig,
   });
+
+  useEffect(() => {
+    // Use user's slug for QR code URL if available
+    const slug = (config as any)?.userSlug;
+    if (slug) {
+      setQuickViewUrl(`${window.location.origin}/${slug}`);
+    } else {
+      setQuickViewUrl(`${window.location.origin}/quick-view`);
+    }
+  }, [config]);
 
   const sliderPhotos = config?.sliderPhotos || [];
 

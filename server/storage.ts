@@ -33,11 +33,14 @@ import { db } from "./db";
 import { eq, sql, and, desc, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
-  // Store Configuration - now scoped by placeId
+  // Store Configuration - now scoped by placeId or userId
   getStoreConfig(placeId?: string): Promise<StoreConfig | undefined>;
   updateStoreConfig(config: InsertStoreConfig, placeId?: string): Promise<StoreConfig>;
   addShopPhoto(photoBase64: string, placeId?: string): Promise<StoreConfig>;
   addSliderPhoto(photoBase64: string, placeId?: string): Promise<StoreConfig>;
+  addShopPhotoByUserId(userId: number, photoBase64: string): Promise<StoreConfig>;
+  addSliderPhotoByUserId(userId: number, photoBase64: string): Promise<StoreConfig>;
+  removeSliderPhotoByUserId(userId: number, photoIndex: number): Promise<StoreConfig>;
   setReviewHashtags(hashtags: string[], placeId?: string): Promise<StoreConfig>;
   getAllBusinesses(): Promise<StoreConfig[]>;
   
@@ -212,6 +215,86 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  async addShopPhotoByUserId(userId: number, photoBase64: string): Promise<StoreConfig> {
+    let existing = await this.getStoreConfigByUserId(userId);
+    
+    if (!existing) {
+      // Create config for this user if it doesn't exist
+      existing = await this.createStoreConfigForUser(userId);
+    }
+    
+    const currentPhotos = existing?.shopPhotos || [];
+    
+    if (currentPhotos.length >= 9) {
+      throw new Error("Maximum of 9 shop photos allowed");
+    }
+    
+    const newPhotos = [...currentPhotos, photoBase64];
+    
+    const [updated] = await db
+      .update(storeConfig)
+      .set({ 
+        shopPhotos: newPhotos,
+        updatedAt: sql`NOW()` 
+      })
+      .where(eq(storeConfig.id, existing.id))
+      .returning();
+    return updated;
+  }
+
+  async addSliderPhotoByUserId(userId: number, photoBase64: string): Promise<StoreConfig> {
+    let existing = await this.getStoreConfigByUserId(userId);
+    
+    if (!existing) {
+      // Create config for this user if it doesn't exist
+      existing = await this.createStoreConfigForUser(userId);
+    }
+    
+    const currentPhotos = existing?.sliderPhotos || [];
+    
+    if (currentPhotos.length >= 3) {
+      throw new Error("Maximum of 3 slider photos allowed");
+    }
+    
+    const newPhotos = [...currentPhotos, photoBase64];
+    
+    const [updated] = await db
+      .update(storeConfig)
+      .set({ 
+        sliderPhotos: newPhotos,
+        updatedAt: sql`NOW()` 
+      })
+      .where(eq(storeConfig.id, existing.id))
+      .returning();
+    return updated;
+  }
+
+  async removeSliderPhotoByUserId(userId: number, photoIndex: number): Promise<StoreConfig> {
+    const existing = await this.getStoreConfigByUserId(userId);
+    
+    if (!existing) {
+      throw new Error("Config not found for user");
+    }
+    
+    const currentPhotos = existing?.sliderPhotos || [];
+    
+    if (photoIndex < 0 || photoIndex >= currentPhotos.length) {
+      throw new Error("Invalid photo index");
+    }
+    
+    const newPhotos = currentPhotos.filter((_, i) => i !== photoIndex);
+    
+    const [updated] = await db
+      .update(storeConfig)
+      .set({ 
+        sliderPhotos: newPhotos,
+        updatedAt: sql`NOW()` 
+      })
+      .where(eq(storeConfig.id, existing.id))
+      .returning();
+    return updated;
   }
 
   async setReviewHashtags(hashtags: string[], placeId?: string): Promise<StoreConfig> {
