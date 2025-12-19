@@ -1016,8 +1016,9 @@ ${pageText}`
   });
 
   // Photo Approval Endpoint - download external image and add to shop photos
-  app.post("/api/photos/approve", async (req, res) => {
+  app.post("/api/photos/approve", requireApproved, async (req, res) => {
     try {
+      const authUser = req.user as Express.User;
       const { imageUrl } = req.body;
       
       if (!imageUrl || typeof imageUrl !== 'string') {
@@ -1031,9 +1032,15 @@ ${pageText}`
         return;
       }
 
+      // Get the user's store config to find their placeId
+      const userConfig = await storage.getStoreConfigByUserId(authUser.id);
+      if (!userConfig || !userConfig.googlePlaceId) {
+        res.status(400).json({ error: "Please set up your Google Place ID first" });
+        return;
+      }
+
       // Check photo limit first
-      const currentConfig = await storage.getStoreConfig();
-      const currentPhotos = currentConfig?.shopPhotos || [];
+      const currentPhotos = userConfig.shopPhotos || [];
       
       if (currentPhotos.length >= 9) {
         res.status(400).json({ error: "Maximum of 9 photos allowed. Please remove some photos first." });
@@ -1085,7 +1092,7 @@ ${pageText}`
         const dataUrl = `data:${contentType};base64,${base64}`;
 
         // Add to shop photos using dedicated method (preserves other config fields)
-        const updatedConfig = await storage.addShopPhoto(dataUrl);
+        const updatedConfig = await storage.addShopPhoto(dataUrl, userConfig.googlePlaceId);
 
         res.json({
           success: true,
@@ -1110,8 +1117,9 @@ ${pageText}`
   });
 
   // Slider Photo Approval Endpoint - download external image and add to slider photos
-  app.post("/api/slider-photos/approve", async (req, res) => {
+  app.post("/api/slider-photos/approve", requireApproved, async (req, res) => {
     try {
+      const authUser = req.user as Express.User;
       const { imageUrl } = req.body;
       
       if (!imageUrl || typeof imageUrl !== 'string') {
@@ -1125,9 +1133,15 @@ ${pageText}`
         return;
       }
 
+      // Get the user's store config to find their placeId
+      const userConfig = await storage.getStoreConfigByUserId(authUser.id);
+      if (!userConfig || !userConfig.googlePlaceId) {
+        res.status(400).json({ error: "Please set up your Google Place ID first" });
+        return;
+      }
+
       // Check photo limit first
-      const currentConfig = await storage.getStoreConfig();
-      const currentPhotos = currentConfig?.sliderPhotos || [];
+      const currentPhotos = userConfig.sliderPhotos || [];
       
       if (currentPhotos.length >= 3) {
         res.status(400).json({ error: "Maximum of 3 slider photos allowed. Please remove some photos first." });
@@ -1179,7 +1193,7 @@ ${pageText}`
         const dataUrl = `data:${contentType};base64,${base64}`;
 
         // Add to slider photos using dedicated method (preserves other config fields)
-        const updatedConfig = await storage.addSliderPhoto(dataUrl);
+        const updatedConfig = await storage.addSliderPhoto(dataUrl, userConfig.googlePlaceId);
 
         res.json({
           success: true,
