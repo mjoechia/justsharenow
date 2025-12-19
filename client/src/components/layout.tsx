@@ -94,6 +94,17 @@ export function Layout({
           {/* Mobile Menu */}
           <div className="md:hidden flex items-center gap-2">
             <LanguageSelector />
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={logout}
+                className="flex items-center gap-1"
+                data-testid="button-logout-mobile"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            )}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -103,17 +114,6 @@ export function Layout({
               <SheetContent side="right">
                 <div className="flex flex-col gap-4 mt-8">
                   <Link href="/" className="text-lg font-medium">Home</Link>
-                  {isAdmin && (
-                    <Button 
-                      variant="outline" 
-                      onClick={logout}
-                      className="flex items-center gap-2 w-full justify-start"
-                      data-testid="button-logout-mobile"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </Button>
-                  )}
                 </div>
               </SheetContent>
             </Sheet>
