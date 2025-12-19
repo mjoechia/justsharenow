@@ -38,12 +38,14 @@ export function Layout({
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
     queryFn: getStoreConfig,
+    enabled: isAdmin, // Only fetch config when user is authenticated (admin view)
   });
   
   const sliderPhotos = config?.sliderPhotos || [];
 
   // Only show carousel on non-admin pages if there are slider photos and not hidden
-  const showCarousel = !isAdmin && !hideCarousel && sliderPhotos.length > 0;
+  // Note: Carousel is disabled for Layout since we only fetch config in admin mode
+  const showCarousel = false; // Carousel handled by individual pages with their own config
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">

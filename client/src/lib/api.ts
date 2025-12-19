@@ -24,14 +24,21 @@ export interface Analytics {
   lastUpdated: string;
 }
 
-// Fetch store configuration
-export async function getStoreConfig(): Promise<StoreConfig> {
-  const response = await fetch('/api/config');
+// Fetch store configuration by placeId (for public/customer pages)
+export async function getStoreConfigByPlaceId(placeId: string): Promise<StoreConfig> {
+  const response = await fetch(`/api/config?placeId=${encodeURIComponent(placeId)}`);
   if (!response.ok) throw new Error('Failed to fetch config');
   return response.json();
 }
 
-// Update store configuration
+// Fetch authenticated user's store configuration (for admin dashboard)
+export async function getStoreConfig(): Promise<StoreConfig> {
+  const response = await fetch('/api/admin/my-config');
+  if (!response.ok) throw new Error('Failed to fetch config');
+  return response.json();
+}
+
+// Update store configuration (user-scoped for authenticated users)
 export async function updateStoreConfig(config: Partial<StoreConfig>): Promise<StoreConfig> {
   const response = await fetch('/api/config', {
     method: 'PUT',
