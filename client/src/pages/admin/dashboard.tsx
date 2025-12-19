@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
@@ -15,8 +15,11 @@ import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, a
 import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 import QuickView from "@/pages/quick-view";
 import Landing from "@/pages/landing";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminDashboard() {
+  const [, setLocation] = useLocation();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
   const t = translations[language];
   const { toast } = useToast();
@@ -117,6 +120,26 @@ export default function AdminDashboard() {
       toast({ title: "Error", description: "Failed to save configuration.", variant: "destructive" });
     },
   });
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setLocation('/login');
+    }
+  }, [authLoading, isAuthenticated, setLocation]);
+  
+  if (authLoading) {
+    return (
+      <Layout isAdmin>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        </div>
+      </Layout>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const handleSaveSocials = () => {
     updateConfigMutation.mutate({
