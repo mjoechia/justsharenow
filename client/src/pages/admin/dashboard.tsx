@@ -451,14 +451,20 @@ export default function AdminDashboard() {
           fromCache: result.fromCache,
         });
         
-        // Auto-save the Place ID and Google Reviews URL after successful verification
+        // Auto-save the Place ID, Google Reviews URL, and Business Name after successful verification
         const googleReviewUrl = `https://search.google.com/local/writereview?placeid=${finalPlaceId}`;
         setGoogleReviewsUrl(googleReviewUrl);
         setGooglePlaceId(finalPlaceId);
         
+        // Also set the confirmed business name
+        if (result.businessName) {
+          setConfirmedBusinessName(result.businessName);
+        }
+        
         // Save to database immediately with error handling
         try {
           await updateStoreConfig({
+            businessName: result.businessName || undefined,
             websiteUrl,
             googleReviewsUrl: googleReviewUrl,
             googlePlaceId: finalPlaceId,
@@ -475,14 +481,15 @@ export default function AdminDashboard() {
           setIsDirty(false);
           
           toast({ 
-            title: "Business Verified & Saved!"
+            title: "Business Set!",
+            description: result.businessName ? `Business: ${result.businessName}` : undefined
           });
         } catch (saveError) {
           // Verification succeeded but save failed - show partial success
           setIsDirty(true);
           toast({ 
-            title: "Business Verified", 
-            description: "Business verified. Please click Save Changes to persist."
+            title: "Business Found", 
+            description: "Business found. Please click Save Changes to persist."
           });
         }
       }
@@ -1021,28 +1028,29 @@ export default function AdminDashboard() {
                                             className="flex-1"
                                             data-testid="input-google-place-id"
                                         />
-                                        <Button 
-                                            onClick={handleVerifyPlaceId}
-                                            disabled={isVerifyingPlace || !googlePlaceId}
-                                            variant="outline"
-                                            data-testid="button-verify-place-id"
-                                        >
-                                            {isVerifyingPlace ? (
-                                                <>
-                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                    {isResolvingUrl ? "Resolving URL..." : "Checking..."}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Search className="w-4 h-4 mr-2" />
-                                                    Check in Google
-                                                </>
-                                            )}
-                                        </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID. Click "Check in Google" to find your business.
+                                        Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID. Click "Set" to find and save your business.
                                     </p>
+                                    <Button 
+                                        onClick={handleVerifyPlaceId}
+                                        disabled={isVerifyingPlace || !googlePlaceId}
+                                        variant="default"
+                                        className="w-full mt-2"
+                                        data-testid="button-set-place-id"
+                                    >
+                                        {isVerifyingPlace ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                {isResolvingUrl ? "Resolving URL..." : "Setting..."}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                Set
+                                            </>
+                                        )}
+                                    </Button>
                                     
                                     {verifiedBusiness && (
                                         <div className="mt-3 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200" data-testid="verified-business-info">
@@ -1092,38 +1100,8 @@ export default function AdminDashboard() {
                                                             </span>
                                                         </div>
                                                     )}
-                                                    <div className="flex items-center gap-3 mt-3">
-                                                        <Button
-                                                            onClick={() => {
-                                                                if (verifiedBusiness?.businessName) {
-                                                                    setConfirmedBusinessName(verifiedBusiness.businessName);
-                                                                    updateConfigMutation.mutate({
-                                                                        businessName: verifiedBusiness.businessName,
-                                                                        websiteUrl,
-                                                                        googleReviewsUrl,
-                                                                        googlePlaceId,
-                                                                        facebookUrl: fbUrl,
-                                                                        instagramUrl: igUrl,
-                                                                        xiaohongshuUrl: xhsUrl,
-                                                                        tiktokUrl,
-                                                                        whatsappUrl,
-                                                                        shopPhotos,
-                                                                        sliderPhotos,
-                                                                        reviewHashtags: selectedHashtags,
-                                                                    });
-                                                                    toast({ title: "Business Confirmed!", description: "Business name updated everywhere." });
-                                                                }
-                                                            }}
-                                                            disabled={confirmedBusinessName === verifiedBusiness?.businessName}
-                                                            variant="default"
-                                                            size="sm"
-                                                            className="bg-green-600 hover:bg-green-700"
-                                                            data-testid="button-verify-business"
-                                                        >
-                                                            <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                            Verify
-                                                        </Button>
-                                                        {verifiedBusiness.googleMapsUrl && (
+                                                    {verifiedBusiness.googleMapsUrl && (
+                                                        <div className="mt-3">
                                                             <a 
                                                                 href={verifiedBusiness.googleMapsUrl}
                                                                 target="_blank"
@@ -1134,8 +1112,8 @@ export default function AdminDashboard() {
                                                                 <ExternalLink className="w-3.5 h-3.5" />
                                                                 View on Google Maps
                                                             </a>
-                                                        )}
-                                                    </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
