@@ -477,6 +477,41 @@ export async function registerRoutes(
     }
   });
 
+  // ========== SYSTEM SETTINGS ROUTES ==========
+
+  // Get session timeout (master admin only)
+  app.get("/api/admin/session-timeout", requireMasterAdmin, async (_req, res) => {
+    try {
+      const timeoutMinutes = await storage.getSessionTimeoutMinutes();
+      res.json({ sessionTimeoutMinutes: timeoutMinutes });
+    } catch (error) {
+      console.error("Error fetching session timeout:", error);
+      res.status(500).json({ error: "Failed to fetch session timeout" });
+    }
+  });
+
+  // Update session timeout (master admin only)
+  app.put("/api/admin/session-timeout", requireMasterAdmin, async (req, res) => {
+    try {
+      const { sessionTimeoutMinutes } = req.body;
+      
+      if (typeof sessionTimeoutMinutes !== 'number' || sessionTimeoutMinutes < 1 || sessionTimeoutMinutes > 10080) {
+        return res.status(400).json({ error: "Session timeout must be between 1 and 10080 minutes (1 week)" });
+      }
+      
+      const adminUser = req.user as Express.User;
+      await storage.setSystemSetting('session_timeout_minutes', sessionTimeoutMinutes.toString(), adminUser.id);
+      
+      res.json({ 
+        sessionTimeoutMinutes,
+        message: "Session timeout updated. New sessions will use this timeout. Existing sessions will not be affected." 
+      });
+    } catch (error) {
+      console.error("Error updating session timeout:", error);
+      res.status(500).json({ error: "Failed to update session timeout" });
+    }
+  });
+
   // ========== ADMIN ROUTES (For admins managing their users) ==========
   
   // Get users assigned to current admin

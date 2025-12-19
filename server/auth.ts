@@ -8,6 +8,7 @@ import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import type { User, UserRole } from "@shared/schema";
+import { DEFAULT_SESSION_TIMEOUT_MINUTES } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -34,13 +35,23 @@ const getOidcConfig = memoize(
   { maxAge: 3600 * 1000 }
 );
 
-export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+export async function getSessionTimeoutMs(): Promise<number> {
+  try {
+    const timeoutMinutes = await storage.getSessionTimeoutMinutes();
+    return timeoutMinutes * 60 * 1000; // Convert minutes to milliseconds
+  } catch (error) {
+    // Default to 3 minutes if database not ready
+    return DEFAULT_SESSION_TIMEOUT_MINUTES * 60 * 1000;
+  }
+}
+
+export async function getSession() {
+  const sessionTtl = await getSessionTimeoutMs();
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
-    ttl: sessionTtl,
+    ttl: Math.floor(sessionTtl / 1000), // ttl is in seconds for pg store
     tableName: "sessions",
   });
   return session({
@@ -48,6 +59,7 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset session expiry on each request
     cookie: {
       httpOnly: true,
       secure: true,
@@ -98,9 +110,24 @@ export async function initializeMasterAdmin(): Promise<void> {
   console.log("Master admin created successfully");
 }
 
+// Middleware to dynamically update session cookie maxAge based on current settings
+// This allows session timeout changes to take effect without server restart
+async function dynamicSessionTimeoutMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (req.session && req.session.cookie) {
+    try {
+      const timeoutMs = await getSessionTimeoutMs();
+      req.session.cookie.maxAge = timeoutMs;
+    } catch (error) {
+      // Keep existing cookie maxAge if database unavailable
+    }
+  }
+  next();
+}
+
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
-  app.use(getSession());
+  app.use(await getSession());
+  app.use(dynamicSessionTimeoutMiddleware);
   app.use(passport.initialize());
   app.use(passport.session());
 

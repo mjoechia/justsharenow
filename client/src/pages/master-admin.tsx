@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink } from "lucide-react";
+import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink, Settings, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
 
@@ -67,6 +67,9 @@ export default function MasterAdminDashboard() {
   // Edit slug state
   const [editSlugUserId, setEditSlugUserId] = useState<number | null>(null);
   const [editSlugValue, setEditSlugValue] = useState("");
+  
+  // Session timeout state
+  const [sessionTimeoutInput, setSessionTimeoutInput] = useState("");
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -89,6 +92,35 @@ export default function MasterAdminDashboard() {
   const { data: activeAdmins = [] } = useQuery<ActiveAdmin[]>({
     queryKey: ["/api/admin/active-admins"],
     enabled: isMasterAdmin,
+  });
+
+  // Session timeout query
+  const { data: sessionTimeoutData } = useQuery<{ sessionTimeoutMinutes: number }>({
+    queryKey: ["/api/admin/session-timeout"],
+    enabled: isMasterAdmin,
+  });
+
+  const sessionTimeoutMutation = useMutation({
+    mutationFn: async (minutes: number) => {
+      const res = await fetch('/api/admin/session-timeout', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionTimeoutMinutes: minutes }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update session timeout');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/session-timeout"] });
+      toast({ title: "Session timeout updated", description: data.message });
+      setSessionTimeoutInput("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });
 
   const approveMutation = useMutation({
@@ -349,6 +381,10 @@ export default function MasterAdminDashboard() {
             <TabsTrigger value="users" data-testid="tab-users">
               <Users className="w-4 h-4 mr-2" />
               Users ({users.length})
+            </TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings">
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -686,6 +722,67 @@ export default function MasterAdminDashboard() {
                     })}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Settings</CardTitle>
+                <CardDescription>Configure global system settings for the platform.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Session Timeout */}
+                <div className="p-4 rounded-lg border bg-muted/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="w-5 h-5 text-primary" />
+                    <span className="font-semibold">Session Timeout</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Configure how long users can remain logged in before their session expires due to inactivity. 
+                    Current timeout: <strong>{sessionTimeoutData?.sessionTimeoutMinutes || 3} minutes</strong>
+                  </p>
+                  <div className="flex gap-2 items-end">
+                    <div className="space-y-2 flex-1 max-w-xs">
+                      <Label htmlFor="session-timeout">New Timeout (minutes)</Label>
+                      <Input
+                        id="session-timeout"
+                        type="number"
+                        min={1}
+                        max={10080}
+                        placeholder={String(sessionTimeoutData?.sessionTimeoutMinutes || 3)}
+                        value={sessionTimeoutInput}
+                        onChange={(e) => setSessionTimeoutInput(e.target.value)}
+                        data-testid="input-session-timeout"
+                      />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        const minutes = parseInt(sessionTimeoutInput, 10);
+                        if (!isNaN(minutes) && minutes >= 1 && minutes <= 10080) {
+                          sessionTimeoutMutation.mutate(minutes);
+                        }
+                      }}
+                      disabled={
+                        !sessionTimeoutInput || 
+                        isNaN(parseInt(sessionTimeoutInput, 10)) || 
+                        parseInt(sessionTimeoutInput, 10) < 1 || 
+                        parseInt(sessionTimeoutInput, 10) > 10080 ||
+                        sessionTimeoutMutation.isPending
+                      }
+                      data-testid="button-save-session-timeout"
+                    >
+                      {sessionTimeoutMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : null}
+                      Update Timeout
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Valid range: 1 minute to 10080 minutes (1 week). Changes apply to new sessions only.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

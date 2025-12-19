@@ -1,6 +1,6 @@
 import { useStore } from "@/lib/store";
 import { Link, useLocation } from "wouter";
-import { Menu, Building2, QrCode, Store } from "lucide-react";
+import { Menu, Building2, QrCode, Store, LogOut } from "lucide-react";
 import { useState } from "react";
 import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig } from "@/lib/api";
+import { logout } from "@/lib/authUtils";
 
 export function Layout({ 
   children, 
@@ -75,6 +76,18 @@ export function Layout({
             
             <div className="flex items-center gap-2">
               <LanguageSelector />
+              {isAdmin && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={logout}
+                  className="flex items-center gap-2"
+                  data-testid="button-logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              )}
             </div>
           </div>
 
@@ -90,6 +103,17 @@ export function Layout({
               <SheetContent side="right">
                 <div className="flex flex-col gap-4 mt-8">
                   <Link href="/" className="text-lg font-medium">Home</Link>
+                  {isAdmin && (
+                    <Button 
+                      variant="outline" 
+                      onClick={logout}
+                      className="flex items-center gap-2 w-full justify-start"
+                      data-testid="button-logout-mobile"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </Button>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>

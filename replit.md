@@ -60,10 +60,12 @@ Preferred communication style: Simple, everyday language.
 
 **Authentication System (3-Tier):**
 - **Master Admin**: Username/password login (username: jc141319), password stored securely in MASTER_ADMIN_PASSWORD secret with bcrypt hashing. Full system control including user/admin management.
-- **Admins**: Google OAuth via Replit Auth (OpenID Connect). Require master admin approval after first login. Can manage their assigned users and email QR codes.
+- **Admins**: Password-based login. Created by master admin. Can manage their assigned users and email QR codes.
 - **Users**: Account created by master admin, each gets isolated store config. Access Shop View, Admin View, Quick View for their own data.
-- Session management: connect-pg-simple with PostgreSQL storage, 7-day sessions
+- Session management: connect-pg-simple with PostgreSQL storage, configurable timeout (default 3 minutes)
+- Session timeout: Master admin can configure via Settings tab (1 minute to 1 week), stored in system_settings table
 - Route protection: requireMasterAdmin, requireAdmin, requireApproved middleware enforce role-based access
+- Logout buttons: Available in /admin page header (Layout component) for both desktop and mobile views
 
 **Recent Features:**
 - 6-platform support: Google Reviews, Facebook, Instagram, XiaoHongShu, TikTok, WhatsApp
@@ -143,4 +145,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Session and State Management
 - LocalStorage persistence for user selections and campaign data
-- No session management currently implemented (architecture supports future authentication via passport/express-session packages in dependencies)
+- PostgreSQL-backed session storage via connect-pg-simple
+- Configurable session timeout (default 3 minutes, editable by master admin)
+- Rolling sessions: session expiry resets on each request
+- `system_settings` table stores global configuration (session_timeout_minutes, etc.)

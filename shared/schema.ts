@@ -192,3 +192,23 @@ export const insertPasswordEventSchema = createInsertSchema(passwordEvents).omit
 
 export type InsertPasswordEvent = z.infer<typeof insertPasswordEventSchema>;
 export type PasswordEvent = typeof passwordEvents.$inferSelect;
+
+// System Settings - global configuration (session timeout, etc.)
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by"), // References users.id
+});
+
+export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
+export type SystemSetting = typeof systemSettings.$inferSelect;
+
+// Default session timeout in minutes
+export const DEFAULT_SESSION_TIMEOUT_MINUTES = 3;

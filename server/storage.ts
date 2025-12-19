@@ -7,6 +7,7 @@ import {
   users,
   adminUserAssignments,
   passwordEvents,
+  systemSettings,
   type StoreConfig, 
   type InsertStoreConfig,
   type Analytics,
@@ -24,7 +25,9 @@ import {
   type UserRole,
   type ApprovalStatus,
   type PasswordEvent,
-  type InsertPasswordEvent
+  type InsertPasswordEvent,
+  type SystemSetting,
+  DEFAULT_SESSION_TIMEOUT_MINUTES
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, and, desc, or, isNull } from "drizzle-orm";
@@ -95,6 +98,11 @@ export interface IStorage {
   
   // Recent Users for Admins
   addRecentUser(adminId: number, userId: number): Promise<void>;
+  
+  // System Settings
+  getSystemSetting(key: string): Promise<string | undefined>;
+  setSystemSetting(key: string, value: string, updatedBy?: number): Promise<SystemSetting>;
+  getSessionTimeoutMinutes(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -589,6 +597,46 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ recentUserIds: newRecent } as any)
       .where(eq(users.id, adminId));
+  }
+
+  // System Settings
+  async getSystemSetting(key: string): Promise<string | undefined> {
+    const [setting] = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, key))
+      .limit(1);
+    return setting?.value;
+  }
+
+  async setSystemSetting(key: string, value: string, updatedBy?: number): Promise<SystemSetting> {
+    const existing = await this.getSystemSetting(key);
+    
+    if (existing !== undefined) {
+      const [updated] = await db
+        .update(systemSettings)
+        .set({ value, updatedAt: sql`NOW()`, updatedBy })
+        .where(eq(systemSettings.key, key))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(systemSettings)
+        .values({ key, value, updatedBy } as any)
+        .returning();
+      return created;
+    }
+  }
+
+  async getSessionTimeoutMinutes(): Promise<number> {
+    const value = await this.getSystemSetting('session_timeout_minutes');
+    if (value) {
+      const parsed = parseInt(value, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+    return DEFAULT_SESSION_TIMEOUT_MINUTES;
   }
 }
 
