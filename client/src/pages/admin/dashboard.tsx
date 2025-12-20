@@ -953,196 +953,216 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="grid gap-4">
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div className="grid gap-2">
+                            {/* Business Name Display */}
+                            {confirmedBusinessName && (
+                                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
                                     <div className="flex items-center gap-2">
-                                        <Label htmlFor="google-reviews">Google Reviews URL</Label>
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <button 
-                                                    type="button" 
-                                                    className="text-muted-foreground hover:text-primary transition-colors"
-                                                    data-testid="button-google-help"
-                                                >
-                                                    <HelpCircle className="w-4 h-4" />
-                                                </button>
-                                            </DialogTrigger>
-                                            <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-                                                <DialogHeader>
-                                                    <DialogTitle>How to Find Your Google Maps Link</DialogTitle>
-                                                </DialogHeader>
-                                                <div className="space-y-4 text-sm">
-                                                    <p className="text-muted-foreground">Follow these steps to get the correct Google Maps link for your business:</p>
-                                                    
-                                                    <div className="space-y-3">
-                                                        <div className="p-3 bg-muted/50 rounded-lg">
-                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 1 — Open Google Maps</h4>
-                                                            <p>Go to: <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="text-[#2D7FF9] underline">https://maps.google.com</a></p>
-                                                            <p className="text-muted-foreground">Or open the Google Maps app on your phone.</p>
-                                                        </div>
-                                                        
-                                                        <div className="p-3 bg-muted/50 rounded-lg">
-                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 2 — Search for Your Business</h4>
-                                                            <p>In the search bar, type your business name exactly as customers know it.</p>
-                                                            <p className="text-muted-foreground">Example: Regrow</p>
-                                                            <p>Tap <strong>Search</strong>.</p>
-                                                        </div>
-                                                        
-                                                        <div className="p-3 bg-muted/50 rounded-lg">
-                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 3 — Select Your Business</h4>
-                                                            <p>From the search results, tap your business listing. You should now see your business info page with:</p>
-                                                            <ul className="list-disc list-inside text-muted-foreground mt-1">
-                                                                <li>Name</li>
-                                                                <li>Address</li>
-                                                                <li>Photos</li>
-                                                                <li>Reviews</li>
-                                                            </ul>
-                                                        </div>
-                                                        
-                                                        <div className="p-3 bg-muted/50 rounded-lg">
-                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 4 — Copy Your Business Link</h4>
-                                                            <p className="font-medium">On Phone (iOS or Android):</p>
-                                                            <ol className="list-decimal list-inside text-muted-foreground">
-                                                                <li>Tap <strong>Share</strong></li>
-                                                                <li>Tap <strong>Copy</strong> — This copies your official Google Maps business link.</li>
-                                                            </ol>
-                                                            <p className="font-medium mt-2">On Computer:</p>
-                                                            <ol className="list-decimal list-inside text-muted-foreground">
-                                                                <li>Click <strong>Share</strong></li>
-                                                                <li>Click <strong>Copy Link</strong></li>
-                                                            </ol>
-                                                        </div>
-                                                        
-                                                        <div className="p-3 bg-muted/50 rounded-lg">
-                                                            <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 5 — Paste the Link Into the App</h4>
-                                                            <p>Return to the app and paste the link where requested. This is all we need to identify your business.</p>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="p-3 bg-[#23C7C3]/10 border border-[#23C7C3]/30 rounded-lg text-center">
-                                                        <p className="font-semibold text-[#23C7C3]">Done!</p>
-                                                        <p className="text-muted-foreground">You now have the correct Google Maps business link. This link ensures the system can detect the right business name, address, and review page.</p>
-                                                    </div>
-                                                </div>
-                                            </DialogContent>
-                                        </Dialog>
+                                        <Building2 className="w-5 h-5 text-primary" />
+                                        <span className="font-semibold text-primary" data-testid="text-confirmed-business-name">{confirmedBusinessName}</span>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Google Place ID - Full Width Below Business Name */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="google-place-id">Google Place ID</Label>
+                                {config?.googlePlaceId && (
+                                    <p className="text-sm text-primary font-medium truncate" data-testid="text-saved-place-id">
+                                        Saved: {config.googlePlaceId}
+                                    </p>
+                                )}
+                                <div className="flex gap-2">
                                     <Input 
-                                        type="url" 
-                                        id="google-reviews" 
-                                        placeholder="https://g.page/r/..."
-                                        value={googleReviewsUrl}
-                                        onChange={(e) => setGoogleReviewsUrl(e.target.value)}
-                                        data-testid="input-google-reviews-url"
+                                        type="text" 
+                                        id="google-place-id" 
+                                        placeholder="ChIJ..."
+                                        value={googlePlaceId}
+                                        onChange={(e) => {
+                                          setGooglePlaceId(e.target.value);
+                                          setVerifiedBusiness(null);
+                                        }}
+                                        className="flex-1"
+                                        data-testid="input-google-place-id"
                                     />
                                 </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="google-place-id">Google Place ID</Label>
-                                    <div className="flex gap-2">
-                                        <Input 
-                                            type="text" 
-                                            id="google-place-id" 
-                                            placeholder="ChIJ..."
-                                            value={googlePlaceId}
-                                            onChange={(e) => {
-                                              setGooglePlaceId(e.target.value);
-                                              setVerifiedBusiness(null);
-                                            }}
-                                            className="flex-1"
-                                            data-testid="input-google-place-id"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID. Click "Set" to find and save your business.
-                                    </p>
-                                    <Button 
-                                        onClick={handleVerifyPlaceId}
-                                        disabled={isVerifyingPlace || !googlePlaceId}
-                                        variant="default"
-                                        className="w-full mt-2"
-                                        data-testid="button-set-place-id"
-                                    >
-                                        {isVerifyingPlace ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                {isResolvingUrl ? "Resolving URL..." : "Setting..."}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                Set
-                                            </>
-                                        )}
-                                    </Button>
-                                    
-                                    {verifiedBusiness && (
-                                        <div className="mt-3 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200" data-testid="verified-business-info">
-                                            <div className="flex items-start gap-3">
-                                                <div className="p-2 bg-green-100 rounded-full">
-                                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                <p className="text-xs text-muted-foreground">
+                                    Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID. Click "Set" to find and save your business.
+                                </p>
+                                <Button 
+                                    onClick={handleVerifyPlaceId}
+                                    disabled={isVerifyingPlace || !googlePlaceId}
+                                    variant="default"
+                                    className="w-full mt-2"
+                                    data-testid="button-set-place-id"
+                                >
+                                    {isVerifyingPlace ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            {isResolvingUrl ? "Resolving URL..." : "Setting..."}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                                            Set
+                                        </>
+                                    )}
+                                </Button>
+                                
+                                {verifiedBusiness && (
+                                    <div className="mt-3 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200" data-testid="verified-business-info">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-green-100 rounded-full">
+                                                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <p className="text-xs font-medium text-green-600 uppercase tracking-wide">Verified Business</p>
+                                                    {verifiedBusiness.verifiedAt && (
+                                                        <p className="text-xs text-gray-500" data-testid="text-verified-at">
+                                                            {verifiedBusiness.fromCache ? "Checked " : "Verified "}
+                                                            {(() => {
+                                                                const verifiedDate = new Date(verifiedBusiness.verifiedAt);
+                                                                const now = new Date();
+                                                                const diffDays = Math.floor((now.getTime() - verifiedDate.getTime()) / (1000 * 60 * 60 * 24));
+                                                                if (diffDays === 0) return "today";
+                                                                if (diffDays === 1) return "yesterday";
+                                                                if (diffDays < 7) return `${diffDays} days ago`;
+                                                                return verifiedDate.toLocaleDateString();
+                                                            })()}
+                                                        </p>
+                                                    )}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <p className="text-xs font-medium text-green-600 uppercase tracking-wide">Verified Business</p>
-                                                        {verifiedBusiness.verifiedAt && (
-                                                            <p className="text-xs text-gray-500" data-testid="text-verified-at">
-                                                                {verifiedBusiness.fromCache ? "Checked " : "Verified "}
-                                                                {(() => {
-                                                                    const verifiedDate = new Date(verifiedBusiness.verifiedAt);
-                                                                    const now = new Date();
-                                                                    const diffDays = Math.floor((now.getTime() - verifiedDate.getTime()) / (1000 * 60 * 60 * 24));
-                                                                    if (diffDays === 0) return "today";
-                                                                    if (diffDays === 1) return "yesterday";
-                                                                    if (diffDays < 7) return `${diffDays} days ago`;
-                                                                    return verifiedDate.toLocaleDateString();
-                                                                })()}
-                                                            </p>
-                                                        )}
+                                                <h4 className="font-semibold text-gray-900 text-lg" data-testid="text-business-name">
+                                                    {verifiedBusiness.businessName || "Unknown Business"}
+                                                </h4>
+                                                {verifiedBusiness.address && (
+                                                    <div className="flex items-start gap-1.5 mt-1.5 text-sm text-gray-600">
+                                                        <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-gray-400" />
+                                                        <span data-testid="text-business-address">{verifiedBusiness.address}</span>
                                                     </div>
-                                                    <h4 className="font-semibold text-gray-900 text-lg" data-testid="text-business-name">
-                                                        {verifiedBusiness.businessName || "Unknown Business"}
-                                                    </h4>
-                                                    {verifiedBusiness.address && (
-                                                        <div className="flex items-start gap-1.5 mt-1.5 text-sm text-gray-600">
-                                                            <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-gray-400" />
-                                                            <span data-testid="text-business-address">{verifiedBusiness.address}</span>
+                                                )}
+                                                {verifiedBusiness.rating && (
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <div className="flex items-center gap-1">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <Star 
+                                                                    key={i} 
+                                                                    className={`w-4 h-4 ${i < Math.round(verifiedBusiness.rating!) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+                                                                />
+                                                            ))}
                                                         </div>
-                                                    )}
-                                                    {verifiedBusiness.rating && (
-                                                        <div className="flex items-center gap-2 mt-2">
-                                                            <div className="flex items-center gap-1">
-                                                                {[...Array(5)].map((_, i) => (
-                                                                    <Star 
-                                                                        key={i} 
-                                                                        className={`w-4 h-4 ${i < Math.round(verifiedBusiness.rating!) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
-                                                                    />
-                                                                ))}
-                                                            </div>
-                                                            <span className="text-sm text-gray-600">
-                                                                {verifiedBusiness.rating.toFixed(1)} ({verifiedBusiness.totalReviews} reviews)
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {verifiedBusiness.googleMapsUrl && (
-                                                        <div className="mt-3">
-                                                            <a 
-                                                                href={verifiedBusiness.googleMapsUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                                                                data-testid="link-google-maps"
-                                                            >
-                                                                <ExternalLink className="w-3.5 h-3.5" />
-                                                                View on Google Maps
-                                                            </a>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                        <span className="text-sm text-gray-600">
+                                                            {verifiedBusiness.rating.toFixed(1)} ({verifiedBusiness.totalReviews} reviews)
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {verifiedBusiness.googleMapsUrl && (
+                                                    <div className="mt-3">
+                                                        <a 
+                                                            href={verifiedBusiness.googleMapsUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                                                            data-testid="link-google-maps"
+                                                        >
+                                                            <ExternalLink className="w-3.5 h-3.5" />
+                                                            View on Google Maps
+                                                        </a>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Google Reviews URL */}
+                            <div className="grid gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Label htmlFor="google-reviews">Google Reviews URL</Label>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <button 
+                                                type="button" 
+                                                className="text-muted-foreground hover:text-primary transition-colors"
+                                                data-testid="button-google-help"
+                                            >
+                                                <HelpCircle className="w-4 h-4" />
+                                            </button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                                            <DialogHeader>
+                                                <DialogTitle>How to Find Your Google Maps Link</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="space-y-4 text-sm">
+                                                <p className="text-muted-foreground">Follow these steps to get the correct Google Maps link for your business:</p>
+                                                
+                                                <div className="space-y-3">
+                                                    <div className="p-3 bg-muted/50 rounded-lg">
+                                                        <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 1 — Open Google Maps</h4>
+                                                        <p>Go to: <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="text-[#2D7FF9] underline">https://maps.google.com</a></p>
+                                                        <p className="text-muted-foreground">Or open the Google Maps app on your phone.</p>
+                                                    </div>
+                                                    
+                                                    <div className="p-3 bg-muted/50 rounded-lg">
+                                                        <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 2 — Search for Your Business</h4>
+                                                        <p>In the search bar, type your business name exactly as customers know it.</p>
+                                                        <p className="text-muted-foreground">Example: Regrow</p>
+                                                        <p>Tap <strong>Search</strong>.</p>
+                                                    </div>
+                                                    
+                                                    <div className="p-3 bg-muted/50 rounded-lg">
+                                                        <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 3 — Select Your Business</h4>
+                                                        <p>From the search results, tap your business listing. You should now see your business info page with:</p>
+                                                        <ul className="list-disc list-inside text-muted-foreground mt-1">
+                                                            <li>Name</li>
+                                                            <li>Address</li>
+                                                            <li>Photos</li>
+                                                            <li>Reviews</li>
+                                                        </ul>
+                                                    </div>
+                                                    
+                                                    <div className="p-3 bg-muted/50 rounded-lg">
+                                                        <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 4 — Copy Your Business Link</h4>
+                                                        <p className="font-medium">On Phone (iOS or Android):</p>
+                                                        <ol className="list-decimal list-inside text-muted-foreground">
+                                                            <li>Tap <strong>Share</strong></li>
+                                                            <li>Tap <strong>Copy</strong> — This copies your official Google Maps business link.</li>
+                                                        </ol>
+                                                        <p className="font-medium mt-2">On Computer:</p>
+                                                        <ol className="list-decimal list-inside text-muted-foreground">
+                                                            <li>Click <strong>Share</strong></li>
+                                                            <li>Click <strong>Copy Link</strong></li>
+                                                        </ol>
+                                                    </div>
+                                                    
+                                                    <div className="p-3 bg-muted/50 rounded-lg">
+                                                        <h4 className="font-semibold text-[#2D7FF9] mb-1">STEP 5 — Paste the Link Into the App</h4>
+                                                        <p>Return to the app and paste the link where requested. This is all we need to identify your business.</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="p-3 bg-[#23C7C3]/10 border border-[#23C7C3]/30 rounded-lg text-center">
+                                                    <p className="font-semibold text-[#23C7C3]">Done!</p>
+                                                    <p className="text-muted-foreground">You now have the correct Google Maps business link. This link ensures the system can detect the right business name, address, and review page.</p>
+                                                </div>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
+                                {config?.googleReviewsUrl && (
+                                    <p className="text-sm text-primary font-medium truncate" data-testid="text-saved-google-reviews-url">
+                                        Saved: {config.googleReviewsUrl}
+                                    </p>
+                                )}
+                                <Input 
+                                    type="url" 
+                                    id="google-reviews" 
+                                    placeholder="https://g.page/r/..."
+                                    value={googleReviewsUrl}
+                                    onChange={(e) => setGoogleReviewsUrl(e.target.value)}
+                                    data-testid="input-google-reviews-url"
+                                />
                             </div>
 
                             {/* Fetched Google Reviews Display */}
@@ -1192,6 +1212,11 @@ export default function AdminDashboard() {
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="facebook">Facebook URL</Label>
+                                    {config?.facebookUrl && (
+                                        <p className="text-sm text-primary font-medium truncate" data-testid="text-saved-facebook-url">
+                                            Saved: {config.facebookUrl}
+                                        </p>
+                                    )}
                                     <Input 
                                         type="url" 
                                         id="facebook" 
@@ -1204,6 +1229,11 @@ export default function AdminDashboard() {
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="instagram">Instagram URL</Label>
+                                    {config?.instagramUrl && (
+                                        <p className="text-sm text-primary font-medium truncate" data-testid="text-saved-instagram-url">
+                                            Saved: {config.instagramUrl}
+                                        </p>
+                                    )}
                                     <Input 
                                         type="url" 
                                         id="instagram" 
@@ -1216,6 +1246,11 @@ export default function AdminDashboard() {
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="xhs">XiaoHongShu URL</Label>
+                                    {config?.xiaohongshuUrl && (
+                                        <p className="text-sm text-primary font-medium truncate" data-testid="text-saved-xiaohongshu-url">
+                                            Saved: {config.xiaohongshuUrl}
+                                        </p>
+                                    )}
                                     <Input 
                                         type="url" 
                                         id="xhs" 
@@ -1228,6 +1263,11 @@ export default function AdminDashboard() {
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="tiktok">TikTok URL</Label>
+                                    {config?.tiktokUrl && (
+                                        <p className="text-sm text-primary font-medium truncate" data-testid="text-saved-tiktok-url">
+                                            Saved: {config.tiktokUrl}
+                                        </p>
+                                    )}
                                     <Input 
                                         type="url" 
                                         id="tiktok" 
@@ -1240,6 +1280,11 @@ export default function AdminDashboard() {
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="whatsapp">WhatsApp URL</Label>
+                                    {config?.whatsappUrl && (
+                                        <p className="text-sm text-primary font-medium truncate" data-testid="text-saved-whatsapp-url">
+                                            Saved: {config.whatsappUrl}
+                                        </p>
+                                    )}
                                     <Input 
                                         type="url" 
                                         id="whatsapp" 
