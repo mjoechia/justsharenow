@@ -5,9 +5,13 @@ import { logout } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle, Clock, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle, Clock, ExternalLink, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
+import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
+import { useState } from "react";
 
 interface AssignedUser {
   id: number;
@@ -30,6 +34,12 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [newUserUsername, setNewUserUsername] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserDisplayName, setNewUserDisplayName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+
   const { data: myUsers = [], isLoading: usersLoading } = useQuery<AssignedUser[]>({
     queryKey: ["/api/my-users"],
     enabled: isAdmin && isApproved,
@@ -46,6 +56,33 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/my-recent-users"] });
+    },
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: async (data: { username: string; password: string; displayName: string; email?: string }) => {
+      const res = await fetch('/api/admin/create-my-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to create user');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-users"] });
+      toast({ title: "User created successfully", description: `${data.user.displayName} has been created and assigned to you.` });
+      setIsCreateUserOpen(false);
+      setNewUserUsername("");
+      setNewUserPassword("");
+      setNewUserDisplayName("");
+      setNewUserEmail("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -153,14 +190,90 @@ export default function AdminDashboard() {
         )}
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              My Assigned Users ({myUsers.length})
-            </CardTitle>
-            <CardDescription>
-              Manage QR codes for your assigned users. You can email QR codes directly to users.
-            </CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                My Assigned Users ({myUsers.length})
+              </CardTitle>
+              <CardDescription>
+                Manage QR codes for your assigned users. You can create new users or email QR codes.
+              </CardDescription>
+            </div>
+            <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-create-user">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Create User
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New User</DialogTitle>
+                  <DialogDescription>
+                    Create a new user account. The user will be automatically assigned to you.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-user-username">Username *</Label>
+                    <Input
+                      id="new-user-username"
+                      value={newUserUsername}
+                      onChange={(e) => setNewUserUsername(e.target.value)}
+                      placeholder="username"
+                      data-testid="input-new-user-username"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-user-password">Password *</Label>
+                    <Input
+                      id="new-user-password"
+                      type="password"
+                      value={newUserPassword}
+                      onChange={(e) => setNewUserPassword(e.target.value)}
+                      placeholder="Minimum 8 characters"
+                      data-testid="input-new-user-password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-user-displayname">Display Name *</Label>
+                    <Input
+                      id="new-user-displayname"
+                      value={newUserDisplayName}
+                      onChange={(e) => setNewUserDisplayName(e.target.value)}
+                      placeholder="Business Name"
+                      data-testid="input-new-user-displayname"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-user-email">Email (optional)</Label>
+                    <Input
+                      id="new-user-email"
+                      type="email"
+                      value={newUserEmail}
+                      onChange={(e) => setNewUserEmail(e.target.value)}
+                      placeholder="user@example.com"
+                      data-testid="input-new-user-email"
+                    />
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => createUserMutation.mutate({
+                      username: newUserUsername,
+                      password: newUserPassword,
+                      displayName: newUserDisplayName,
+                      email: newUserEmail || undefined,
+                    })}
+                    disabled={!newUserUsername || !newUserPassword || !newUserDisplayName || newUserPassword.length < 8 || createUserMutation.isPending}
+                    data-testid="button-submit-create-user"
+                  >
+                    {createUserMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Create User
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardHeader>
           <CardContent>
             {usersLoading ? (

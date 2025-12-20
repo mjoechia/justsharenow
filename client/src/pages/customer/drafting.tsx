@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig, trackPlatformClick, saveTestimonial } from "@/lib/api";
 
 import regrowLogo from "@assets/generated_images/regrow_group_corporate_logo.png";
-import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
+import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
 const formatForXiaohongshu = (review: string, hashtags: string[], businessName?: string): string => {
   const stars = "⭐️⭐️⭐️⭐️⭐️";

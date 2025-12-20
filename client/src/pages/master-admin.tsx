@@ -11,9 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink, Settings, Clock } from "lucide-react";
+import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink, Settings, Clock, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
+import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
 interface User {
   id: number;
@@ -25,6 +25,7 @@ interface User {
   approvalStatus: 'pending' | 'approved' | 'rejected';
   isActive: boolean;
   createdAt: string;
+  businessName?: string | null;
 }
 
 interface AdminWithUsers {
@@ -658,6 +659,12 @@ export default function MasterAdminDashboard() {
                           <div>
                             <p className="font-medium">{userItem.displayName || userItem.email}</p>
                             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                              {userItem.businessName && (
+                                <span className="flex items-center gap-1 font-medium text-gray-700">
+                                  <Building2 className="w-3 h-3" />
+                                  {userItem.businessName}
+                                </span>
+                              )}
                               <span>{userItem.email}</span>
                               {userItem.slug && (
                                 <span className="flex items-center gap-1 text-purple-600">

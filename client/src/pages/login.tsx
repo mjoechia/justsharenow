@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
-import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
+import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
 async function login(username: string, password: string): Promise<{ success: boolean; error?: string; user?: any }> {
   try {

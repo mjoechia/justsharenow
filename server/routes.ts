@@ -64,18 +64,23 @@ export async function registerRoutes(
   app.get("/api/admin/users", requireMasterAdmin, async (_req, res) => {
     try {
       const allUsers = await storage.getAllUsers();
-      res.json(allUsers.map(u => ({
-        id: u.id,
-        username: u.username,
-        email: u.email,
-        displayName: u.displayName,
-        avatarUrl: u.avatarUrl,
-        slug: u.slug,
-        role: u.role,
-        approvalStatus: u.approvalStatus,
-        isActive: u.isActive,
-        createdAt: u.createdAt,
-      })));
+      const usersWithBusiness = await Promise.all(allUsers.map(async u => {
+        const config = await storage.getStoreConfigByUserId(u.id);
+        return {
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          displayName: u.displayName,
+          avatarUrl: u.avatarUrl,
+          slug: u.slug,
+          role: u.role,
+          approvalStatus: u.approvalStatus,
+          isActive: u.isActive,
+          createdAt: u.createdAt,
+          businessName: config?.businessName || null,
+        };
+      }));
+      res.json(usersWithBusiness);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
@@ -601,6 +606,85 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error tracking view:", error);
       res.status(500).json({ error: "Failed to track view" });
+    }
+  });
+
+  // Admin creates user under them (for admins only)
+  app.post("/api/admin/create-my-user", requireAdmin, async (req, res) => {
+    try {
+      const adminUser = req.user as Express.User;
+      const { username, password, displayName, email } = req.body;
+
+      if (!username || !password || !displayName) {
+        return res.status(400).json({ error: "Username, password, and display name are required" });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "User with this username already exists" });
+      }
+
+      if (email) {
+        const existingEmail = await storage.getUserByEmail(email);
+        if (existingEmail) {
+          return res.status(400).json({ error: "User with this email already exists" });
+        }
+      }
+
+      // Generate slug from username
+      let baseSlug = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+      let slug = baseSlug;
+      let counter = 1;
+      while (await storage.getUserBySlug(slug)) {
+        slug = `${baseSlug}${counter}`;
+        counter++;
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
+      const user = await storage.createUser({
+        username,
+        passwordHash,
+        email: email || null,
+        displayName,
+        role: 'user',
+        slug,
+        approvalStatus: 'approved',
+        approvedBy: adminUser.id,
+        isActive: true,
+      });
+
+      // Automatically assign the user to this admin
+      await storage.assignUserToAdmin(adminUser.id, user.id, adminUser.id);
+
+      // Create store config for the new user
+      await storage.createStoreConfigForUser(user.id);
+
+      // Log audit event
+      await storage.logPasswordEvent({
+        actorUserId: adminUser.id,
+        targetUserId: user.id,
+        action: 'create',
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      });
+
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          email: user.email,
+          slug: user.slug,
+        }
+      });
+    } catch (error) {
+      console.error("Error creating user for admin:", error);
+      res.status(500).json({ error: "Failed to create user" });
     }
   });
 

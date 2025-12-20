@@ -2,7 +2,7 @@ import { useStore } from "@/lib/store";
 import { Link, useLocation } from "wouter";
 import { Menu, Building2, QrCode, Store, LogOut } from "lucide-react";
 import { useState } from "react";
-import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
+import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";

@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse, resolveGoogleMapsUrl } from "@/lib/api";
-import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
+import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import QuickView from "@/pages/quick-view";
 import Landing from "@/pages/landing";
 import { useAuth } from "@/hooks/useAuth";
