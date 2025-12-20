@@ -797,6 +797,24 @@ export default function MasterAdminDashboard() {
                     Valid range: 1 minute to 10080 minutes (1 week). Changes apply to new sessions only.
                   </p>
                 </div>
+
+                {/* Login QR Code */}
+                <div className="p-4 rounded-lg border bg-muted/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ExternalLink className="w-5 h-5 text-primary" />
+                    <span className="font-semibold">Login QR Code</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Generate and download a QR code with the JustShareNow logo that links to the login page.
+                  </p>
+                  <Button
+                    onClick={() => window.open('/login-qr', '_blank')}
+                    data-testid="button-open-login-qr"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Open Login QR Code Page
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

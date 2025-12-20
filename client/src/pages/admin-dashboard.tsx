@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle, Clock, ExternalLink, UserPlus } from "lucide-react";
+import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle, Clock, ExternalLink, UserPlus, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import { useState } from "react";
@@ -39,6 +39,11 @@ export default function AdminDashboard() {
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserDisplayName, setNewUserDisplayName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
+  
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const { data: myUsers = [], isLoading: usersLoading } = useQuery<AssignedUser[]>({
     queryKey: ["/api/my-users"],
@@ -80,6 +85,31 @@ export default function AdminDashboard() {
       setNewUserPassword("");
       setNewUserDisplayName("");
       setNewUserEmail("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to change password');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Password changed successfully" });
+      setIsChangePasswordOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -146,10 +176,90 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-500">Logged in as {user.displayName || user.email}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={logout} data-testid="button-logout">
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Dialog open={isChangePasswordOpen} onOpenChange={(open) => {
+              setIsChangePasswordOpen(open);
+              if (!open) {
+                setCurrentPassword("");
+                setNewPassword("");
+                setConfirmPassword("");
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="button-change-password">
+                  <Key className="w-4 h-4 mr-2" />
+                  Change Password
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Change Password</DialogTitle>
+                  <DialogDescription>
+                    Enter your current password and choose a new one.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="current-password">Current Password</Label>
+                    <Input
+                      id="current-password"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      data-testid="input-current-password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">New Password</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Minimum 8 characters"
+                      data-testid="input-new-password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirm New Password</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      data-testid="input-confirm-password"
+                    />
+                  </div>
+                  {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-sm text-red-500">Passwords do not match</p>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsChangePasswordOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => changePasswordMutation.mutate({ currentPassword, newPassword })}
+                    disabled={
+                      !currentPassword || 
+                      !newPassword || 
+                      newPassword.length < 8 || 
+                      newPassword !== confirmPassword ||
+                      changePasswordMutation.isPending
+                    }
+                    data-testid="button-confirm-change-password"
+                  >
+                    {changePasswordMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Change Password
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" onClick={logout} data-testid="button-logout">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 

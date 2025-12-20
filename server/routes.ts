@@ -318,6 +318,55 @@ export async function registerRoutes(
     }
   });
 
+  // Change own password (for admins and users)
+  app.post("/api/auth/change-password", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = req.user as Express.User;
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+      
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+      
+      // Verify current password
+      const fullUser = await storage.getUserById(user.id);
+      if (!fullUser || !fullUser.passwordHash) {
+        return res.status(400).json({ error: "Cannot change password for this account" });
+      }
+      
+      const isValid = await bcrypt.compare(currentPassword, fullUser.passwordHash);
+      if (!isValid) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+      
+      // Update password
+      const passwordHash = await bcrypt.hash(newPassword, 12);
+      await storage.updatePassword(user.id, passwordHash);
+      
+      // Log audit event
+      await storage.logPasswordEvent({
+        actorUserId: user.id,
+        targetUserId: user.id,
+        action: 'change',
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
   // Get active admins (for dropdowns)
   app.get("/api/admin/active-admins", requireMasterAdmin, async (_req, res) => {
     try {
