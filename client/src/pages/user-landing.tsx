@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, MapPin, Facebook, Instagram, MessageCircle, ExternalLink, ThumbsUp, UserPlus, QrCode, Building2, Copy, Check } from "lucide-react";
-import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
+import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import { QRCodeSVG } from "qrcode.react";

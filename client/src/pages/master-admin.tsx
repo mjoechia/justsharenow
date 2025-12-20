@@ -240,12 +240,19 @@ export default function MasterAdminDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
-      if (!res.ok) throw new Error('Failed to update user status');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update user status');
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/admins-with-users"] });
       toast({ title: "User status updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
+import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import { Facebook, Instagram, MapPin, MessageCircle, Download, Link as LinkIcon, RefreshCw, Building2, Camera, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
