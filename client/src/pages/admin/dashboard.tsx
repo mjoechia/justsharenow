@@ -3,19 +3,56 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2 } from "lucide-react";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2, Crop } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse, resolveGoogleMapsUrl } from "@/lib/api";
 import justShareNowLogo from "@assets/justsharenow_logo_1765236628260.jpg";
 import QuickView from "@/pages/quick-view";
 import Landing from "@/pages/landing";
 import { useAuth } from "@/hooks/useAuth";
+import Cropper from "react-easy-crop";
+import type { Area } from "react-easy-crop";
+
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new window.Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", (error) => reject(error));
+    image.src = url;
+  });
+
+async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<string> {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("No 2d context");
+  }
+
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  return canvas.toDataURL("image/jpeg", 0.9);
+}
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
@@ -65,6 +102,18 @@ export default function AdminDashboard() {
     fromCache?: boolean;
   } | null>(null);
   const [confirmedBusinessName, setConfirmedBusinessName] = useState<string | null>(null);
+  const sliderFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Cropper state for slider photos
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+
+  const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
 
   useEffect(() => {
     if (config) {
@@ -638,24 +687,67 @@ export default function AdminDashboard() {
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        const newPhotos = [...sliderPhotos, reader.result as string];
-        setSliderPhotos(newPhotos);
-        updateConfigMutation.mutate({
-          websiteUrl,
-          googleReviewsUrl,
-          googlePlaceId,
-          facebookUrl: fbUrl,
-          instagramUrl: igUrl,
-          xiaohongshuUrl: xhsUrl,
-          tiktokUrl,
-          whatsappUrl,
-          shopPhotos,
-          sliderPhotos: newPhotos,
-          reviewHashtags: selectedHashtags,
-        });
+        setImageToCrop(reader.result as string);
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+        setCropDialogOpen(true);
       };
       reader.readAsDataURL(file);
     }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleCropConfirm = async () => {
+    if (!imageToCrop || !croppedAreaPixels) return;
+
+    try {
+      const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      const newPhotos = [...sliderPhotos, croppedImage];
+      setSliderPhotos(newPhotos);
+      updateConfigMutation.mutate({
+        websiteUrl,
+        googleReviewsUrl,
+        googlePlaceId,
+        facebookUrl: fbUrl,
+        instagramUrl: igUrl,
+        xiaohongshuUrl: xhsUrl,
+        tiktokUrl,
+        whatsappUrl,
+        shopPhotos,
+        sliderPhotos: newPhotos,
+        reviewHashtags: selectedHashtags,
+      });
+      setCropDialogOpen(false);
+      resetCropState();
+      toast({
+        title: "Photo Added",
+        description: "Slider photo has been cropped and added.",
+      });
+    } catch (error) {
+      console.error("Crop failed:", error);
+      toast({
+        title: "Crop Failed",
+        description: "Could not crop the image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetCropState = useCallback(() => {
+    setImageToCrop(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    // Reset file input to allow re-selecting the same file
+    if (sliderFileInputRef.current) {
+      sliderFileInputRef.current.value = '';
+    }
+  }, []);
+
+  const handleCropCancel = () => {
+    setCropDialogOpen(false);
+    resetCropState();
   };
 
   const removeSliderPhoto = (index: number) => {
@@ -1390,6 +1482,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="relative">
                         <Input 
+                            ref={sliderFileInputRef}
                             type="file" 
                             className="hidden" 
                             id="slider-upload" 
@@ -1490,6 +1583,63 @@ export default function AdminDashboard() {
             </div>
         </div>
       </div>
+
+      {/* Crop Dialog for Slider Photos */}
+      <Dialog open={cropDialogOpen} onOpenChange={(open) => {
+        setCropDialogOpen(open);
+        if (!open) {
+          resetCropState();
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crop className="w-5 h-5" />
+              Crop Slider Photo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Adjust the crop area to fit the slider. Use a 16:9 aspect ratio for best results on desktop.
+            </p>
+            {imageToCrop && (
+              <div className="relative h-[400px] bg-gray-100 rounded-lg overflow-hidden">
+                <Cropper
+                  image={imageToCrop}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={16 / 9}
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
+                />
+              </div>
+            )}
+            <div className="flex items-center gap-4">
+              <Label className="text-sm font-medium">Zoom</Label>
+              <input
+                type="range"
+                value={zoom}
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                min={1}
+                max={3}
+                step={0.1}
+                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              />
+              <span className="text-sm text-muted-foreground w-12">{zoom.toFixed(1)}x</span>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handleCropCancel}>
+                Cancel
+              </Button>
+              <Button onClick={handleCropConfirm} data-testid="button-confirm-crop">
+                <Check className="w-4 h-4 mr-2" />
+                Crop & Add
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

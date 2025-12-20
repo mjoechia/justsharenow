@@ -3,11 +3,15 @@ import { motion } from "framer-motion";
 import { useLocation, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, MapPin, Facebook, Instagram, MessageCircle, ExternalLink } from "lucide-react";
+import { Loader2, MapPin, Facebook, Instagram, MessageCircle, ExternalLink, ThumbsUp, UserPlus, QrCode, Building2, Copy, Check } from "lucide-react";
 import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
+import { QRCodeSVG } from "qrcode.react";
+import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 
 interface UserConfigData {
   user: {
@@ -30,23 +34,67 @@ interface UserConfigData {
   } | null;
 }
 
-const TikTokIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-  </svg>
-);
-
-const XiaohongshuIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-13h4v2h-4v-2zm0 4h4v6h-4v-6z"/>
-  </svg>
-);
+const platforms = [
+  {
+    id: 'google-reviews',
+    name: 'Google Reviews',
+    icon: <MapPin className="w-8 h-8 text-blue-600" />,
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+    hoverBg: 'hover:bg-blue-100',
+  },
+  {
+    id: 'xiaohongshu',
+    name: 'XiaoHongShu',
+    icon: <span className="text-2xl font-bold text-red-600">小红书</span>,
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
+    hoverBg: 'hover:bg-red-100',
+  },
+  {
+    id: 'instagram',
+    name: 'Instagram',
+    icon: <Instagram className="w-8 h-8 text-pink-600" />,
+    bgColor: 'bg-pink-50',
+    borderColor: 'border-pink-200',
+    hoverBg: 'hover:bg-pink-100',
+  },
+  {
+    id: 'facebook',
+    name: 'Facebook',
+    icon: <Facebook className="w-8 h-8 text-[#2D7FF9]" />,
+    bgColor: 'bg-[#2D7FF9]/5',
+    borderColor: 'border-[#2D7FF9]/20',
+    hoverBg: 'hover:bg-[#2D7FF9]/10',
+  },
+  {
+    id: 'follow-facebook',
+    name: 'Follow Facebook',
+    icon: <ThumbsUp className="w-8 h-8 text-blue-700" />,
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+    hoverBg: 'hover:bg-blue-100',
+  },
+  {
+    id: 'follow-instagram',
+    name: 'Follow Instagram',
+    icon: <UserPlus className="w-8 h-8 text-pink-700" />,
+    bgColor: 'bg-pink-50',
+    borderColor: 'border-pink-200',
+    hoverBg: 'hover:bg-pink-100',
+  }
+];
 
 export default function UserLanding() {
   const { slug } = useParams<{ slug: string }>();
   const [, setLocation] = useLocation();
-  const { language } = useStore();
+  const { language, setSelectedPlatform } = useStore();
   const t = translations[language];
+  const [quickViewUrl, setQuickViewUrl] = useState("");
+  const [followFbModalOpen, setFollowFbModalOpen] = useState(false);
+  const [followIgModalOpen, setFollowIgModalOpen] = useState(false);
+  const [xhsModalOpen, setXhsModalOpen] = useState(false);
+  const [xhsCopied, setXhsCopied] = useState(false);
 
   const { data, isLoading, error } = useQuery<UserConfigData>({
     queryKey: ['user-config', slug],
@@ -58,6 +106,149 @@ export default function UserLanding() {
     enabled: !!slug,
   });
 
+  const config = data?.config;
+  const sliderPhotos = config?.sliderPhotos || [];
+
+  useEffect(() => {
+    if (slug) {
+      setQuickViewUrl(`${window.location.origin}/${slug}`);
+    }
+  }, [slug]);
+
+  const availablePlatforms = useMemo(() => {
+    return platforms.filter(platform => {
+      if (platform.id === 'google-reviews') {
+        return !!config?.googleReviewsUrl;
+      }
+      if (platform.id === 'facebook') {
+        return !!config?.facebookUrl;
+      }
+      if (platform.id === 'instagram') {
+        return !!config?.instagramUrl;
+      }
+      if (platform.id === 'xiaohongshu') {
+        return !!config?.xiaohongshuUrl;
+      }
+      if (platform.id === 'follow-facebook') {
+        return !!config?.facebookUrl;
+      }
+      if (platform.id === 'follow-instagram') {
+        return !!config?.instagramUrl;
+      }
+      return false;
+    });
+  }, [config]);
+
+  const trackPlatformClick = async (platform: string) => {
+    if (config?.placeId) {
+      fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, placeId: config.placeId }),
+      }).catch(console.error);
+    }
+  };
+
+  const openXiaohongshu = (profileUrl?: string) => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+    
+    if (isIOS) {
+      window.location.href = "xhsdiscover://";
+      setTimeout(() => {
+        window.open("https://apps.apple.com/app/id741292507", "_blank");
+      }, 2000);
+    } else if (isAndroid) {
+      window.location.href = "intent://#Intent;scheme=xhsdiscover;package=com.xingin.xhs;end";
+      setTimeout(() => {
+        window.open("https://play.google.com/store/apps/details?id=com.xingin.xhs", "_blank");
+      }, 2000);
+    } else {
+      window.open(profileUrl || "https://www.xiaohongshu.com", "_blank");
+    }
+  };
+
+  const getXhsContent = () => {
+    const businessName = config?.businessName || "this place";
+    const hashtags = config?.reviewHashtags?.slice(0, 5).map(tag => `#${tag}`).join(' ') || '';
+    return `Just visited ${businessName}! Amazing experience! ${hashtags}`.trim();
+  };
+
+  const handleXhsCopyAndOpen = async () => {
+    const content = getXhsContent();
+    try {
+      await navigator.clipboard.writeText(content);
+      setXhsCopied(true);
+      toast.success(t.customer.platform?.copied || "Copied to clipboard!");
+      await trackPlatformClick('xiaohongshu');
+      setTimeout(() => {
+        openXiaohongshu(config?.xiaohongshuUrl || undefined);
+        setXhsModalOpen(false);
+      }, 500);
+    } catch (err) {
+      toast.error("Failed to copy");
+    }
+  };
+
+  const handleFollowFacebook = async () => {
+    if (config?.facebookUrl) {
+      await trackPlatformClick('follow-facebook');
+      window.open(config.facebookUrl, '_blank');
+      setFollowFbModalOpen(false);
+    }
+  };
+
+  const openInstagramProfile = (profileUrl: string) => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+    
+    const usernameMatch = profileUrl.match(/instagram\.com\/([^/?]+)/);
+    const username = usernameMatch ? usernameMatch[1] : null;
+    
+    if (isIOS && username) {
+      window.location.href = `instagram://user?username=${username}`;
+      setTimeout(() => {
+        window.open(profileUrl, '_blank');
+      }, 1500);
+    } else if (isAndroid && username) {
+      window.location.href = `intent://instagram.com/_u/${username}#Intent;package=com.instagram.android;scheme=https;end`;
+      setTimeout(() => {
+        window.open(profileUrl, '_blank');
+      }, 1500);
+    } else {
+      window.open(profileUrl, '_blank');
+    }
+  };
+
+  const handleFollowInstagram = async () => {
+    if (config?.instagramUrl) {
+      await trackPlatformClick('follow-instagram');
+      openInstagramProfile(config.instagramUrl);
+      setFollowIgModalOpen(false);
+    }
+  };
+
+  const handlePlatformClick = (platformId: string) => {
+    if (platformId === 'follow-facebook') {
+      setFollowFbModalOpen(true);
+      return;
+    }
+    if (platformId === 'follow-instagram') {
+      setFollowIgModalOpen(true);
+      return;
+    }
+    if (platformId === 'xiaohongshu') {
+      setXhsModalOpen(true);
+      return;
+    }
+    
+    setSelectedPlatform(platformId);
+    trackPlatformClick(platformId);
+    setLocation(`/${slug}/drafting`);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">
@@ -66,7 +257,7 @@ export default function UserLanding() {
     );
   }
 
-  if (error || !data || !data.config) {
+  if (error || !data || !config) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100 p-4">
         <Card className="w-full max-w-md">
@@ -79,123 +270,266 @@ export default function UserLanding() {
     );
   }
 
-  const config = data.config;
-  const displayPhotos = config.sliderPhotos?.length > 0 
-    ? config.sliderPhotos 
-    : config.shopPhotos?.length > 0 
-      ? config.shopPhotos 
-      : [justShareNowLogo];
-
-  const platforms = [
-    { key: 'google-reviews', url: config.googleReviewsUrl, label: 'Google Reviews', icon: <MapPin className="w-5 h-5" />, color: 'bg-blue-500 hover:bg-blue-600' },
-    { key: 'facebook', url: config.facebookUrl, label: 'Facebook', icon: <Facebook className="w-5 h-5" />, color: 'bg-blue-700 hover:bg-blue-800' },
-    { key: 'instagram', url: config.instagramUrl, label: 'Instagram', icon: <Instagram className="w-5 h-5" />, color: 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' },
-    { key: 'xiaohongshu', url: config.xiaohongshuUrl, label: 'XiaoHongShu', icon: <XiaohongshuIcon />, color: 'bg-red-500 hover:bg-red-600' },
-    { key: 'tiktok', url: config.tiktokUrl, label: 'TikTok', icon: <TikTokIcon />, color: 'bg-gray-900 hover:bg-gray-800' },
-    { key: 'whatsapp', url: config.whatsappUrl, label: 'WhatsApp', icon: <MessageCircle className="w-5 h-5" />, color: 'bg-green-500 hover:bg-green-600' },
-  ].filter(p => p.url);
-
-  const handlePlatformClick = async (platform: string, url: string) => {
-    if (config.placeId) {
-      fetch('/api/analytics/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform, placeId: config.placeId }),
-      }).catch(console.error);
-    }
-    window.open(url, '_blank');
-  };
-
-  const handleWriteReview = () => {
-    setLocation(`/${slug}/drafting`);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
-      <div className="max-w-md mx-auto px-4 py-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-6"
-        >
-          <img src={justShareNowLogo} alt="JustShareNow" className="w-24 h-auto mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900">{config.businessName || data.user.displayName}</h1>
-        </motion.div>
-
-        {displayPhotos.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className="mb-6"
-          >
-            <Carousel 
-              className="w-full"
-              plugins={[Autoplay({ delay: 4000 })]}
+    <>
+      <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+        {/* Mobile: Top Carousel (1/3 height) */}
+        {/* Desktop: Left Carousel (2/3 width) */}
+        <div className="h-[33vh] lg:h-screen lg:w-2/3 relative overflow-hidden bg-gradient-to-br from-[#2D7FF9]/5 to-[#23C7C3]/5">
+          {sliderPhotos.length > 0 ? (
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              plugins={[
+                Autoplay({
+                  delay: 4000,
+                }),
+              ]}
+              className="w-full h-full"
             >
-              <CarouselContent>
-                {displayPhotos.map((photo, index) => (
-                  <CarouselItem key={index}>
-                    <Card className="overflow-hidden">
-                      <CardContent className="p-0">
-                        <img 
-                          src={photo} 
-                          alt={`Photo ${index + 1}`} 
-                          className="w-full h-48 object-cover"
-                        />
-                      </CardContent>
-                    </Card>
+              <CarouselContent className="h-full -ml-0">
+                {sliderPhotos.map((photo, index) => (
+                  <CarouselItem key={index} className="h-full pl-0 basis-full">
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={photo} 
+                        alt={`Slider photo ${index + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              {displayPhotos.length > 1 && (
-                <>
-                  <CarouselPrevious className="left-2" />
-                  <CarouselNext className="right-2" />
-                </>
-              )}
+              <CarouselPrevious className="left-4" />
+              <CarouselNext className="right-4" />
             </Carousel>
-          </motion.div>
-        )}
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#2D7FF9]/10 to-[#23C7C3]/10">
+              <div className="text-center text-muted-foreground p-8">
+                <img src={justShareNowLogo} alt="JustShareNow" className="w-24 h-auto mx-auto mb-4" />
+                <p className="text-lg font-medium mb-2">{t.landing.welcome}</p>
+              </div>
+            </div>
+          )}
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-3 mb-6"
-        >
-          <Button 
-            onClick={handleWriteReview}
-            className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-            data-testid="button-write-review"
-          >
-            {language === 'en' ? 'Write a Review' : '写评论'}
-          </Button>
-        </motion.div>
+        {/* Mobile: Bottom Buttons (2/3 height) */}
+        {/* Desktop: Right Buttons (1/3 width) */}
+        <div className="flex-1 lg:w-1/3 p-4 lg:p-6 flex flex-col">
+          <div className="text-center mb-4 lg:mb-6">
+            {config?.businessName && (
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Building2 className="w-5 h-5 text-primary" />
+                <span className="text-lg font-semibold text-primary" data-testid="text-shop-business-name">
+                  {config.businessName}
+                </span>
+              </div>
+            )}
+            <h1 className="text-xl lg:text-2xl font-heading font-bold text-foreground">
+              {t.landing.shareExperience}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              {t.landing.tapPlatform}
+            </p>
+          </div>
 
-        {platforms.length > 0 && (
-          <motion.div
+          {/* 2 Column Grid for Platform Buttons */}
+          <div className="grid grid-cols-2 gap-3 lg:gap-4 flex-1 content-start">
+            {availablePlatforms.map((platform, index) => (
+              <motion.div
+                key={platform.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card 
+                  className={`h-full cursor-pointer transition-all duration-200 border-2 ${platform.borderColor} ${platform.bgColor} ${platform.hoverBg} hover:shadow-md hover:scale-[1.02] active:scale-[0.98]`}
+                  onClick={() => handlePlatformClick(platform.id)}
+                  data-testid={`button-platform-${platform.id}`}
+                >
+                  <CardContent className="p-4 lg:p-5 flex flex-col items-center justify-center text-center h-full min-h-[100px] lg:min-h-[120px]">
+                    <div className="mb-2 lg:mb-3">
+                      {platform.icon}
+                    </div>
+                    <h3 className="font-medium text-sm lg:text-base text-foreground leading-tight">
+                      {platform.name}
+                    </h3>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* QR Code Section */}
+          <motion.div 
+            className="mt-4 lg:mt-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
           >
-            <h3 className="text-sm font-medium text-gray-500 mb-3 text-center">{language === 'en' ? 'Share on Social' : '分享到社交平台'}</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {platforms.map((platform) => (
-                <Button
-                  key={platform.key}
-                  onClick={() => handlePlatformClick(platform.key, platform.url!)}
-                  className={`${platform.color} text-white flex items-center justify-center gap-2 py-3`}
-                  data-testid={`button-platform-${platform.key}`}
-                >
-                  {platform.icon}
-                  {platform.label}
-                </Button>
-              ))}
-            </div>
+            <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-[#2D7FF9]/5 to-[#23C7C3]/5">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="bg-white p-2 rounded-lg shadow-sm border">
+                  {quickViewUrl && (
+                    <QRCodeSVG 
+                      value={quickViewUrl}
+                      size={80}
+                      level="M"
+                      fgColor="#2D7FF9"
+                    />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <QrCode className="w-4 h-4 text-primary" />
+                    <h4 className="font-semibold text-sm text-foreground">Quick View</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Scan this QR code to access the mobile sharing experience
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* Follow Facebook Modal */}
+      <Dialog open={followFbModalOpen} onOpenChange={setFollowFbModalOpen}>
+        <DialogContent className="max-w-sm mx-auto">
+          <DialogTitle className="sr-only">Follow on Facebook</DialogTitle>
+          <div className="flex flex-col items-center text-center p-4 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-[#1877F2] flex items-center justify-center">
+              <Facebook className="w-8 h-8 text-white" />
+            </div>
+            
+            {config?.businessName && (
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-foreground">{config.businessName}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t.customer.platform?.followFbSubtitle || "Stay connected with us on Facebook!"}
+                </p>
+              </div>
+            )}
+            
+            {!config?.businessName && (
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-foreground">
+                  {t.customer.platform?.followFbTitle || "Follow Us"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t.customer.platform?.followFbSubtitle || "Stay connected with us on Facebook!"}
+                </p>
+              </div>
+            )}
+            
+            <Button 
+              onClick={handleFollowFacebook}
+              className="w-full h-12 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white text-base font-medium"
+              data-testid="button-follow-facebook"
+              disabled={!config?.facebookUrl}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              {t.customer.platform?.followOnFacebook || "Follow on Facebook"}
+            </Button>
+            
+            <p className="text-xs text-muted-foreground">
+              Please allow pop-ups if prompted
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Follow Instagram Modal */}
+      <Dialog open={followIgModalOpen} onOpenChange={setFollowIgModalOpen}>
+        <DialogContent className="max-w-sm mx-auto">
+          <DialogTitle className="sr-only">Follow on Instagram</DialogTitle>
+          <div className="flex flex-col items-center text-center p-4 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737] flex items-center justify-center">
+              <Instagram className="w-8 h-8 text-white" />
+            </div>
+            
+            {config?.businessName && (
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-foreground">{config.businessName}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t.customer.platform?.followIgSubtitle || "Follow us on Instagram!"}
+                </p>
+              </div>
+            )}
+            
+            {!config?.businessName && (
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-foreground">
+                  {t.customer.platform?.followIgTitle || "Follow Us"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t.customer.platform?.followIgSubtitle || "Follow us on Instagram!"}
+                </p>
+              </div>
+            )}
+            
+            <Button 
+              onClick={handleFollowInstagram}
+              className="w-full h-12 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-90 text-white text-base font-medium"
+              data-testid="button-follow-instagram"
+              disabled={!config?.instagramUrl}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              {t.customer.platform?.followOnInstagram || "Follow on Instagram"}
+            </Button>
+            
+            <p className="text-xs text-muted-foreground">
+              Please allow pop-ups if prompted
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* XiaoHongShu Modal */}
+      <Dialog open={xhsModalOpen} onOpenChange={setXhsModalOpen}>
+        <DialogContent className="max-w-sm mx-auto">
+          <DialogTitle className="sr-only">Share on XiaoHongShu</DialogTitle>
+          <div className="flex flex-col items-center text-center p-4 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center">
+              <span className="text-xl font-bold text-white">小红书</span>
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-foreground">
+                {t.customer.platform?.shareOnXhs || "Share on XiaoHongShu"}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {t.customer.platform?.xhsSubtitle || "Share your experience on XiaoHongShu!"}
+              </p>
+            </div>
+            
+            <div className="w-full p-3 bg-muted/50 rounded-lg text-left">
+              <p className="text-sm text-foreground whitespace-pre-wrap">{getXhsContent()}</p>
+            </div>
+            
+            <Button 
+              onClick={handleXhsCopyAndOpen}
+              className="w-full h-12 bg-red-500 hover:bg-red-600 text-white text-base font-medium"
+              data-testid="button-xhs-copy-open"
+            >
+              {xhsCopied ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  {t.customer.platform?.copied || "Copied!"}
+                </>
+              ) : (
+                <>
+                  <Copy className="mr-2 h-4 w-4" />
+                  {t.customer.platform?.copyAndOpen || "Copy & Open XiaoHongShu"}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

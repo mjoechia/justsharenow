@@ -6,7 +6,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import justShareNowLogo from "@assets/justsharenow_square-removebg_1765269040896.png";
-import { Facebook, Instagram, MapPin, MessageCircle, Download, Link as LinkIcon, RefreshCw, Building2, Camera } from "lucide-react";
+import { Facebook, Instagram, MapPin, MessageCircle, Download, Link as LinkIcon, RefreshCw, Building2, Camera, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -51,6 +51,29 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
     queryKey: ['storeConfig'],
     queryFn: getStoreConfig,
   });
+
+  // Slider state for reduced slider photos
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const sliderPhotos: string[] = (config as any)?.sliderPhotos || [];
+
+  // Reset currentSlide when sliderPhotos changes to prevent out-of-bounds
+  useEffect(() => {
+    if (currentSlide >= sliderPhotos.length && sliderPhotos.length > 0) {
+      setCurrentSlide(0);
+    }
+  }, [sliderPhotos.length, currentSlide]);
+
+  const nextSlide = () => {
+    if (sliderPhotos.length > 0) {
+      setCurrentSlide((prev) => (prev + 1) % sliderPhotos.length);
+    }
+  };
+
+  const prevSlide = () => {
+    if (sliderPhotos.length > 0) {
+      setCurrentSlide((prev) => (prev - 1 + sliderPhotos.length) % sliderPhotos.length);
+    }
+  };
 
   // QR code links to the Shop View (landing page) using user's slug
   const [shareUrl, setShareUrl] = useState("");
@@ -150,6 +173,52 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
           <Card ref={cardRef} className="border-0 shadow-xl bg-gradient-to-b from-[#2D7FF9]/5 to-white overflow-hidden">
             <CardContent className="p-6 flex flex-col items-center text-center">
               
+              {/* Reduced Slider Photos */}
+              {sliderPhotos.length > 0 && (
+                <div className="w-full mb-4 relative rounded-xl overflow-hidden">
+                  <div className="relative aspect-video">
+                    <img 
+                      src={sliderPhotos[currentSlide]} 
+                      alt={`Slide ${currentSlide + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {sliderPhotos.length > 1 && (
+                      <>
+                        <button 
+                          onClick={prevSlide}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 transition-colors"
+                          aria-label="Previous slide"
+                          data-testid="button-slider-prev"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={nextSlide}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 transition-colors"
+                          aria-label="Next slide"
+                          data-testid="button-slider-next"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {sliderPhotos.map((_: string, idx: number) => (
+                            <button
+                              key={idx}
+                              onClick={() => setCurrentSlide(idx)}
+                              aria-label={`Go to slide ${idx + 1}`}
+                              data-testid={`button-slider-dot-${idx}`}
+                              className={`w-2 h-2 rounded-full transition-colors ${
+                                idx === currentSlide ? 'bg-white' : 'bg-white/50'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Header */}
               <div className="mb-6 flex flex-col items-center">
                 <img src={justShareNowLogo} alt="JustShareNow" className="w-48 h-auto object-contain" />

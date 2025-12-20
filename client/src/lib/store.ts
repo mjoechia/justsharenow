@@ -214,6 +214,10 @@ export const translations = {
         followIgTitle: "Follow Us",
         followIgSubtitle: "Follow us on Instagram!",
         followOnInstagram: "Follow on Instagram",
+        copied: "Copied!",
+        shareOnXhs: "Share on XiaoHongShu",
+        xhsSubtitle: "Copy and share your experience on XiaoHongShu!",
+        copyAndOpen: "Copy & Open XiaoHongShu",
       }
     },
     admin: {
@@ -420,6 +424,10 @@ export const translations = {
         followIgTitle: "关注我们",
         followIgSubtitle: "在Instagram上关注我们！",
         followOnInstagram: "在Instagram上关注",
+        copied: "已复制!",
+        shareOnXhs: "分享到小红书",
+        xhsSubtitle: "复制并在小红书上分享您的体验!",
+        copyAndOpen: "复制并打开小红书",
       }
     },
     admin: {
@@ -626,6 +634,10 @@ export const translations = {
         followIgTitle: "எங்களைப் பின்தொடருங்கள்",
         followIgSubtitle: "Instagram-ல் எங்களைப் பின்தொடருங்கள்!",
         followOnInstagram: "Instagram-ல் பின்தொடர்",
+        copied: "நகலெடுக்கப்பட்டது!",
+        shareOnXhs: "XiaoHongShu-ல் பகிரவும்",
+        xhsSubtitle: "XiaoHongShu-ல் உங்கள் அனுபவத்தை நகலெடுத்து பகிரவும்!",
+        copyAndOpen: "நகலெடுத்து XiaoHongShu திறக்கவும்",
       }
     },
     admin: {
@@ -832,6 +844,10 @@ export const translations = {
         followIgTitle: "Ikuti Kami",
         followIgSubtitle: "Ikuti kami di Instagram!",
         followOnInstagram: "Ikuti di Instagram",
+        copied: "Disalin!",
+        shareOnXhs: "Kongsi di XiaoHongShu",
+        xhsSubtitle: "Salin dan kongsi pengalaman anda di XiaoHongShu!",
+        copyAndOpen: "Salin & Buka XiaoHongShu",
       }
     },
     admin: {
