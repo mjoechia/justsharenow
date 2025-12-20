@@ -52,12 +52,18 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
     queryFn: getStoreConfig,
   });
 
-  // QR code links to the Shop View (landing page)
+  // QR code links to the Shop View (landing page) using user's slug
   const [shareUrl, setShareUrl] = useState("");
+  const userSlug = (config as any)?.userSlug;
 
   useEffect(() => {
-    setShareUrl(`${window.location.origin}/`);
-  }, []);
+    // Use user's slug for QR code URL if available
+    if (userSlug) {
+      setShareUrl(`${window.location.origin}/${userSlug}`);
+    } else {
+      setShareUrl(`${window.location.origin}/`);
+    }
+  }, [userSlug]);
 
   // Pre-load logo as base64 for html2canvas compatibility
   useEffect(() => {
@@ -67,8 +73,12 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
   }, []);
 
   const handleScan = () => {
-    // Navigate to Shop View when QR code is clicked
-    setLocation('/');
+    // Navigate to Shop View when QR code is clicked - use slug if available
+    if (userSlug) {
+      setLocation(`/${userSlug}`);
+    } else {
+      setLocation('/');
+    }
   };
 
   const handleDownload = () => {
@@ -215,6 +225,12 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
               >
                 {t.quickView.startReview}
               </Button>
+
+              {userSlug && (
+                <p className="mt-4 text-xs text-muted-foreground text-center" data-testid="text-slug-url">
+                  Customers can access your Shop View at: <span className="font-medium text-primary">{window.location.origin}/{userSlug}</span>
+                </p>
+              )}
 
             </CardContent>
           </Card>
