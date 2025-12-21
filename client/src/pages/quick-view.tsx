@@ -173,91 +173,75 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
           <Card ref={cardRef} className="border-0 shadow-xl bg-gradient-to-b from-[#2D7FF9]/5 to-white overflow-hidden">
             <CardContent className="p-6 flex flex-col items-center text-center">
               
-              {/* Reduced Slider Photos */}
-              {sliderPhotos.length > 0 && (
-                <div className="w-full mb-4 relative rounded-xl overflow-hidden">
-                  <div className="relative aspect-video">
-                    <img 
-                      src={sliderPhotos[currentSlide]} 
-                      alt={`Slide ${currentSlide + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    {sliderPhotos.length > 1 && (
-                      <>
-                        <button 
-                          onClick={prevSlide}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 transition-colors"
-                          aria-label="Previous slide"
-                          data-testid="button-slider-prev"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={nextSlide}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 transition-colors"
-                          aria-label="Next slide"
-                          data-testid="button-slider-next"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-                          {sliderPhotos.map((_: string, idx: number) => (
-                            <button
-                              key={idx}
-                              onClick={() => setCurrentSlide(idx)}
-                              aria-label={`Go to slide ${idx + 1}`}
-                              data-testid={`button-slider-dot-${idx}`}
-                              className={`w-2 h-2 rounded-full transition-colors ${
-                                idx === currentSlide ? 'bg-white' : 'bg-white/50'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
+
+              {/* Header with Logos */}
+              <div className="mb-4 flex items-center justify-center gap-4">
+                {(config as any)?.companyLogo && (
+                  <img 
+                    src={(config as any).companyLogo} 
+                    alt="Company Logo" 
+                    className="w-24 h-auto object-contain max-h-16"
+                    data-testid="img-company-logo"
+                  />
+                )}
+                <img src={justShareNowLogo} alt="JustShareNow" className="w-24 h-auto object-contain max-h-16" />
+              </div>
+              {config?.businessName && (
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <span className="text-base font-semibold text-primary" data-testid="text-qr-business-name">
+                    {config.businessName}
+                  </span>
                 </div>
               )}
 
-              {/* Header */}
-              <div className="mb-6 flex flex-col items-center">
-                <img src={justShareNowLogo} alt="JustShareNow" className="w-48 h-auto object-contain" />
-                {config?.businessName && (
-                  <div className="flex items-center gap-2 mt-3">
-                    <Building2 className="w-5 h-5 text-primary" />
-                    <span className="text-lg font-semibold text-primary" data-testid="text-qr-business-name">
-                      {config.businessName}
-                    </span>
-                  </div>
-                )}
-              </div>
-
               {/* QR Code */}
               <div 
-                className="bg-white p-4 rounded-2xl shadow-lg border border-[#2D7FF9]/20 mb-8 transition-transform duration-300 relative group cursor-pointer"
+                className="bg-white p-3 rounded-2xl shadow-lg border border-[#2D7FF9]/20 mb-4 transition-transform duration-300 relative group cursor-pointer"
                 onClick={handleScan}
                 data-qr-container="true"
               >
                 <QRCodeCanvas 
                   value={shareUrl}
-                  size={200}
+                  size={160}
                   level="H"
                   includeMargin={true}
                   fgColor="#2D7FF9"
                   ref={qrCanvasRef}
                   imageSettings={{
                     src: justShareNowLogo,
-                    height: 40,
-                    width: 40,
+                    height: 32,
+                    width: 32,
                     excavate: true,
                   }}
                 />
               </div>
 
+              {/* Social Icons Strip */}
+              <div className="flex gap-2 justify-center mb-4">
+                {socialIcons.map((item, i) => (
+                    <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center ${item.color}`}>
+                        {item.icon}
+                    </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <div className="space-y-1 text-center">
+                <h2 className="text-lg font-bold text-foreground">{t.quickView.shareUnlock}</h2>
+                <p className="text-xs text-muted-foreground">{t.quickView.scanToShare}</p>
+              </div>
+              
+              <Button 
+                className="mt-4 w-full bg-gradient-to-r from-[#2D7FF9] to-[#23C7C3] hover:from-[#2D7FF9]/90 hover:to-[#23C7C3]/90 text-white border-0 shadow-lg shadow-[#2D7FF9]/20"
+                onClick={handleScan}
+              >
+                {t.quickView.startReview}
+              </Button>
+
               {/* Controls */}
-              <div className="w-full flex items-center justify-center gap-2 bg-muted/30 p-3 rounded-lg mb-6">
+              <div className="w-full flex items-center justify-center gap-2 mt-3">
                 <Button variant="ghost" size="sm" onClick={handleDownload} className="text-xs text-muted-foreground hover:text-primary">
-                   <Download className="w-4 h-4 mr-2" />
+                   <Download className="w-3 h-3 mr-1" />
                    {t.quickView.downloadQR}
                 </Button>
                 <Button 
@@ -268,36 +252,14 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
                   className="text-xs text-muted-foreground hover:text-primary"
                   data-testid="button-save-card-image"
                 >
-                   <Camera className="w-4 h-4 mr-2" />
-                   {isSavingImage ? "Saving..." : t.quickView.saveAsImage}
+                   <Camera className="w-3 h-3 mr-1" />
+                   {isSavingImage ? "..." : t.quickView.saveAsImage}
                 </Button>
               </div>
 
-              {/* Social Icons Strip */}
-              <div className="flex gap-3 justify-center mb-8">
-                {socialIcons.map((item, i) => (
-                    <div key={i} className={`w-10 h-10 rounded-full flex items-center justify-center ${item.color}`}>
-                        {item.icon}
-                    </div>
-                ))}
-              </div>
-
-              {/* CTA */}
-              <div className="space-y-2">
-                <h2 className="text-xl font-bold text-foreground">{t.quickView.shareUnlock}</h2>
-                <p className="text-sm text-muted-foreground">{t.quickView.scanToShare}</p>
-              </div>
-              
-              <Button 
-                className="mt-8 w-full bg-gradient-to-r from-[#2D7FF9] to-[#23C7C3] hover:from-[#2D7FF9]/90 hover:to-[#23C7C3]/90 text-white border-0 shadow-lg shadow-[#2D7FF9]/20"
-                onClick={handleScan}
-              >
-                {t.quickView.startReview}
-              </Button>
-
               {userSlug && (
-                <p className="mt-4 text-xs text-muted-foreground text-center" data-testid="text-slug-url">
-                  Customers can access your Shop View at: <span className="font-medium text-primary">{window.location.origin}/{userSlug}</span>
+                <p className="mt-2 text-xs text-muted-foreground text-center" data-testid="text-slug-url">
+                  /{userSlug}
                 </p>
               )}
 

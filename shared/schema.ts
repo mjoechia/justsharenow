@@ -81,6 +81,7 @@ export const storeConfig = pgTable("store_config", {
   shopPhotos: jsonb("shop_photos").$type<string[]>().default([]),
   sliderPhotos: jsonb("slider_photos").$type<string[]>().default([]),
   reviewHashtags: jsonb("review_hashtags").$type<string[]>().default([]),
+  companyLogo: text("company_logo"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
