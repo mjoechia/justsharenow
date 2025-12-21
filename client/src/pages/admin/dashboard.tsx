@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2, Crop } from "lucide-react";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2, Crop, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStoreConfig, updateStoreConfig, discoverSocialLinks, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse, resolveGoogleMapsUrl } from "@/lib/api";
+import { getStoreConfig, updateStoreConfig, discoverSocialLinks, discoverLogo, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse, resolveGoogleMapsUrl } from "@/lib/api";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import QuickView from "@/pages/quick-view";
 import Landing from "@/pages/landing";
@@ -102,6 +102,9 @@ export default function AdminDashboard() {
     fromCache?: boolean;
   } | null>(null);
   const [confirmedBusinessName, setConfirmedBusinessName] = useState<string | null>(null);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [isDiscoveringLogo, setIsDiscoveringLogo] = useState(false);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
   const sliderFileInputRef = useRef<HTMLInputElement>(null);
 
   // Cropper state for slider photos
@@ -132,6 +135,7 @@ export default function AdminDashboard() {
       if (config.businessName) {
         setConfirmedBusinessName(config.businessName);
       }
+      setCompanyLogo((config as any).companyLogo || null);
       setIsDirty(false);
       
       // Auto-fetch verified business info if Place ID is saved
@@ -174,13 +178,14 @@ export default function AdminDashboard() {
       igUrl !== (config.instagramUrl || "") ||
       xhsUrl !== (config.xiaohongshuUrl || "") ||
       tiktokUrl !== (config.tiktokUrl || "") ||
-      whatsappUrl !== (config.whatsappUrl || "")
+      whatsappUrl !== (config.whatsappUrl || "") ||
+      companyLogo !== ((config as any).companyLogo || null)
     );
   };
 
   useEffect(() => {
     setIsDirty(checkDirty());
-  }, [websiteUrl, googleReviewsUrl, googlePlaceId, fbUrl, igUrl, xhsUrl, tiktokUrl, whatsappUrl, config]);
+  }, [websiteUrl, googleReviewsUrl, googlePlaceId, fbUrl, igUrl, xhsUrl, tiktokUrl, whatsappUrl, companyLogo, config]);
 
   const updateConfigMutation = useMutation({
     mutationFn: updateStoreConfig,
@@ -227,7 +232,55 @@ export default function AdminDashboard() {
       shopPhotos,
       sliderPhotos,
       reviewHashtags: selectedHashtags,
+      companyLogo: companyLogo ?? null,
     });
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Error", description: "Please select an image file.", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Error", description: "Image must be less than 2MB.", variant: "destructive" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setCompanyLogo(base64);
+      setIsDirty(true);
+      toast({ title: "Logo uploaded", description: "Click 'Save Changes' to apply." });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDiscoverLogo = async () => {
+    if (!websiteUrl) {
+      toast({ title: "Error", description: "Please enter your website URL first.", variant: "destructive" });
+      return;
+    }
+
+    setIsDiscoveringLogo(true);
+    try {
+      const result = await discoverLogo(websiteUrl);
+      if (result.logoUrl) {
+        setCompanyLogo(result.logoUrl);
+        setIsDirty(true);
+        toast({ title: "Logo found!", description: "Click 'Save Changes' to apply." });
+      } else {
+        toast({ title: "No logo found", description: "Try uploading your logo manually.", variant: "default" });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to discover logo.", variant: "destructive" });
+    } finally {
+      setIsDiscoveringLogo(false);
+    }
   };
 
   const handleDiscoverLinks = async () => {
@@ -1054,6 +1107,73 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Company Logo Section */}
+                            <div className="grid gap-2">
+                                <Label>Company Logo</Label>
+                                <div className="flex items-center gap-4">
+                                    {companyLogo ? (
+                                        <div className="relative group">
+                                            <img 
+                                                src={companyLogo} 
+                                                alt="Company Logo" 
+                                                className="w-16 h-16 object-contain rounded border bg-white"
+                                                data-testid="img-company-logo"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    setCompanyLogo(null);
+                                                    setIsDirty(true);
+                                                }}
+                                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                data-testid="button-remove-logo"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded flex items-center justify-center">
+                                            <Image className="w-6 h-6 text-gray-400" />
+                                        </div>
+                                    )}
+                                    <div className="flex flex-col gap-2">
+                                        <input
+                                            type="file"
+                                            ref={logoFileInputRef}
+                                            onChange={handleLogoUpload}
+                                            accept="image/*"
+                                            className="hidden"
+                                            data-testid="input-logo-file"
+                                        />
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => logoFileInputRef.current?.click()}
+                                            data-testid="button-upload-logo"
+                                        >
+                                            <Upload className="w-4 h-4 mr-2" />
+                                            Upload
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleDiscoverLogo}
+                                            disabled={isDiscoveringLogo || !websiteUrl}
+                                            data-testid="button-discover-logo"
+                                        >
+                                            {isDiscoveringLogo ? (
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <Sparkles className="w-4 h-4 mr-2" />
+                                            )}
+                                            AI Find
+                                        </Button>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Upload your logo or use AI to find it from your website. Max 2MB.
+                                </p>
+                            </div>
 
                             {/* Google Place ID - Full Width Below Business Name */}
                             <div className="grid gap-2">

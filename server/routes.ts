@@ -1191,6 +1191,174 @@ ${pageText}`
     }
   });
 
+  // Logo Discovery Endpoint - find company logo from website
+  app.post("/api/discover-logo", async (req, res) => {
+    try {
+      const { websiteUrl } = req.body;
+      
+      if (!websiteUrl || typeof websiteUrl !== 'string') {
+        res.status(400).json({ error: "Website URL is required" });
+        return;
+      }
+
+      let urlString: string;
+      try {
+        urlString = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`;
+      } catch {
+        res.status(400).json({ error: "Invalid URL format" });
+        return;
+      }
+
+      if (!isValidExternalUrl(urlString)) {
+        res.status(400).json({ error: "Invalid URL - only public websites are allowed" });
+        return;
+      }
+
+      const url = new URL(urlString);
+
+      const openai = getOpenAIClient();
+      if (!openai) {
+        res.status(503).json({ error: "AI service is not configured" });
+        return;
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let html: string;
+      try {
+        const response = await fetch(url.toString(), {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ShareLor/1.0)',
+          },
+        });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          res.status(400).json({ error: `Failed to fetch website: ${response.statusText}` });
+          return;
+        }
+        
+        html = await response.text();
+        if (html.length > 500000) {
+          html = html.substring(0, 500000);
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        res.status(400).json({ error: "Failed to fetch website" });
+        return;
+      }
+
+      const $ = cheerio.load(html);
+      const logos: { url: string; alt: string; context: string }[] = [];
+      
+      // Look for images that might be logos
+      $('img').each((_, el) => {
+        let src = $(el).attr('src') || $(el).attr('data-src');
+        if (!src) return;
+        
+        try {
+          src = new URL(src, url.toString()).toString();
+        } catch {
+          return;
+        }
+        
+        if (!src.startsWith('http')) return;
+        
+        const alt = $(el).attr('alt') || '';
+        const className = $(el).attr('class') || '';
+        const id = $(el).attr('id') || '';
+        const parentClass = $(el).parent().attr('class') || '';
+        
+        // Prioritize images that seem like logos
+        const isLikelyLogo = 
+          src.toLowerCase().includes('logo') ||
+          alt.toLowerCase().includes('logo') ||
+          className.toLowerCase().includes('logo') ||
+          id.toLowerCase().includes('logo') ||
+          parentClass.toLowerCase().includes('logo') ||
+          parentClass.toLowerCase().includes('header') ||
+          parentClass.toLowerCase().includes('brand');
+        
+        if (isValidExternalUrl(src)) {
+          logos.push({ 
+            url: src, 
+            alt, 
+            context: isLikelyLogo ? 'logo' : 'image'
+          });
+        }
+      });
+
+      // Sort to prioritize likely logos
+      logos.sort((a, b) => {
+        if (a.context === 'logo' && b.context !== 'logo') return -1;
+        if (a.context !== 'logo' && b.context === 'logo') return 1;
+        return 0;
+      });
+
+      const candidateLogos = logos.slice(0, 10);
+
+      // Use AI to pick the best logo
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are an assistant that identifies company logos from a list of image URLs.
+Given a list of images from a website, identify which one is most likely the company logo.
+Return JSON with: { "logoUrl": "the best logo URL or null", "reason": "why you chose this" }`
+          },
+          {
+            role: "user",
+            content: `Website: ${url.toString()}
+
+Images found:
+${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.context}`).join('\n')}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+      });
+
+      const aiResponse = completion.choices[0]?.message?.content;
+      let logoUrl: string | null = null;
+      let reason = "";
+
+      if (aiResponse) {
+        try {
+          const parsed = JSON.parse(aiResponse);
+          if (parsed.logoUrl && isValidExternalUrl(parsed.logoUrl)) {
+            logoUrl = parsed.logoUrl;
+            reason = parsed.reason || "";
+          }
+        } catch {
+          console.error("Failed to parse AI logo response");
+        }
+      }
+
+      // Fallback: use first likely logo if AI didn't find one
+      if (!logoUrl && candidateLogos.length > 0) {
+        const likelyLogo = candidateLogos.find(l => l.context === 'logo');
+        if (likelyLogo) {
+          logoUrl = likelyLogo.url;
+          reason = "Found image with logo-related attributes";
+        }
+      }
+
+      res.json({
+        success: true,
+        logoUrl,
+        reason,
+        candidates: candidateLogos.slice(0, 5).map(l => l.url),
+      });
+
+    } catch (error) {
+      console.error("Error discovering logo:", error);
+      res.status(500).json({ error: "Failed to discover logo" });
+    }
+  });
+
   // Photo Approval Endpoint - download external image and add to shop photos
   app.post("/api/photos/approve", requireApproved, async (req, res) => {
     try {

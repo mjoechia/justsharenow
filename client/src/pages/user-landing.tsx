@@ -31,6 +31,7 @@ interface UserConfigData {
     shopPhotos: string[];
     sliderPhotos: string[];
     reviewHashtags: string[];
+    companyLogo?: string;
   } | null;
 }
 
@@ -319,12 +320,21 @@ export default function UserLanding() {
         {/* Desktop: Right Buttons (1/3 width) */}
         <div className="flex-1 lg:w-1/3 p-4 lg:p-6 flex flex-col">
           <div className="text-center mb-4 lg:mb-6">
-            {config?.businessName && (
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Building2 className="w-5 h-5 text-primary" />
-                <span className="text-lg font-semibold text-primary" data-testid="text-shop-business-name">
-                  {config.businessName}
-                </span>
+            {(config?.businessName || config?.companyLogo) && (
+              <div className="flex items-center justify-center gap-3 mb-2">
+                {config?.companyLogo && (
+                  <img 
+                    src={config.companyLogo} 
+                    alt="Company Logo" 
+                    className="w-10 h-10 object-contain"
+                    data-testid="img-company-logo"
+                  />
+                )}
+                {config?.businessName && (
+                  <span className="text-lg font-semibold text-primary" data-testid="text-shop-business-name">
+                    {config.businessName}
+                  </span>
+                )}
               </div>
             )}
             <h1 className="text-xl lg:text-2xl font-heading font-bold text-foreground">

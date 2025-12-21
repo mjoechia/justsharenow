@@ -78,6 +78,7 @@ Preferred communication style: Simple, everyday language.
 - Dirty state tracking: "Save Changes" button only enabled when configuration is modified
 - Dynamic platform filtering: Shop View only displays platforms that have configured URLs
 - JustShareNow logo featured as default image in Shop Photos section
+- Company logo management: Upload custom logo (2MB limit) or use AI discovery from website (POST /api/discover-logo). Logo displayed in Shop View alongside business name, and in Quick View next to JustShareNow logo
 
 **Key Architectural Patterns:**
 - Storage abstraction layer (`IStorage` interface) for database operations

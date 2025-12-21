@@ -14,6 +14,7 @@ export interface StoreConfig {
   shopPhotos?: string[];
   sliderPhotos?: string[];
   reviewHashtags?: string[];
+  companyLogo?: string | null;
   updatedAt?: string;
 }
 
@@ -100,6 +101,27 @@ export async function discoverSocialLinks(websiteUrl: string): Promise<DiscoverR
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Failed to discover social links');
+  }
+  return response.json();
+}
+
+// Discover company logo from website
+export interface DiscoverLogoResponse {
+  success: boolean;
+  logoUrl: string | null;
+  reason: string;
+  candidates: string[];
+}
+
+export async function discoverLogo(websiteUrl: string): Promise<DiscoverLogoResponse> {
+  const response = await fetch('/api/discover-logo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ websiteUrl }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to discover logo');
   }
   return response.json();
 }
