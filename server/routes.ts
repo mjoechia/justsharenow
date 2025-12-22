@@ -227,9 +227,21 @@ export async function registerRoutes(
           role: user.role,
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating user:", error);
-      res.status(500).json({ error: "Failed to create user" });
+      if (error?.code === '23505') {
+        if (error?.constraint?.includes('username')) {
+          return res.status(409).json({ error: "This username is already taken. Please choose a different one." });
+        }
+        if (error?.constraint?.includes('email')) {
+          return res.status(409).json({ error: "This email is already registered. Please use a different email." });
+        }
+        if (error?.constraint?.includes('slug')) {
+          return res.status(409).json({ error: "Unable to generate a unique URL. Please try a different username." });
+        }
+        return res.status(409).json({ error: "A user with these details already exists." });
+      }
+      res.status(500).json({ error: "Failed to create user. Please try again." });
     }
   });
 
@@ -731,9 +743,21 @@ export async function registerRoutes(
           slug: user.slug,
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating user for admin:", error);
-      res.status(500).json({ error: "Failed to create user" });
+      if (error?.code === '23505') {
+        if (error?.constraint?.includes('username')) {
+          return res.status(409).json({ error: "This username is already taken. Please choose a different one." });
+        }
+        if (error?.constraint?.includes('email')) {
+          return res.status(409).json({ error: "This email is already registered. Please use a different email." });
+        }
+        if (error?.constraint?.includes('slug')) {
+          return res.status(409).json({ error: "Unable to generate a unique URL. Please try a different username." });
+        }
+        return res.status(409).json({ error: "A user with these details already exists." });
+      }
+      res.status(500).json({ error: "Failed to create user. Please try again." });
     }
   });
 
