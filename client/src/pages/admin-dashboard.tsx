@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle, Clock, ExternalLink, UserPlus, Key } from "lucide-react";
+import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle, Clock, ExternalLink, UserPlus, Key, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import { useState } from "react";
@@ -44,6 +44,12 @@ export default function AdminDashboard() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Password visibility state
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showCreateUserPassword, setShowCreateUserPassword] = useState(false);
 
   const { data: myUsers = [], isLoading: usersLoading } = useQuery<AssignedUser[]>({
     queryKey: ["/api/my-users"],
@@ -85,6 +91,7 @@ export default function AdminDashboard() {
       setNewUserPassword("");
       setNewUserDisplayName("");
       setNewUserEmail("");
+      setShowCreateUserPassword(false);
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -183,6 +190,9 @@ export default function AdminDashboard() {
                 setCurrentPassword("");
                 setNewPassword("");
                 setConfirmPassword("");
+                setShowCurrentPassword(false);
+                setShowNewPassword(false);
+                setShowConfirmPassword(false);
               }
             }}>
               <DialogTrigger asChild>
@@ -201,34 +211,67 @@ export default function AdminDashboard() {
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="current-password">Current Password</Label>
-                    <Input
-                      id="current-password"
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      data-testid="input-current-password"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="current-password"
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="pr-10"
+                        data-testid="input-current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        data-testid="toggle-current-password"
+                      >
+                        {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="new-password">New Password</Label>
-                    <Input
-                      id="new-password"
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Minimum 8 characters"
-                      data-testid="input-new-password"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="new-password"
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Minimum 8 characters"
+                        className="pr-10"
+                        data-testid="input-new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        data-testid="toggle-new-password"
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirm New Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      data-testid="input-confirm-password"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirm-password"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="pr-10"
+                        data-testid="input-confirm-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        data-testid="toggle-confirm-password"
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   {newPassword && confirmPassword && newPassword !== confirmPassword && (
                     <p className="text-sm text-red-500">Passwords do not match</p>
@@ -337,14 +380,25 @@ export default function AdminDashboard() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="new-user-password">Password *</Label>
-                    <Input
-                      id="new-user-password"
-                      type="password"
-                      value={newUserPassword}
-                      onChange={(e) => setNewUserPassword(e.target.value)}
-                      placeholder="Minimum 8 characters"
-                      data-testid="input-new-user-password"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="new-user-password"
+                        type={showCreateUserPassword ? "text" : "password"}
+                        value={newUserPassword}
+                        onChange={(e) => setNewUserPassword(e.target.value)}
+                        placeholder="Minimum 8 characters"
+                        className="pr-10"
+                        data-testid="input-new-user-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateUserPassword(!showCreateUserPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        data-testid="toggle-create-user-password"
+                      >
+                        {showCreateUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="new-user-displayname">Display Name *</Label>

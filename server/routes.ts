@@ -324,9 +324,12 @@ export async function registerRoutes(
       });
       
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error resetting password:", error);
-      res.status(500).json({ error: "Failed to reset password" });
+      if (error?.message) {
+        console.error("Error details:", error.message);
+      }
+      res.status(500).json({ error: "Failed to reset password. Please try again." });
     }
   });
 

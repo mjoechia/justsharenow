@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink, Settings, Clock, Building2 } from "lucide-react";
+import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink, Settings, Clock, Building2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
@@ -71,6 +71,11 @@ export default function MasterAdminDashboard() {
   
   // Session timeout state
   const [sessionTimeoutInput, setSessionTimeoutInput] = useState("");
+  
+  // Password visibility state
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [showUserPassword, setShowUserPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -182,12 +187,14 @@ export default function MasterAdminDashboard() {
       setNewAdminPassword("");
       setNewAdminDisplayName("");
       setNewAdminEmail("");
+      setShowAdminPassword(false);
       // Reset user form
       setNewUserUsername("");
       setNewUserPassword("");
       setNewUserDisplayName("");
       setNewUserEmail("");
       setSelectedAdmin("");
+      setShowUserPassword(false);
       setIsCreateAdminOpen(false);
       setIsCreateUserOpen(false);
     },
@@ -213,6 +220,7 @@ export default function MasterAdminDashboard() {
       toast({ title: "Password reset successfully" });
       setResetPasswordUserId(null);
       setResetPasswordValue("");
+      setShowResetPassword(false);
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -431,14 +439,25 @@ export default function MasterAdminDashboard() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="admin-password">Password *</Label>
-                        <Input
-                          id="admin-password"
-                          type="password"
-                          value={newAdminPassword}
-                          onChange={(e) => setNewAdminPassword(e.target.value)}
-                          placeholder="Minimum 8 characters"
-                          data-testid="input-admin-password"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="admin-password"
+                            type={showAdminPassword ? "text" : "password"}
+                            value={newAdminPassword}
+                            onChange={(e) => setNewAdminPassword(e.target.value)}
+                            placeholder="Minimum 8 characters"
+                            className="pr-10"
+                            data-testid="input-admin-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowAdminPassword(!showAdminPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            data-testid="toggle-admin-password"
+                          >
+                            {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="admin-displayname">Display Name *</Label>
@@ -568,14 +587,25 @@ export default function MasterAdminDashboard() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="user-password">Password *</Label>
-                        <Input
-                          id="user-password"
-                          type="password"
-                          value={newUserPassword}
-                          onChange={(e) => setNewUserPassword(e.target.value)}
-                          placeholder="Minimum 8 characters"
-                          data-testid="input-user-password"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="user-password"
+                            type={showUserPassword ? "text" : "password"}
+                            value={newUserPassword}
+                            onChange={(e) => setNewUserPassword(e.target.value)}
+                            placeholder="Minimum 8 characters"
+                            className="pr-10"
+                            data-testid="input-user-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowUserPassword(!showUserPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            data-testid="toggle-user-password"
+                          >
+                            {showUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="user-displayname">Display Name *</Label>
@@ -825,6 +855,7 @@ export default function MasterAdminDashboard() {
           if (!open) {
             setResetPasswordUserId(null);
             setResetPasswordValue("");
+            setShowResetPassword(false);
           }
         }}>
           <DialogContent>
@@ -837,14 +868,25 @@ export default function MasterAdminDashboard() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  value={resetPasswordValue}
-                  onChange={(e) => setResetPasswordValue(e.target.value)}
-                  placeholder="Minimum 8 characters"
-                  data-testid="input-reset-password"
-                />
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showResetPassword ? "text" : "password"}
+                    value={resetPasswordValue}
+                    onChange={(e) => setResetPasswordValue(e.target.value)}
+                    placeholder="Minimum 8 characters"
+                    className="pr-10"
+                    data-testid="input-reset-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    data-testid="toggle-reset-password"
+                  >
+                    {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
             <DialogFooter>
