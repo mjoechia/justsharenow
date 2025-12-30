@@ -15,6 +15,7 @@ import { useState } from "react";
 
 interface AssignedUser {
   id: number;
+  username: string;
   email?: string;
   displayName?: string;
   slug?: string;
@@ -461,7 +462,8 @@ export default function AdminDashboard() {
                     <div>
                       <p className="font-medium">{assignedUser.displayName || assignedUser.email}</p>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <span>{assignedUser.email}</span>
+                        <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">@{assignedUser.username}</span>
+                        {assignedUser.email && <span>{assignedUser.email}</span>}
                         {assignedUser.slug && (
                           <span className="text-purple-600">/{assignedUser.slug}</span>
                         )}

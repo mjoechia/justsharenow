@@ -593,8 +593,10 @@ export async function registerRoutes(
         const allUsers = await storage.getUsersByRole('user');
         return res.json(allUsers.map(u => ({
           id: u.id,
+          username: u.username,
           email: u.email,
           displayName: u.displayName,
+          slug: u.slug,
           isActive: u.isActive,
         })));
       }
@@ -602,6 +604,7 @@ export async function registerRoutes(
       const users = await storage.getUsersForAdmin(adminUser.id);
       res.json(users.map(u => ({
         id: u.id,
+        username: u.username,
         email: u.email,
         displayName: u.displayName,
         slug: u.slug,
