@@ -104,6 +104,7 @@ export default function AdminDashboard() {
   const [confirmedBusinessName, setConfirmedBusinessName] = useState<string | null>(null);
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [isDiscoveringLogo, setIsDiscoveringLogo] = useState(false);
+  const [isSavingLogo, setIsSavingLogo] = useState(false);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const sliderFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -280,6 +281,23 @@ export default function AdminDashboard() {
       toast({ title: "Error", description: error.message || "Failed to discover logo.", variant: "destructive" });
     } finally {
       setIsDiscoveringLogo(false);
+    }
+  };
+
+  const handleSaveLogo = async () => {
+    if (!companyLogo) {
+      toast({ title: "No Logo", description: "Please upload or find a logo first.", variant: "destructive" });
+      return;
+    }
+
+    setIsSavingLogo(true);
+    try {
+      await updateStoreConfig({ companyLogo });
+      toast({ title: "Logo Saved!", description: "Your company logo has been saved." });
+    } catch (error: any) {
+      toast({ title: "Save Failed", description: error.message || "Could not save logo.", variant: "destructive" });
+    } finally {
+      setIsSavingLogo(false);
     }
   };
 
@@ -523,11 +541,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleVerifyPlaceId = async () => {
+  const handleCheckInGoogle = async () => {
     if (!googlePlaceId) {
       toast({ 
-        title: "Place ID Required", 
-        description: "Please enter a Google Place ID or Google Maps link.", 
+        title: "Input Required", 
+        description: "Please enter a business name or Google Place ID.", 
         variant: "destructive" 
       });
       return;
@@ -550,9 +568,7 @@ export default function AdminDashboard() {
         const resolveResult = await resolveGoogleMapsUrl(placeIdToVerify);
         if (resolveResult.success && resolveResult.placeId) {
           placeIdToVerify = resolveResult.placeId;
-          // Update the input field with the resolved Place ID
           setGooglePlaceId(resolveResult.placeId);
-          setIsDirty(true);
         } else {
           throw new Error("Could not extract Place ID from the URL");
         }
@@ -577,57 +593,63 @@ export default function AdminDashboard() {
           fromCache: result.fromCache,
         });
         
-        // Auto-save the Place ID, Google Reviews URL, and Business Name after successful verification
+        // Update the Google Reviews URL for reference (but don't save yet)
         const googleReviewUrl = `https://search.google.com/local/writereview?placeid=${finalPlaceId}`;
         setGoogleReviewsUrl(googleReviewUrl);
         setGooglePlaceId(finalPlaceId);
         
-        // Also set the confirmed business name
-        if (result.businessName) {
-          setConfirmedBusinessName(result.businessName);
-        }
-        
-        // Save to database immediately with error handling
-        try {
-          await updateStoreConfig({
-            businessName: result.businessName || undefined,
-            websiteUrl,
-            googleReviewsUrl: googleReviewUrl,
-            googlePlaceId: finalPlaceId,
-            facebookUrl: fbUrl,
-            instagramUrl: igUrl,
-            xiaohongshuUrl: xhsUrl,
-            tiktokUrl,
-            whatsappUrl,
-            shopPhotos,
-            sliderPhotos,
-            reviewHashtags: selectedHashtags,
-          });
-          queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
-          setIsDirty(false);
-          
-          toast({ 
-            title: "Business Set!",
-            description: result.businessName ? `Business: ${result.businessName}` : undefined
-          });
-        } catch (saveError) {
-          // Verification succeeded but save failed - show partial success
-          setIsDirty(true);
-          toast({ 
-            title: "Business Found", 
-            description: "Business found. Please click Save Changes to persist."
-          });
-        }
+        toast({ 
+          title: "Business Found!",
+          description: result.businessName ? `Found: ${result.businessName}. Click "Set" to save.` : "Click 'Set' to save this business."
+        });
       }
     } catch (error: any) {
       toast({ 
-        title: "Verification Failed", 
-        description: error.message || "Could not verify. Please check and try again.", 
+        title: "Search Failed", 
+        description: error.message || "Could not find business. Please check and try again.", 
         variant: "destructive" 
       });
     } finally {
       setIsVerifyingPlace(false);
       setIsResolvingUrl(false);
+    }
+  };
+
+  const handleSetBusiness = async () => {
+    if (!verifiedBusiness || !googlePlaceId) {
+      toast({ 
+        title: "Check First", 
+        description: "Please check the business in Google first.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    try {
+      const googleReviewUrl = `https://search.google.com/local/writereview?placeid=${googlePlaceId}`;
+      
+      if (verifiedBusiness.businessName) {
+        setConfirmedBusinessName(verifiedBusiness.businessName);
+      }
+      
+      await updateStoreConfig({
+        businessName: verifiedBusiness.businessName || undefined,
+        googleReviewsUrl: googleReviewUrl,
+        googlePlaceId,
+      });
+      
+      setGoogleReviewsUrl(googleReviewUrl);
+      
+      toast({ 
+        title: "Business Set!",
+        description: verifiedBusiness.businessName ? `Saved: ${verifiedBusiness.businessName}` : "Business saved successfully."
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "Save Failed", 
+        description: error.message || "Could not save business. Please try again.", 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -1110,7 +1132,15 @@ export default function AdminDashboard() {
 
                             {/* Company Logo Section */}
                             <div className="grid gap-2">
-                                <Label>Company Logo</Label>
+                                <div className="flex items-center gap-2">
+                                    <Label>Company Logo</Label>
+                                    {(config as any)?.companyLogo && (
+                                        <span className="text-xs text-green-600 flex items-center gap-1">
+                                            <CheckCircle2 className="w-3 h-3" />
+                                            Saved
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-4">
                                     {companyLogo ? (
                                         <div className="relative group">
@@ -1134,6 +1164,17 @@ export default function AdminDashboard() {
                                     ) : (
                                         <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded flex items-center justify-center">
                                             <Image className="w-6 h-6 text-gray-400" />
+                                        </div>
+                                    )}
+                                    {(config as any)?.companyLogo && (config as any).companyLogo !== companyLogo && (
+                                        <div className="w-12 h-12 relative">
+                                            <img 
+                                                src={(config as any).companyLogo} 
+                                                alt="Saved Logo" 
+                                                className="w-12 h-12 object-contain rounded border bg-gray-50 opacity-60"
+                                                title="Currently saved logo"
+                                            />
+                                            <span className="absolute -bottom-1 left-0 right-0 text-[10px] text-center text-gray-500">saved</span>
                                         </div>
                                     )}
                                     <div className="flex flex-col gap-2">
@@ -1168,6 +1209,20 @@ export default function AdminDashboard() {
                                             )}
                                             AI Find
                                         </Button>
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            onClick={handleSaveLogo}
+                                            disabled={isSavingLogo || !companyLogo || companyLogo === (config as any)?.companyLogo}
+                                            data-testid="button-save-logo"
+                                        >
+                                            {isSavingLogo ? (
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <Check className="w-4 h-4 mr-2" />
+                                            )}
+                                            Save Logo
+                                        </Button>
                                     </div>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
@@ -1187,7 +1242,7 @@ export default function AdminDashboard() {
                                     <Input 
                                         type="text" 
                                         id="google-place-id" 
-                                        placeholder="ChIJ..."
+                                        placeholder="Enter business name or Place ID"
                                         value={googlePlaceId}
                                         onChange={(e) => {
                                           setGooglePlaceId(e.target.value);
@@ -1198,27 +1253,39 @@ export default function AdminDashboard() {
                                     />
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID. Click "Set" to find and save your business.
+                                    Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID.
                                 </p>
-                                <Button 
-                                    onClick={handleVerifyPlaceId}
-                                    disabled={isVerifyingPlace || !googlePlaceId}
-                                    variant="default"
-                                    className="w-full mt-2"
-                                    data-testid="button-set-place-id"
-                                >
-                                    {isVerifyingPlace ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            {isResolvingUrl ? "Resolving URL..." : "Setting..."}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckCircle2 className="w-4 h-4 mr-2" />
-                                            Set
-                                        </>
-                                    )}
-                                </Button>
+                                <div className="flex gap-2 mt-2">
+                                    <Button 
+                                        onClick={handleCheckInGoogle}
+                                        disabled={isVerifyingPlace || !googlePlaceId}
+                                        variant="outline"
+                                        className="flex-1"
+                                        data-testid="button-check-google"
+                                    >
+                                        {isVerifyingPlace ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                {isResolvingUrl ? "Resolving..." : "Searching..."}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Search className="w-4 h-4 mr-2" />
+                                                Check in Google
+                                            </>
+                                        )}
+                                    </Button>
+                                    <Button 
+                                        onClick={handleSetBusiness}
+                                        disabled={!verifiedBusiness || !googlePlaceId}
+                                        variant="default"
+                                        className="flex-1"
+                                        data-testid="button-set-place-id"
+                                    >
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                        Set
+                                    </Button>
+                                </div>
                                 
                                 {verifiedBusiness && (
                                     <div className="mt-3 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200" data-testid="verified-business-info">
