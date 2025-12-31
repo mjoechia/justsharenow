@@ -518,7 +518,10 @@ export default function MasterAdminDashboard() {
                       >
                         <div>
                           <p className="font-medium">{admin.displayName || admin.username || admin.email}</p>
-                          <p className="text-sm text-gray-500">{admin.username || admin.email}</p>
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">@{admin.username}</span>
+                            {admin.email && <span>{admin.email}</span>}
+                          </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge variant={admin.isActive ? "default" : "secondary"}>
@@ -689,13 +692,14 @@ export default function MasterAdminDashboard() {
                           <div>
                             <p className="font-medium">{userItem.displayName || userItem.email}</p>
                             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                              <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">@{userItem.username}</span>
                               {userItem.businessName && (
                                 <span className="flex items-center gap-1 font-medium text-gray-700">
                                   <Building2 className="w-3 h-3" />
                                   {userItem.businessName}
                                 </span>
                               )}
-                              <span>{userItem.email}</span>
+                              {userItem.email && <span>{userItem.email}</span>}
                               {userItem.slug && (
                                 <span className="flex items-center gap-1 text-purple-600">
                                   <ExternalLink className="w-3 h-3" />
