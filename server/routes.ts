@@ -1583,13 +1583,21 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
     }
   });
 
-  // Save selected hashtags
-  app.post("/api/hashtags", async (req, res) => {
+  // Save selected hashtags (requires authentication)
+  app.post("/api/hashtags", requireApproved, async (req, res) => {
     try {
+      const authUser = req.user as Express.User;
       const { hashtags } = req.body;
       
       if (!Array.isArray(hashtags)) {
         res.status(400).json({ error: "Hashtags must be an array" });
+        return;
+      }
+      
+      // Get the user's store config to find their placeId
+      const userConfig = await storage.getStoreConfigByUserId(authUser.id);
+      if (!userConfig || !userConfig.googlePlaceId) {
+        res.status(400).json({ error: "No Google Place ID configured. Please set up your business first." });
         return;
       }
       
@@ -1598,7 +1606,7 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
         .filter((tag): tag is string => typeof tag === 'string')
         .slice(0, 12);
       
-      const config = await storage.setReviewHashtags(validHashtags);
+      const config = await storage.setReviewHashtags(validHashtags, userConfig.googlePlaceId);
       
       res.json({
         success: true,
