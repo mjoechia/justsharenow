@@ -964,7 +964,36 @@ export default function AdminDashboard() {
                                                 }}
                                                 data-testid={`img-suggested-photo-${idx}`}
                                             />
-                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                                            {/* Mobile: buttons below photo */}
+                                            <div className="md:hidden p-2 bg-white border-t border-amber-200">
+                                                <p className="text-xs text-muted-foreground text-center line-clamp-1 mb-2">{photo.reason}</p>
+                                                <div className="flex gap-2 justify-center">
+                                                    <Button 
+                                                        size="sm" 
+                                                        className="bg-green-600 hover:bg-green-700 h-8 flex-1"
+                                                        onClick={() => handleApprovePhoto(photo)}
+                                                        disabled={approvingPhoto === photo.url || shopPhotos.length >= 9}
+                                                        data-testid={`button-approve-photo-mobile-${idx}`}
+                                                    >
+                                                        {approvingPhoto === photo.url ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <Check className="w-4 h-4" />
+                                                        )}
+                                                    </Button>
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="destructive"
+                                                        className="h-8 flex-1"
+                                                        onClick={() => handleDismissPhoto(photo)}
+                                                        data-testid={`button-dismiss-photo-mobile-${idx}`}
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            {/* Desktop: hover overlay */}
+                                            <div className="hidden md:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex-col items-center justify-center gap-2 p-2">
                                                 <p className="text-white text-xs text-center line-clamp-2">{photo.reason}</p>
                                                 <div className="flex gap-2">
                                                     <Button 
