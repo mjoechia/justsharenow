@@ -293,11 +293,11 @@ export default function UserLanding() {
               <CarouselContent className="h-full -ml-0">
                 {sliderPhotos.map((photo, index) => (
                   <CarouselItem key={index} className="h-full pl-0 basis-full">
-                    <div className="relative w-full h-full">
+                    <div className="relative w-full h-full flex items-center justify-center bg-black/5">
                       <img 
                         src={photo} 
                         alt={`Slider photo ${index + 1}`} 
-                        className="w-full h-full object-cover"
+                        className="max-w-full max-h-full object-contain"
                       />
                     </div>
                   </CarouselItem>
