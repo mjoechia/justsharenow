@@ -229,6 +229,7 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("Error creating user:", error);
+      console.error("Error details:", { code: error?.code, constraint: error?.constraint, message: error?.message });
       if (error?.code === '23505') {
         if (error?.constraint?.includes('username')) {
           return res.status(409).json({ error: "This username is already taken. Please choose a different one." });
@@ -241,7 +242,8 @@ export async function registerRoutes(
         }
         return res.status(409).json({ error: "A user with these details already exists." });
       }
-      res.status(500).json({ error: "Failed to create user. Please try again." });
+      const devMessage = process.env.NODE_ENV === 'development' ? ` (${error?.message || 'Unknown error'})` : '';
+      res.status(500).json({ error: `Failed to create user. Please try again.${devMessage}` });
     }
   });
 
