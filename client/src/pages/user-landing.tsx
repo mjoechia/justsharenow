@@ -83,6 +83,14 @@ const platforms = [
     bgColor: 'bg-pink-50',
     borderColor: 'border-pink-200',
     hoverBg: 'hover:bg-pink-100',
+  },
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp',
+    icon: <MessageCircle className="w-8 h-8 text-green-600" />,
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-200',
+    hoverBg: 'hover:bg-green-100',
   }
 ];
 
@@ -135,6 +143,9 @@ export default function UserLanding() {
       }
       if (platform.id === 'follow-instagram') {
         return !!config?.instagramUrl;
+      }
+      if (platform.id === 'whatsapp') {
+        return !!config?.whatsappUrl;
       }
       return false;
     });
@@ -242,6 +253,13 @@ export default function UserLanding() {
     }
     if (platformId === 'xiaohongshu') {
       setXhsModalOpen(true);
+      return;
+    }
+    if (platformId === 'whatsapp') {
+      if (config?.whatsappUrl) {
+        trackPlatformClick('whatsapp');
+        window.open(config.whatsappUrl, '_blank');
+      }
       return;
     }
     

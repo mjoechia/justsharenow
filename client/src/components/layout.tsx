@@ -94,6 +94,15 @@ export function Layout({
             {isAdmin && onAdminTabChange && (
               <div className="flex items-center gap-1">
                 <Button 
+                  variant={activeAdminTab === "dashboard" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => onAdminTabChange("dashboard")}
+                  className="flex items-center gap-1 px-2"
+                  data-testid="button-dashboard-mobile"
+                >
+                  <Building2 className="w-4 h-4" />
+                </Button>
+                <Button 
                   variant={activeAdminTab === "quick-view" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => onAdminTabChange("quick-view")}
