@@ -1,10 +1,7 @@
-import { useStore } from "@/lib/store";
-import { Link, useLocation } from "wouter";
-import { Menu, Building2, QrCode, Store, LogOut } from "lucide-react";
-import { useState } from "react";
+import { useLocation } from "wouter";
+import { Building2, QrCode, Store, LogOut } from "lucide-react";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LanguageSelector } from "@/components/language-selector";
 import {
@@ -95,6 +92,28 @@ export function Layout({
 
           {/* Mobile Menu */}
           <div className="md:hidden flex items-center gap-2">
+            {isAdmin && onAdminTabChange && (
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant={activeAdminTab === "quick-view" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => onAdminTabChange("quick-view")}
+                  className="flex items-center gap-1 px-2"
+                  data-testid="button-quick-view-mobile"
+                >
+                  <QrCode className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant={activeAdminTab === "shop-view" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => onAdminTabChange("shop-view")}
+                  className="flex items-center gap-1 px-2"
+                  data-testid="button-shop-view-mobile"
+                >
+                  <Store className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
             <LanguageSelector />
             {isAdmin && (
               <Button 
@@ -107,18 +126,6 @@ export function Layout({
                 <LogOut className="w-4 h-4" />
               </Button>
             )}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right">
-                <div className="flex flex-col gap-4 mt-8">
-                  <Link href="/" className="text-lg font-medium">Home</Link>
-                </div>
-              </SheetContent>
-            </Sheet>
           </div>
         </div>
       </header>
