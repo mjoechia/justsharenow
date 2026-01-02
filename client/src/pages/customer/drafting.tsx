@@ -205,9 +205,11 @@ export default function CustomerDrafting() {
   }, [config]);
   
   const activePlatform = allPlatforms.find(p => p.id === selectedPlatform);
-  const currentReviews = generatedReviews.length > 0 
+  const isGoogleReview = selectedPlatform === 'google-reviews';
+  const baseReviews = generatedReviews.length > 0 
     ? generatedReviews 
     : t.customer.drafting.reviewSets[reviewSetIndex];
+  const currentReviews = isGoogleReview ? baseReviews.slice(0, 2) : baseReviews;
 
   useEffect(() => {
     if (isModalOpen && modalView === 'action' && activePlatform?.id === 'facebook' && selectedReview && !facebookAutoCopied) {
@@ -654,7 +656,7 @@ export default function CustomerDrafting() {
             onClick={handleNext}
             disabled={!selectedPhoto || !selectedReview}
           >
-            {t.common.share}
+            {selectedPlatform === 'google-reviews' ? 'Share in Google Review' : t.common.share}
             <Share2 className="ml-2 w-4 h-4" />
           </Button>
         </div>
@@ -681,7 +683,7 @@ export default function CustomerDrafting() {
                   </div>
                 ) : (
                   <div className="w-full space-y-3">
-                    {availablePlatforms.map((platform) => (
+                    {availablePlatforms.filter(p => !(isGoogleReview && p.id === 'google-reviews')).map((platform) => (
                       <button
                         key={platform.id}
                         onClick={() => handlePlatformSelect(platform.id)}
