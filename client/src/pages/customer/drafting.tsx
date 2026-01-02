@@ -749,43 +749,14 @@ export default function CustomerDrafting() {
               <>
                 <div className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
                   <p className="text-sm font-medium text-blue-900 text-center mb-3">
-                    📋 {t.customer.drafting.reviewCopiedAuto}
+                    ✨ JustShareNow Makes Google Review Easier!
                   </p>
                   <div className="flex items-center justify-center gap-2 text-xs text-blue-700">
-                    <span className="bg-blue-100 px-2 py-1 rounded-full">{t.customer.drafting.step1}</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded-full">1. Click Share</span>
                     <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded-full">{t.customer.drafting.step2}</span>
-                    <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded-full">{t.customer.drafting.step3}</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded-full">2. Paste in Google Review</span>
                   </div>
                 </div>
-                
-                {/* Selected photo with download button */}
-                {selectedPhoto && (
-                  <div className="w-full">
-                    <p className="text-xs text-muted-foreground mb-2 text-center font-medium">
-                      📷 {t.customer.drafting.yourPhoto}
-                    </p>
-                    <div className="flex items-center justify-center gap-4">
-                      <img 
-                        src={selectedPhoto} 
-                        alt="Selected photo" 
-                        className="w-24 h-24 object-cover rounded-lg border-2 border-primary/20 shadow-sm"
-                        data-testid="img-selected-photo-preview"
-                      />
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handleDownloadPhoto}
-                        className="flex items-center gap-2"
-                        data-testid="button-download-photo"
-                      >
-                        <Download className="w-4 h-4" />
-                        {t.customer.drafting.savePhotoBtn}
-                      </Button>
-                    </div>
-                  </div>
-                )}
                 
                 {/* Preview of the prepared review with copy button */}
                 {selectedReview && (
