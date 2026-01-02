@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink, Settings, Clock, Building2, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink, Settings, Clock, Building2, Eye, EyeOff, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
@@ -68,6 +68,10 @@ export default function MasterAdminDashboard() {
   // Edit slug state
   const [editSlugUserId, setEditSlugUserId] = useState<number | null>(null);
   const [editSlugValue, setEditSlugValue] = useState("");
+  
+  // Edit username state
+  const [editUsernameUserId, setEditUsernameUserId] = useState<number | null>(null);
+  const [editUsernameValue, setEditUsernameValue] = useState("");
   
   // Session timeout state
   const [sessionTimeoutInput, setSessionTimeoutInput] = useState("");
@@ -283,6 +287,31 @@ export default function MasterAdminDashboard() {
       toast({ title: "URL slug updated successfully" });
       setEditSlugUserId(null);
       setEditSlugValue("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateUsernameMutation = useMutation({
+    mutationFn: async ({ userId, username }: { userId: number; username: string }) => {
+      const res = await fetch(`/api/admin/users/${userId}/username`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update username');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/admins-with-users"] });
+      toast({ title: "Username updated successfully" });
+      setEditUsernameUserId(null);
+      setEditUsernameValue("");
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -519,7 +548,17 @@ export default function MasterAdminDashboard() {
                         <div>
                           <p className="font-medium">{admin.displayName || admin.username || admin.email}</p>
                           <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">@{admin.username}</span>
+                            <button
+                              onClick={() => {
+                                setEditUsernameUserId(admin.id);
+                                setEditUsernameValue(admin.username || "");
+                              }}
+                              className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700 hover:bg-gray-200 cursor-pointer flex items-center gap-1"
+                              data-testid={`button-edit-username-admin-${admin.id}`}
+                            >
+                              @{admin.username}
+                              <Pencil className="w-3 h-3" />
+                            </button>
                             {admin.email && <span>{admin.email}</span>}
                           </div>
                         </div>
@@ -692,7 +731,17 @@ export default function MasterAdminDashboard() {
                           <div>
                             <p className="font-medium">{userItem.displayName || userItem.email}</p>
                             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                              <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">@{userItem.username}</span>
+                              <button
+                                onClick={() => {
+                                  setEditUsernameUserId(userItem.id);
+                                  setEditUsernameValue(userItem.username || "");
+                                }}
+                                className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700 hover:bg-gray-200 cursor-pointer flex items-center gap-1"
+                                data-testid={`button-edit-username-user-${userItem.id}`}
+                              >
+                                @{userItem.username}
+                                <Pencil className="w-3 h-3" />
+                              </button>
                               {userItem.businessName && (
                                 <span className="flex items-center gap-1 font-medium text-gray-700">
                                   <Building2 className="w-3 h-3" />
@@ -977,6 +1026,66 @@ export default function MasterAdminDashboard() {
               >
                 {updateSlugMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Save URL
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Username Dialog */}
+        <Dialog open={editUsernameUserId !== null} onOpenChange={(open) => {
+          if (!open) {
+            setEditUsernameUserId(null);
+            setEditUsernameValue("");
+          }
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Username</DialogTitle>
+              <DialogDescription>
+                Change the username for this account. Minimum 3 characters, only letters, numbers, and underscores.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-username">Username</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">@</span>
+                  <Input
+                    id="new-username"
+                    type="text"
+                    value={editUsernameValue}
+                    onChange={(e) => setEditUsernameValue(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    placeholder="username"
+                    data-testid="input-edit-username"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">Only lowercase letters, numbers, and underscores allowed.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditUsernameUserId(null);
+                  setEditUsernameValue("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (editUsernameUserId && editUsernameValue) {
+                    updateUsernameMutation.mutate({ 
+                      userId: editUsernameUserId, 
+                      username: editUsernameValue 
+                    });
+                  }
+                }}
+                disabled={!editUsernameValue || editUsernameValue.length < 3 || updateUsernameMutation.isPending}
+                data-testid="button-confirm-edit-username"
+              >
+                {updateUsernameMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Save Username
               </Button>
             </DialogFooter>
           </DialogContent>

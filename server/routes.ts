@@ -297,6 +297,44 @@ export async function registerRoutes(
     }
   });
 
+  // Update username (master admin only)
+  app.put("/api/admin/users/:userId/username", requireMasterAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { username } = req.body;
+      
+      if (!username || username.trim().length < 3) {
+        return res.status(400).json({ error: "Username must be at least 3 characters" });
+      }
+
+      const cleanUsername = username.trim().toLowerCase();
+      
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      if (user.role === 'master_admin') {
+        return res.status(403).json({ error: "Cannot change master admin username" });
+      }
+
+      // Check if username is already taken
+      const existingUser = await storage.getUserByUsername(cleanUsername);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ error: "This username is already taken" });
+      }
+      
+      const updated = await storage.updateUser(userId, { username: cleanUsername });
+      res.json({ 
+        success: true, 
+        user: { id: updated.id, username: updated.username }
+      });
+    } catch (error) {
+      console.error("Error updating username:", error);
+      res.status(500).json({ error: "Failed to update username" });
+    }
+  });
+
   // Reset password for user (master admin only)
   app.post("/api/admin/users/:userId/reset-password", requireMasterAdmin, async (req, res) => {
     try {
