@@ -30,7 +30,6 @@ export function Layout({
   onAdminTabChange?: (tab: string) => void
 }) {
   const [location] = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const { data: config } = useQuery({
     queryKey: ['storeConfig'],
