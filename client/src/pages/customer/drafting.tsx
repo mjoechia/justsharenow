@@ -206,6 +206,7 @@ export default function CustomerDrafting() {
   
   const activePlatform = allPlatforms.find(p => p.id === selectedPlatform);
   const isGoogleReview = selectedPlatform === 'google-reviews';
+  const isFacebook = selectedPlatform === 'facebook';
   const baseReviews = generatedReviews.length > 0 
     ? generatedReviews 
     : t.customer.drafting.reviewSets[reviewSetIndex];
@@ -556,7 +557,7 @@ export default function CustomerDrafting() {
         <div className="text-center mb-8 animate-in-slide-up">
           <img src={regrowLogo} alt="Regrow" className="h-12 mx-auto mb-4" />
           <h1 className="text-2xl font-heading font-bold text-foreground mb-2">
-            {isGoogleReview ? 'Share Your Google Review' : t.customer.drafting.title}
+            {isGoogleReview ? 'Share Your Google Review' : isFacebook ? 'JustShareNow makes Facebook Reviews Easier!' : t.customer.drafting.title}
           </h1>
           <p className="text-muted-foreground text-sm">
             {isGoogleReview ? 'Select a review snippet to get started.' : t.customer.drafting.subtitle}
@@ -658,7 +659,7 @@ export default function CustomerDrafting() {
             onClick={handleSwitch}
           >
             <RefreshCw className="mr-2 w-4 h-4" />
-            {isGoogleReview ? 'Switch Reviews' : t.common.switch}
+            {isGoogleReview ? 'Switch Reviews' : isFacebook ? 'Switch Reviews' : t.common.switch}
           </Button>
           
           <Button 
@@ -666,7 +667,7 @@ export default function CustomerDrafting() {
             onClick={handleNext}
             disabled={isGoogleReview ? !selectedReview : (!selectedPhoto || !selectedReview)}
           >
-            {isGoogleReview ? 'Share in Google Review' : t.common.share}
+            {isGoogleReview ? 'Share in Google Review' : isFacebook ? 'Share to Facebook' : t.common.share}
             <Share2 className="ml-2 w-4 h-4" />
           </Button>
         </div>
