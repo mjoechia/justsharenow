@@ -155,7 +155,11 @@ export default function CustomerDrafting() {
   const availableHashtags = config?.reviewHashtags || [];
   const shopPhotos = config?.shopPhotos || [];
   
+  const hideJustShareNowLogo = (config as any)?.hideJustShareNowLogo || false;
+  
   const displayPhotos = useMemo(() => {
+    const shouldShowLogo = !hideJustShareNowLogo || shopPhotos.length < 2;
+    
     if (shopPhotos.length === 0) {
       return [{ id: 'logo', src: justShareNowLogo, label: 'JustShareNow' }];
     }
@@ -174,7 +178,7 @@ export default function CustomerDrafting() {
     }
     
     return selectedPhotos;
-  }, [shopPhotos, photoSetIndex]);
+  }, [shopPhotos, photoSetIndex, hideJustShareNowLogo]);
   
   const generatedReviews = useMemo(() => {
     return generateReviewsFromHashtags(availableHashtags, reviewSetIndex);

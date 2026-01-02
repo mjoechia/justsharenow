@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStoreConfig, updateStoreConfig, discoverSocialLinks, discoverLogo, approvePhoto, approveSliderPhoto, saveHashtags, SuggestedPhoto, fetchGoogleReviews, GoogleReview, verifyGooglePlaceId, VerifyPlaceIdResponse, resolveGoogleMapsUrl } from "@/lib/api";
@@ -105,6 +106,7 @@ export default function AdminDashboard() {
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [isDiscoveringLogo, setIsDiscoveringLogo] = useState(false);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
+  const [hideJustShareNowLogo, setHideJustShareNowLogo] = useState(false);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const sliderFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -137,6 +139,7 @@ export default function AdminDashboard() {
         setConfirmedBusinessName(config.businessName);
       }
       setCompanyLogo((config as any).companyLogo || null);
+      setHideJustShareNowLogo((config as any).hideJustShareNowLogo || false);
       setIsDirty(false);
       
       // Auto-fetch verified business info if Place ID is saved
@@ -234,6 +237,7 @@ export default function AdminDashboard() {
       sliderPhotos,
       reviewHashtags: selectedHashtags,
       companyLogo: companyLogo ?? null,
+      hideJustShareNowLogo,
     });
   };
 
@@ -725,6 +729,7 @@ export default function AdminDashboard() {
               shopPhotos: newPhotos,
               sliderPhotos,
               reviewHashtags: selectedHashtags,
+              hideJustShareNowLogo,
             });
         };
         reader.readAsDataURL(file);
@@ -746,6 +751,7 @@ export default function AdminDashboard() {
       shopPhotos: newPhotos,
       sliderPhotos,
       reviewHashtags: selectedHashtags,
+      hideJustShareNowLogo,
     });
   };
 
@@ -792,6 +798,7 @@ export default function AdminDashboard() {
         shopPhotos,
         sliderPhotos: newPhotos,
         reviewHashtags: selectedHashtags,
+        hideJustShareNowLogo,
       });
       setCropDialogOpen(false);
       resetCropState();
@@ -840,6 +847,7 @@ export default function AdminDashboard() {
       shopPhotos,
       sliderPhotos: newPhotos,
       reviewHashtags: selectedHashtags,
+      hideJustShareNowLogo,
     });
   };
 
@@ -1657,8 +1665,40 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
+                {/* Option to hide JustShareNow logo when 2+ photos exist */}
+                {shopPhotos.length >= 2 && (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                        <Switch 
+                            id="hide-logo" 
+                            checked={hideJustShareNowLogo}
+                            onCheckedChange={(checked) => {
+                                setHideJustShareNowLogo(checked);
+                                updateConfigMutation.mutate({
+                                    websiteUrl,
+                                    googleReviewsUrl,
+                                    googlePlaceId,
+                                    facebookUrl: fbUrl,
+                                    instagramUrl: igUrl,
+                                    xiaohongshuUrl: xhsUrl,
+                                    tiktokUrl,
+                                    whatsappUrl,
+                                    shopPhotos,
+                                    sliderPhotos,
+                                    reviewHashtags: selectedHashtags,
+                                    hideJustShareNowLogo: checked,
+                                });
+                            }}
+                            data-testid="switch-hide-logo"
+                        />
+                        <Label htmlFor="hide-logo" className="text-sm cursor-pointer">
+                            Hide JustShareNow logo in Shop View
+                        </Label>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {/* JustShareNow Logo - Featured */}
+                    {/* JustShareNow Logo - Featured (hidden if toggle is on) */}
+                    {!hideJustShareNowLogo && (
                     <Card className="group relative overflow-hidden border-2 border-[#2D7FF9]/30 bg-gradient-to-br from-[#2D7FF9]/5 to-[#23C7C3]/5">
                          <CardContent className="p-0 aspect-square flex items-center justify-center">
                             <img 
@@ -1672,6 +1712,7 @@ export default function AdminDashboard() {
                             JustShareNow Logo
                          </div>
                     </Card>
+                    )}
                     
                     {/* User Uploaded Photos */}
                     {shopPhotos.map((photo, index) => (

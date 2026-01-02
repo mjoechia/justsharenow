@@ -82,6 +82,7 @@ export const storeConfig = pgTable("store_config", {
   sliderPhotos: jsonb("slider_photos").$type<string[]>().default([]),
   reviewHashtags: jsonb("review_hashtags").$type<string[]>().default([]),
   companyLogo: text("company_logo"),
+  hideJustShareNowLogo: boolean("hide_justsharenow_logo").default(false),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
