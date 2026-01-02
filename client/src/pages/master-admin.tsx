@@ -80,6 +80,10 @@ export default function MasterAdminDashboard() {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [showUserPassword, setShowUserPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
+  
+  // Error state for inline display
+  const [createAdminError, setCreateAdminError] = useState<string | null>(null);
+  const [createUserError, setCreateUserError] = useState<string | null>(null);
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -192,6 +196,7 @@ export default function MasterAdminDashboard() {
       setNewAdminDisplayName("");
       setNewAdminEmail("");
       setShowAdminPassword(false);
+      setCreateAdminError(null);
       // Reset user form
       setNewUserUsername("");
       setNewUserPassword("");
@@ -199,10 +204,14 @@ export default function MasterAdminDashboard() {
       setNewUserEmail("");
       setSelectedAdmin("");
       setShowUserPassword(false);
+      setCreateUserError(null);
       setIsCreateAdminOpen(false);
       setIsCreateUserOpen(false);
     },
     onError: (error: Error) => {
+      // Set inline error for both dialogs (only one will be open)
+      setCreateAdminError(error.message);
+      setCreateUserError(error.message);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
@@ -440,7 +449,10 @@ export default function MasterAdminDashboard() {
                   <CardTitle>Admin Accounts</CardTitle>
                   <CardDescription>Manage admin accounts who can oversee users and send QR codes.</CardDescription>
                 </div>
-                <Dialog open={isCreateAdminOpen} onOpenChange={setIsCreateAdminOpen}>
+                <Dialog open={isCreateAdminOpen} onOpenChange={(open) => {
+                  setIsCreateAdminOpen(open);
+                  if (open) setCreateAdminError(null);
+                }}>
                   <DialogTrigger asChild>
                     <Button data-testid="button-create-admin">
                       <UserPlus className="w-4 h-4 mr-2" />
@@ -511,15 +523,24 @@ export default function MasterAdminDashboard() {
                         />
                       </div>
                     </div>
+                    {createAdminError && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700" data-testid="error-create-admin">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm">{createAdminError}</span>
+                      </div>
+                    )}
                     <DialogFooter>
                       <Button 
-                        onClick={() => createUserMutation.mutate({ 
-                          username: newAdminUsername,
-                          password: newAdminPassword,
-                          displayName: newAdminDisplayName,
-                          email: newAdminEmail || undefined,
-                          role: 'admin' 
-                        })}
+                        onClick={() => {
+                          setCreateAdminError(null);
+                          createUserMutation.mutate({ 
+                            username: newAdminUsername,
+                            password: newAdminPassword,
+                            displayName: newAdminDisplayName,
+                            email: newAdminEmail || undefined,
+                            role: 'admin' 
+                          });
+                        }}
                         disabled={!newAdminUsername || !newAdminPassword || newAdminPassword.length < 8 || !newAdminDisplayName || createUserMutation.isPending}
                         data-testid="button-confirm-create-admin"
                       >
@@ -601,7 +622,10 @@ export default function MasterAdminDashboard() {
                   <CardTitle>User Accounts</CardTitle>
                   <CardDescription>Manage user accounts and assign them to admins.</CardDescription>
                 </div>
-                <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
+                <Dialog open={isCreateUserOpen} onOpenChange={(open) => {
+                  setIsCreateUserOpen(open);
+                  if (open) setCreateUserError(null);
+                }}>
                   <DialogTrigger asChild>
                     <Button data-testid="button-create-user">
                       <UserPlus className="w-4 h-4 mr-2" />
@@ -687,18 +711,29 @@ export default function MasterAdminDashboard() {
                         </Select>
                       </div>
                     </div>
+                    {createUserError && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700" data-testid="error-create-user">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm">{createUserError}</span>
+                      </div>
+                    )}
                     <DialogFooter>
                       <Button 
                         onClick={async () => {
-                          const result = await createUserMutation.mutateAsync({ 
-                            username: newUserUsername,
-                            password: newUserPassword,
-                            displayName: newUserDisplayName,
-                            email: newUserEmail || undefined,
-                            role: 'user' 
-                          });
-                          if (selectedAdmin && result.user) {
-                            assignMutation.mutate({ userId: result.user.id, adminId: parseInt(selectedAdmin) });
+                          setCreateUserError(null);
+                          try {
+                            const result = await createUserMutation.mutateAsync({ 
+                              username: newUserUsername,
+                              password: newUserPassword,
+                              displayName: newUserDisplayName,
+                              email: newUserEmail || undefined,
+                              role: 'user' 
+                            });
+                            if (selectedAdmin && result.user) {
+                              assignMutation.mutate({ userId: result.user.id, adminId: parseInt(selectedAdmin) });
+                            }
+                          } catch (error) {
+                            // Error is already handled by mutation onError
                           }
                         }}
                         disabled={!newUserUsername || !newUserPassword || newUserPassword.length < 8 || !newUserDisplayName || createUserMutation.isPending}
