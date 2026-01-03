@@ -58,23 +58,30 @@ const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): stri
   const cleanTags = hashtags.map(h => h.replace('#', '').trim());
   const primaryTag = cleanTags[0] || '';
   const secondaryTag = cleanTags[1] || primaryTag;
-  const allTags = hashtags.slice(0, 4).join(' ');
+  const thirdTag = cleanTags[2] || secondaryTag;
+  const allTags = hashtags.slice(0, 5).join(' ');
   
+  // More natural review templates that flow better with various business types
   const reviewTemplates = [
     [
-      `Amazing ${primaryTag} experience! The results exceeded my expectations. The ${secondaryTag} treatment was exactly what I needed. Highly recommend!`,
-      `Professional ${primaryTag} service! Will definitely come back for more ${secondaryTag} sessions. The transformation is incredible!`,
-      `Best ${primaryTag} decision I made! The quality of ${secondaryTag} here is unmatched. Worth every penny!`,
+      `What an incredible ${primaryTag} journey! I felt so relaxed and transformed after my session. The ${secondaryTag} approach here is truly special. Highly recommend to anyone looking for a meaningful experience!`,
+      `I've tried many places but nothing compares to what I experienced here. The focus on ${primaryTag} and ${secondaryTag} really shows in their attention to detail. Life-changing results!`,
+      `From the moment I walked in, I knew this was the right choice. Their expertise in ${primaryTag} is evident, and the ${thirdTag} atmosphere made everything perfect. Will definitely be back!`,
     ],
     [
-      `Absolutely love the ${primaryTag} results! The team was so professional and caring. Perfect ${secondaryTag} treatment!`,
-      `Such a wonderful ${primaryTag} experience from start to finish! The ${secondaryTag} service is top-notch!`,
-      `Truly exceptional ${primaryTag}! I can't stop recommending their ${secondaryTag} services to everyone!`,
+      `Absolutely blown away by my experience! The ${primaryTag} session exceeded all my expectations. The team truly understands ${secondaryTag} and creates such a welcoming environment. Five stars!`,
+      `This place is a hidden gem! Their approach to ${primaryTag} is both professional and deeply personal. I left feeling renewed and can't wait to return for more ${secondaryTag} sessions.`,
+      `If you're looking for genuine ${primaryTag} results, look no further. The quality of service and dedication to ${thirdTag} is unmatched. Thank you for such an amazing experience!`,
     ],
     [
-      `Life-changing ${primaryTag} results! The staff are true professionals in ${secondaryTag}. I'm so happy!`,
-      `Exceeded all my ${primaryTag} expectations! The ${secondaryTag} quality here is amazing!`,
-      `Outstanding ${primaryTag} service! Best ${secondaryTag} experience I've ever had. Will be back!`,
+      `My journey with ${primaryTag} started here and I couldn't be happier! The staff are so knowledgeable about ${secondaryTag} and made me feel completely at ease. Transformative experience!`,
+      `I was skeptical at first, but the ${primaryTag} session completely changed my perspective. The ${secondaryTag} techniques they use are incredible. Highly recommend to everyone!`,
+      `What a wonderful discovery! Their passion for ${primaryTag} and ${thirdTag} shines through in everything they do. The results speak for themselves. Already booked my next session!`,
+    ],
+    [
+      `Finding this place was the best decision I've made! The ${primaryTag} experience was exactly what I needed. Their ${secondaryTag} expertise and warm hospitality made all the difference.`,
+      `Truly a special place for ${primaryTag}! The attention to ${secondaryTag} details and the caring staff made this an unforgettable experience. Can't recommend enough!`,
+      `After my ${primaryTag} session, I feel like a new person! The ${thirdTag} focus and professional approach here sets them apart. This is now my go-to place!`,
     ],
   ];
   

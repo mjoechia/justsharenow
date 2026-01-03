@@ -145,28 +145,24 @@ export const translations = {
         step3: "3. Add Photo",
         reviewSets: [
           [
-            "Absolutely loved the treatment! My hair feels so healthy and shiny. Highly recommend!",
-            "Professional service and amazing results. The staff was very attentive to my needs.",
-            "Best salon experience I've had in years. The before and after difference is incredible!",
-            "This place transformed my look completely. So happy with the results!"
+            "What an incredible experience! I felt so relaxed and renewed after my visit. The results exceeded all my expectations. Highly recommend!",
+            "Professional service from start to finish. The staff was attentive, caring, and truly passionate about what they do.",
+            "This place transformed my perspective completely. I walked out feeling like a new person. Amazing!"
           ],
           [
-            "The team truly understands hair care. My hair has never looked better!",
-            "Amazing transformation! The stylists are so talented and really listen to what you want.",
-            "Five stars all the way! From consultation to final result, everything was perfect.",
-            "Can't believe the difference after just one session. Will definitely be coming back!"
+            "The team here truly understands their craft. I've never experienced anything quite like this before. Five stars!",
+            "From the warm welcome to the outstanding results, everything was perfect. Can't wait to come back!",
+            "Such a wonderful discovery! The quality of service and attention to detail is unmatched."
           ],
           [
-            "Exceeded all my expectations. The quality of service is unmatched!",
-            "My friends keep asking what I did to my hair. So grateful I found this place!",
-            "The staff made me feel so comfortable. Professional, friendly, and incredibly skilled.",
-            "Worth every penny! The results speak for themselves. Highly recommend to everyone!"
+            "Exceeded all my expectations! Everyone keeps asking about my experience here. So grateful I found this place!",
+            "The staff made me feel completely at ease. Professional, friendly, and incredibly skilled at what they do.",
+            "Worth every penny! The results speak for themselves. Highly recommend to everyone looking for quality service!"
           ],
           [
-            "Life-changing experience! My confidence has skyrocketed since my visit.",
-            "I've been to many salons but none compare to the expertise here.",
-            "The attention to detail is outstanding. They really care about their clients.",
-            "Incredible results and wonderful service. This is my new go-to salon!"
+            "Life-changing experience! My confidence has improved so much since my visit. Thank you!",
+            "I've tried many places but nothing compares to the expertise and care here. This is my new go-to!",
+            "The attention to detail is outstanding. They really care about each and every client. Incredible!"
           ]
         ]
       },
