@@ -363,9 +363,9 @@ export default function AdminDashboard() {
             </div>
             <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
               <DialogTrigger asChild>
-                <Button data-testid="button-create-user">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Create User
+                <Button size="sm" data-testid="button-create-user">
+                  <UserPlus className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Create User</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -489,21 +489,20 @@ export default function AdminDashboard() {
                 {myUsers.map(assignedUser => (
                   <div 
                     key={assignedUser.id} 
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors gap-2 sm:gap-0"
                     data-testid={`user-row-${assignedUser.id}`}
                   >
-                    <div>
-                      <p className="font-medium">{assignedUser.displayName || assignedUser.email}</p>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">@{assignedUser.username}</span>
-                        {assignedUser.email && <span>{assignedUser.email}</span>}
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm sm:text-base truncate">{assignedUser.displayName || assignedUser.email}</p>
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-500">
+                        <span className="font-mono bg-gray-100 px-1 sm:px-1.5 py-0.5 rounded text-gray-700">@{assignedUser.username}</span>
                         {assignedUser.slug && (
                           <span className="text-purple-600">/{assignedUser.slug}</span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant={assignedUser.isActive ? "default" : "secondary"}>
+                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <Badge variant={assignedUser.isActive ? "default" : "secondary"} className="text-xs">
                         {assignedUser.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                       <Button
@@ -515,16 +514,16 @@ export default function AdminDashboard() {
                         }}
                         data-testid={`button-view-config-${assignedUser.id}`}
                       >
-                        <QrCode className="w-4 h-4 mr-1" />
-                        View Config
+                        <QrCode className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">View Config</span>
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => handleEmailQR(assignedUser.id, assignedUser.email)}
                         data-testid={`button-email-qr-${assignedUser.id}`}
                       >
-                        <Mail className="w-4 h-4 mr-1" />
-                        Email QR
+                        <Mail className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Email QR</span>
                       </Button>
                     </div>
                   </div>
