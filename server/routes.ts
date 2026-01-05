@@ -525,8 +525,8 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Not found" });
       }
       
-      // Only return user role accounts (not admins or master admin)
-      if (user.role !== 'user') {
+      // Allow user and admin roles to have public landing pages (not master admin)
+      if (user.role === 'master_admin') {
         return res.status(404).json({ error: "Not found" });
       }
       
