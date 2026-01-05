@@ -176,15 +176,15 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
       <header className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <img src={justShareNowLogo} alt="JustShareNow" className="w-12 h-auto object-contain" />
-            <div>
-              <h1 className="font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500">Logged in as {user.displayName || user.email}</p>
+            <img src={justShareNowLogo} alt="JustShareNow" className="w-10 h-10 sm:w-12 sm:h-auto object-contain flex-shrink-0" />
+            <div className="min-w-0">
+              <h1 className="font-bold text-gray-900 text-sm sm:text-base">Admin Dashboard</h1>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">Logged in as {user.displayName || user.email}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Dialog open={isChangePasswordOpen} onOpenChange={(open) => {
               setIsChangePasswordOpen(open);
               if (!open) {
@@ -197,9 +197,9 @@ export default function AdminDashboard() {
               }
             }}>
               <DialogTrigger asChild>
-                <Button variant="outline" data-testid="button-change-password">
-                  <Key className="w-4 h-4 mr-2" />
-                  Change Password
+                <Button variant="outline" size="sm" data-testid="button-change-password">
+                  <Key className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Change Password</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -299,9 +299,9 @@ export default function AdminDashboard() {
                 </div>
               </DialogContent>
             </Dialog>
-            <Button variant="outline" onClick={logout} data-testid="button-logout">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
+            <Button variant="outline" size="sm" onClick={logout} data-testid="button-logout">
+              <LogOut className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>
         </div>
