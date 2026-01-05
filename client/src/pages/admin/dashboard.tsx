@@ -877,12 +877,23 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8 pb-24">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-                {confirmedBusinessName && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building2 className="w-5 h-5 text-primary" />
-                    <span className="text-lg font-semibold text-primary" data-testid="text-header-business-name">
-                      {confirmedBusinessName}
-                    </span>
+                {(confirmedBusinessName || companyLogo) && (
+                  <div className="flex items-center gap-3 mb-2">
+                    {companyLogo ? (
+                      <img 
+                        src={companyLogo} 
+                        alt="Company Logo" 
+                        className="w-10 h-10 object-contain"
+                        data-testid="img-header-company-logo"
+                      />
+                    ) : (
+                      <Building2 className="w-5 h-5 text-primary" />
+                    )}
+                    {confirmedBusinessName && (
+                      <span className="text-lg font-semibold text-primary" data-testid="text-header-business-name">
+                        {confirmedBusinessName}
+                      </span>
+                    )}
                   </div>
                 )}
                 <h1 className="text-3xl font-heading font-bold text-foreground">{t.admin.dashboard.title}</h1>

@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig, trackPlatformClick, saveTestimonial } from "@/lib/api";
 
-import regrowLogo from "@assets/generated_images/regrow_group_corporate_logo.png";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
 const formatForXiaohongshu = (review: string, hashtags: string[], businessName?: string): string => {
@@ -566,7 +565,24 @@ export default function CustomerDrafting() {
     <Layout>
       <div className="container max-w-md mx-auto px-4 py-8 pb-32">
         <div className="text-center mb-8 animate-in-slide-up">
-          <img src={regrowLogo} alt="Regrow" className="h-12 mx-auto mb-4" />
+          {/* Business Logo and Name */}
+          {((config as any)?.companyLogo || config?.businessName) && (
+            <div className="flex items-center justify-center gap-3 mb-4">
+              {(config as any)?.companyLogo && (
+                <img 
+                  src={(config as any).companyLogo} 
+                  alt="Company Logo" 
+                  className="w-12 h-12 object-contain"
+                  data-testid="img-drafting-company-logo"
+                />
+              )}
+              {config?.businessName && (
+                <span className="text-lg font-semibold text-primary" data-testid="text-drafting-business-name">
+                  {config.businessName}
+                </span>
+              )}
+            </div>
+          )}
           <h1 className="text-2xl font-heading font-bold text-foreground mb-2">
             {isGoogleReview ? 'Share Your Google Review' : isFacebook ? 'JustShareNow makes Facebook Reviews Easier!' : t.customer.drafting.title}
           </h1>
