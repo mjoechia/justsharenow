@@ -1,7 +1,7 @@
 import { useStore, translations } from "@/lib/store";
 import { Layout } from "@/components/layout";
 import { useState, useMemo, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { motion } from "framer-motion";
 import { Check, RefreshCw, Share2, ExternalLink, Copy, Hash, MessageCircle, Download, Clipboard, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,32 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { getStoreConfig, trackPlatformClick, saveTestimonial } from "@/lib/api";
+import { getStoreConfig, trackPlatformClick, saveTestimonial, StoreConfig } from "@/lib/api";
+
+interface PublicConfig {
+  placeId?: string;
+  businessName?: string | null;
+  googleReviewsUrl?: string | null;
+  googlePlaceId?: string | null;
+  facebookUrl?: string | null;
+  instagramUrl?: string | null;
+  xiaohongshuUrl?: string | null;
+  tiktokUrl?: string | null;
+  whatsappUrl?: string | null;
+  shopPhotos?: string[];
+  sliderPhotos?: string[];
+  reviewHashtags?: string[];
+  companyLogo?: string | null;
+  hideJustShareNowLogo?: boolean;
+}
+
+interface PublicConfigResponse {
+  user: {
+    displayName: string;
+    slug: string;
+  };
+  config: PublicConfig | null;
+}
 
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
@@ -132,6 +157,8 @@ const allPlatforms = [
 export default function CustomerDrafting() {
   const { language, setSelectedReview, setSelectedPhoto, selectedPhoto, selectedReview, selectedPlatform, setSelectedPlatform } = useStore();
   const [_, setLocation] = useLocation();
+  const params = useParams<{ slug?: string }>();
+  const slug = params?.slug;
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reviewSetIndex, setReviewSetIndex] = useState(0);
@@ -143,10 +170,25 @@ export default function CustomerDrafting() {
   const [modalView, setModalView] = useState<'platforms' | 'action'>('platforms');
   const [xhsCopied, setXhsCopied] = useState(false);
   
-  const { data: config } = useQuery({
+  const { data: configBySlug, isLoading: isLoadingSlug, error: slugError } = useQuery<PublicConfigResponse>({
+    queryKey: ['user-config', slug],
+    queryFn: async () => {
+      const res = await fetch(`/api/public/by-slug/${slug}`);
+      if (!res.ok) throw new Error('Not found');
+      return res.json();
+    },
+    enabled: !!slug,
+  });
+  
+  const { data: authConfig, isLoading: isLoadingAuth, error: authError } = useQuery({
     queryKey: ['storeConfig'],
     queryFn: getStoreConfig,
+    enabled: !slug,
   });
+  
+  const isLoading = slug ? isLoadingSlug : isLoadingAuth;
+  const hasError = slug ? !!slugError : !!authError;
+  const config: PublicConfig | StoreConfig | undefined = slug ? configBySlug?.config || undefined : authConfig;
   
   const socialLinks = {
     googleReviews: config?.googleReviewsUrl || "",
@@ -161,7 +203,7 @@ export default function CustomerDrafting() {
   const availableHashtags = config?.reviewHashtags || [];
   const shopPhotos = config?.shopPhotos || [];
   
-  const hideJustShareNowLogo = (config as any)?.hideJustShareNowLogo || false;
+  const hideJustShareNowLogo = (config as PublicConfig)?.hideJustShareNowLogo || false;
   
   const displayPhotos = useMemo(() => {
     const shouldShowLogo = !hideJustShareNowLogo || shopPhotos.length < 2;
@@ -566,22 +608,48 @@ export default function CustomerDrafting() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container max-w-md mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (hasError || !config) {
+    return (
+      <Layout>
+        <div className="container max-w-md mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <p className="text-lg font-semibold text-foreground mb-2">Page Not Found</p>
+            <p className="text-muted-foreground text-sm">The business you're looking for could not be found.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="container max-w-md mx-auto px-4 py-8 pb-32">
         <div className="text-center mb-8 animate-in-slide-up">
           {/* Business Logo and Name */}
-          {((config as any)?.companyLogo || config?.businessName) && (
+          {(config.companyLogo || config.businessName) && (
             <div className="flex items-center justify-center gap-3 mb-4">
-              {(config as any)?.companyLogo && (
+              {config.companyLogo && (
                 <img 
-                  src={(config as any).companyLogo} 
+                  src={config.companyLogo} 
                   alt="Company Logo" 
                   className="w-12 h-12 object-contain"
                   data-testid="img-drafting-company-logo"
                 />
               )}
-              {config?.businessName && (
+              {config.businessName && (
                 <span className="text-lg font-semibold text-primary" data-testid="text-drafting-business-name">
                   {config.businessName}
                 </span>

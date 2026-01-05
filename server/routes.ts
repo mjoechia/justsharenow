@@ -550,6 +550,8 @@ export async function registerRoutes(
           shopPhotos: config.shopPhotos,
           sliderPhotos: config.sliderPhotos,
           reviewHashtags: config.reviewHashtags,
+          companyLogo: config.companyLogo,
+          hideJustShareNowLogo: config.hideJustShareNowLogo,
         } : null,
       });
     } catch (error) {
