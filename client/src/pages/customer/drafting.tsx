@@ -323,22 +323,27 @@ export default function CustomerDrafting() {
     if (activePlatform?.id === 'google-reviews') {
       const reviewText = getReviewWithHashtags();
       
-      // Copy review text to clipboard first
-      if (reviewText) {
-        await navigator.clipboard.writeText(reviewText);
-        toast({
-          title: t.customer.drafting.reviewCopied,
-          description: t.customer.drafting.pasteInGoogle,
-        });
-      }
-      
-      // Open Google Reviews page
+      // Open Google Reviews page FIRST (synchronously) to avoid mobile popup blockers
+      // The window.open must happen in the same tick as the user click
       if (socialLinks.googlePlaceId) {
         const reviewUrl = `https://search.google.com/local/writereview?placeid=${socialLinks.googlePlaceId}`;
         window.open(reviewUrl, '_blank');
       } else {
         const url = socialLinks.googleReviews || "https://www.google.com/maps";
         window.open(url, '_blank');
+      }
+      
+      // Copy review text to clipboard AFTER opening the URL
+      if (reviewText) {
+        try {
+          await navigator.clipboard.writeText(reviewText);
+          toast({
+            title: t.customer.drafting.reviewCopied,
+            description: t.customer.drafting.pasteInGoogle,
+          });
+        } catch (err) {
+          console.warn("Clipboard write failed:", err);
+        }
       }
     }
     if (activePlatform?.id) {
