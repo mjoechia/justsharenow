@@ -2,6 +2,7 @@
 
 export interface StoreConfig {
   id?: number;
+  userId?: number | null;
   businessName?: string | null;
   websiteUrl?: string | null;
   googleReviewsUrl?: string | null;
@@ -15,6 +16,7 @@ export interface StoreConfig {
   sliderPhotos?: string[];
   reviewHashtags?: string[];
   companyLogo?: string | null;
+  hideJustShareNowLogo?: boolean;
   updatedAt?: string;
 }
 
