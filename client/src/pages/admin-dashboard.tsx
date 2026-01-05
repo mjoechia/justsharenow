@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle, Clock, ExternalLink, UserPlus, Key, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface AssignedUser {
   id: number;
@@ -124,6 +124,15 @@ export default function AdminDashboard() {
     },
   });
 
+  // Handle redirects in useEffect to avoid setState during render
+  useEffect(() => {
+    if (!authLoading && !user) {
+      setLocation('/login');
+    } else if (!authLoading && user && !isAdmin) {
+      setLocation('/');
+    }
+  }, [authLoading, user, isAdmin, setLocation]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">
@@ -132,14 +141,12 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!user) {
-    setLocation('/login');
-    return null;
-  }
-
-  if (!isAdmin) {
-    setLocation('/');
-    return null;
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      </div>
+    );
   }
 
   if (isPending) {
@@ -374,10 +381,19 @@ export default function AdminDashboard() {
                     <Input
                       id="new-user-username"
                       value={newUserUsername}
-                      onChange={(e) => setNewUserUsername(e.target.value)}
+                      onChange={(e) => setNewUserUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                       placeholder="username"
                       data-testid="input-new-user-username"
                     />
+                    {newUserUsername && newUserUsername.length < 3 && (
+                      <p className="text-xs text-red-500">Username must be at least 3 characters</p>
+                    )}
+                    {newUserUsername && newUserUsername.length > 20 && (
+                      <p className="text-xs text-red-500">Username must be 20 characters or less</p>
+                    )}
+                    {!newUserUsername && (
+                      <p className="text-xs text-gray-500">3-20 characters, letters, numbers, and underscores only</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="new-user-password">Password *</Label>
@@ -387,7 +403,7 @@ export default function AdminDashboard() {
                         type={showCreateUserPassword ? "text" : "password"}
                         value={newUserPassword}
                         onChange={(e) => setNewUserPassword(e.target.value)}
-                        placeholder="Minimum 8 characters"
+                        placeholder="Enter password"
                         className="pr-10"
                         data-testid="input-new-user-password"
                       />
@@ -400,6 +416,12 @@ export default function AdminDashboard() {
                         {showCreateUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    {newUserPassword && newUserPassword.length < 8 && (
+                      <p className="text-xs text-red-500">Password must be at least 8 characters (currently {newUserPassword.length})</p>
+                    )}
+                    {!newUserPassword && (
+                      <p className="text-xs text-gray-500">Minimum 8 characters required</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="new-user-displayname">Display Name *</Label>
@@ -410,6 +432,9 @@ export default function AdminDashboard() {
                       placeholder="Business Name"
                       data-testid="input-new-user-displayname"
                     />
+                    {!newUserDisplayName && (
+                      <p className="text-xs text-gray-500">This will be shown as the business name</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="new-user-email">Email (optional)</Label>
@@ -430,7 +455,15 @@ export default function AdminDashboard() {
                       displayName: newUserDisplayName,
                       email: newUserEmail || undefined,
                     })}
-                    disabled={!newUserUsername || !newUserPassword || !newUserDisplayName || newUserPassword.length < 8 || createUserMutation.isPending}
+                    disabled={
+                      !newUserUsername || 
+                      newUserUsername.length < 3 || 
+                      newUserUsername.length > 20 ||
+                      !newUserPassword || 
+                      newUserPassword.length < 8 || 
+                      !newUserDisplayName || 
+                      createUserMutation.isPending
+                    }
                     data-testid="button-submit-create-user"
                   >
                     {createUserMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
