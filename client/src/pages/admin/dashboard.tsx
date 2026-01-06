@@ -864,7 +864,7 @@ export default function AdminDashboard() {
     return (
       <Layout isAdmin activeAdminTab={activeTab} onAdminTabChange={setActiveTab}>
         <div className="container mx-auto px-4 py-8">
-          {isReadOnlyView && (
+          {(isReadOnlyView || isContextSwitching) && (
             <div className="mb-4">
               <Button 
                 variant="outline" 
@@ -888,7 +888,7 @@ export default function AdminDashboard() {
     return (
       <Layout isAdmin activeAdminTab={activeTab} onAdminTabChange={setActiveTab}>
         <div className="container mx-auto px-4 py-4">
-          {isReadOnlyView && (
+          {(isReadOnlyView || isContextSwitching) && (
             <div className="mb-4">
               <Button 
                 variant="outline" 
@@ -911,8 +911,8 @@ export default function AdminDashboard() {
   return (
     <Layout isAdmin activeAdminTab={activeTab} onAdminTabChange={setActiveTab}>
       <div className="container mx-auto px-4 py-8 pb-24">
-        {/* Back to Admin Dashboard button for admins viewing user configs */}
-        {isReadOnlyView && (
+        {/* Back to Admin Dashboard button for admins/master admin viewing user configs */}
+        {(isReadOnlyView || isContextSwitching) && (
           <div className="mb-4">
             <Button 
               variant="outline" 
