@@ -1748,11 +1748,13 @@ export default function AdminDashboard() {
                         <Card key={index} className="group relative overflow-hidden">
                             <CardContent className="p-0">
                                 <img src={photo} alt={`Uploaded ${index}`} className="w-full aspect-square object-cover" />
+                                {!isReadOnlyView && (
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <Button variant="destructive" size="icon" onClick={() => removePhoto(index)}>
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
                                 </div>
+                                )}
                             </CardContent>
                         </Card>
                     ))}
@@ -1887,11 +1889,13 @@ export default function AdminDashboard() {
                             <Card key={index} className="group relative overflow-hidden">
                                 <CardContent className="p-0">
                                     <img src={photo} alt={`Slider ${index + 1}`} className="w-full aspect-video object-cover" />
+                                    {!isReadOnlyView && (
                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                         <Button variant="destructive" size="icon" onClick={() => removeSliderPhoto(index)} data-testid={`button-remove-slider-${index}`}>
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))
