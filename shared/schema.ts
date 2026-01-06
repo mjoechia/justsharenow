@@ -8,6 +8,9 @@ export type UserRole = 'master_admin' | 'admin' | 'user';
 // Approval Status
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
+// Account Type - distinguishes demo accounts from real customers
+export type AccountType = 'demo' | 'customer';
+
 // Users table - stores all users with roles
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -24,6 +27,8 @@ export const users = pgTable("users", {
   approvedBy: integer("approved_by"), // References users.id of who approved
   approvedAt: timestamp("approved_at"),
   isActive: boolean("is_active").notNull().default(true),
+  isDemo: boolean("is_demo").notNull().default(false), // True for demo accounts created with admin
+  accountType: text("account_type").$type<AccountType>().notNull().default('customer'), // 'demo' or 'customer'
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

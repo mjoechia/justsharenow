@@ -625,7 +625,7 @@ export async function registerRoutes(
 
   // ========== ADMIN ROUTES (For admins managing their users) ==========
   
-  // Get users assigned to current admin
+  // Get users assigned to current admin (separated into demos and customers)
   app.get("/api/my-users", requireAdmin, async (req, res) => {
     try {
       const adminUser = req.user as Express.User;
@@ -633,25 +633,59 @@ export async function registerRoutes(
       // Master admin sees all users
       if (adminUser.role === 'master_admin') {
         const allUsers = await storage.getUsersByRole('user');
-        return res.json(allUsers.map(u => ({
+        const demos = allUsers.filter(u => u.isDemo || u.accountType === 'demo');
+        const customers = allUsers.filter(u => !u.isDemo && u.accountType !== 'demo');
+        return res.json({
+          demos: demos.map(u => ({
+            id: u.id,
+            username: u.username,
+            email: u.email,
+            displayName: u.displayName,
+            slug: u.slug,
+            isActive: u.isActive,
+            isDemo: u.isDemo,
+            accountType: u.accountType,
+          })),
+          customers: customers.map(u => ({
+            id: u.id,
+            username: u.username,
+            email: u.email,
+            displayName: u.displayName,
+            slug: u.slug,
+            isActive: u.isActive,
+            isDemo: u.isDemo,
+            accountType: u.accountType,
+          })),
+        });
+      }
+
+      // Regular admins see only their assigned users
+      const users = await storage.getUsersForAdmin(adminUser.id);
+      const demos = users.filter(u => u.isDemo || u.accountType === 'demo');
+      const customers = users.filter(u => !u.isDemo && u.accountType !== 'demo');
+      
+      res.json({
+        demos: demos.map(u => ({
           id: u.id,
           username: u.username,
           email: u.email,
           displayName: u.displayName,
           slug: u.slug,
           isActive: u.isActive,
-        })));
-      }
-
-      const users = await storage.getUsersForAdmin(adminUser.id);
-      res.json(users.map(u => ({
-        id: u.id,
-        username: u.username,
-        email: u.email,
-        displayName: u.displayName,
-        slug: u.slug,
-        isActive: u.isActive,
-      })));
+          isDemo: u.isDemo,
+          accountType: u.accountType,
+        })),
+        customers: customers.map(u => ({
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          displayName: u.displayName,
+          slug: u.slug,
+          isActive: u.isActive,
+          isDemo: u.isDemo,
+          accountType: u.accountType,
+        })),
+      });
     } catch (error) {
       console.error("Error fetching assigned users:", error);
       res.status(500).json({ error: "Failed to fetch assigned users" });
