@@ -37,7 +37,7 @@ const imageToBase64 = (src: string): Promise<string> => {
   });
 };
 
-export default function QuickView({ embedded = false }: { embedded?: boolean }) {
+export default function QuickView({ embedded = false, contextUserId }: { embedded?: boolean; contextUserId?: number }) {
   const { language } = useStore();
   const [_, setLocation] = useLocation();
   const t = translations[language];
@@ -48,8 +48,8 @@ export default function QuickView({ embedded = false }: { embedded?: boolean }) 
   const [logoBase64, setLogoBase64] = useState<string>("");
 
   const { data: config } = useQuery({
-    queryKey: ['storeConfig'],
-    queryFn: getStoreConfig,
+    queryKey: ['storeConfig', contextUserId],
+    queryFn: () => getStoreConfig(contextUserId),
   });
 
   // Slider state for reduced slider photos

@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2, Crop, Upload } from "lucide-react";
+import { RefreshCw, ExternalLink, ImagePlus, Trash2, Search, Loader2, Sparkles, Check, X, Image, Hash, Plus, HelpCircle, Star, MapPin, Building2, CheckCircle2, Crop, Upload, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
@@ -864,7 +864,20 @@ export default function AdminDashboard() {
     return (
       <Layout isAdmin activeAdminTab={activeTab} onAdminTabChange={setActiveTab}>
         <div className="container mx-auto px-4 py-8">
-          <QuickView embedded />
+          {isReadOnlyView && (
+            <div className="mb-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setLocation('/admin-dashboard')}
+                className="flex items-center gap-2"
+                data-testid="button-back-admin-dashboard-quickview"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Admin Dashboard
+              </Button>
+            </div>
+          )}
+          <QuickView embedded contextUserId={contextUserId} />
         </div>
       </Layout>
     );
@@ -874,7 +887,22 @@ export default function AdminDashboard() {
   if (activeTab === "shop-view") {
     return (
       <Layout isAdmin activeAdminTab={activeTab} onAdminTabChange={setActiveTab}>
-        <Landing embedded />
+        <div className="container mx-auto px-4 py-4">
+          {isReadOnlyView && (
+            <div className="mb-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setLocation('/admin-dashboard')}
+                className="flex items-center gap-2"
+                data-testid="button-back-admin-dashboard-shopview"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Admin Dashboard
+              </Button>
+            </div>
+          )}
+        </div>
+        <Landing embedded contextUserId={contextUserId} />
       </Layout>
     );
   }
@@ -883,6 +911,21 @@ export default function AdminDashboard() {
   return (
     <Layout isAdmin activeAdminTab={activeTab} onAdminTabChange={setActiveTab}>
       <div className="container mx-auto px-4 py-8 pb-24">
+        {/* Back to Admin Dashboard button for admins viewing user configs */}
+        {isReadOnlyView && (
+          <div className="mb-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation('/admin-dashboard')}
+              className="flex items-center gap-2"
+              data-testid="button-back-admin-dashboard"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Admin Dashboard
+            </Button>
+          </div>
+        )}
+        
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
                 {(confirmedBusinessName || companyLogo) && (

@@ -72,7 +72,7 @@ const platforms = [
   }
 ];
 
-export default function Landing({ embedded = false }: { embedded?: boolean }) {
+export default function Landing({ embedded = false, contextUserId }: { embedded?: boolean; contextUserId?: number }) {
   const { language, setSelectedPlatform } = useStore();
   const [_, setLocation] = useLocation();
   const t = translations[language];
@@ -83,8 +83,8 @@ export default function Landing({ embedded = false }: { embedded?: boolean }) {
   const [xhsCopied, setXhsCopied] = useState(false);
 
   const { data: config } = useQuery({
-    queryKey: ['storeConfig'],
-    queryFn: getStoreConfig,
+    queryKey: ['storeConfig', contextUserId],
+    queryFn: () => getStoreConfig(contextUserId),
   });
 
   useEffect(() => {
