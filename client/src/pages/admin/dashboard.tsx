@@ -68,6 +68,9 @@ export default function AdminDashboard() {
   const urlParams = new URLSearchParams(window.location.search);
   const contextUserId = urlParams.get('userId') ? parseInt(urlParams.get('userId')!) : undefined;
   const isContextSwitching = contextUserId !== undefined && user?.role === 'master_admin';
+  
+  // Read-only view: admins (not master admin) viewing another user's config cannot make edits
+  const isReadOnlyView = user?.role === 'admin' && contextUserId !== undefined;
 
   const { data: config } = useQuery({
     queryKey: ['storeConfig', contextUserId],
@@ -939,6 +942,7 @@ export default function AdminDashboard() {
                                     className="flex-1"
                                     data-testid="input-website-url"
                                 />
+                                {!isReadOnlyView && (
                                 <Button 
                                     onClick={handleDiscoverLinks}
                                     disabled={isDiscovering || !websiteUrl}
@@ -957,6 +961,7 @@ export default function AdminDashboard() {
                                         </>
                                     )}
                                 </Button>
+                                )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
                                 AI will scan your website to find social media links and suggest photos for your shop.
@@ -1152,6 +1157,7 @@ export default function AdminDashboard() {
                                 </p>
                             )}
                             
+                            {!isReadOnlyView && (
                             <Button 
                                 onClick={handleSaveHashtags} 
                                 disabled={savingHashtags}
@@ -1170,6 +1176,7 @@ export default function AdminDashboard() {
                                     </>
                                 )}
                             </Button>
+                            )}
                         </div>
 
                         <div className="grid gap-4">
@@ -1308,6 +1315,7 @@ export default function AdminDashboard() {
                                 <p className="text-xs text-muted-foreground">
                                     Enter your business name (e.g., "Derma Floral Beauty Singapore") or paste a Google Place ID.
                                 </p>
+                                {!isReadOnlyView && (
                                 <div className="flex gap-2 mt-2">
                                     <Button 
                                         onClick={handleCheckInGoogle}
@@ -1339,6 +1347,7 @@ export default function AdminDashboard() {
                                         Set
                                     </Button>
                                 </div>
+                                )}
                                 
                                 {verifiedBusiness && (
                                     <div className="mt-3 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200" data-testid="verified-business-info">
@@ -1634,6 +1643,7 @@ export default function AdminDashboard() {
                                 </div>
                             )}
 
+                            {!isReadOnlyView && (
                             <Button 
                                 onClick={handleSaveSocials} 
                                 disabled={updateConfigMutation.isPending || !isDirty}
@@ -1651,6 +1661,7 @@ export default function AdminDashboard() {
                                     "Save Changes"
                                 )}
                             </Button>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -1663,6 +1674,7 @@ export default function AdminDashboard() {
                         <h2 className="text-xl font-bold">Shop View Photos</h2>
                         <p className="text-muted-foreground">Manage the photos available for customers to select. Max 9 photos.</p>
                     </div>
+                    {!isReadOnlyView && (
                     <div className="relative">
                          <Input 
                             type="file" 
@@ -1679,6 +1691,7 @@ export default function AdminDashboard() {
                             </Label>
                         </Button>
                     </div>
+                    )}
                 </div>
 
                 {/* Option to hide JustShareNow logo when 2+ photos exist */}
@@ -1753,6 +1766,7 @@ export default function AdminDashboard() {
                         <h2 className="text-xl font-bold">Slider Photos</h2>
                         <p className="text-muted-foreground">Manage hero carousel photos for your landing page. Max 3 photos.</p>
                     </div>
+                    {!isReadOnlyView && (
                     <div className="relative">
                         <Input 
                             ref={sliderFileInputRef}
@@ -1770,6 +1784,7 @@ export default function AdminDashboard() {
                             </Label>
                         </Button>
                     </div>
+                    )}
                 </div>
 
                 {/* AI Suggested Slider Photos */}
