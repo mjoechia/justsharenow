@@ -35,15 +35,19 @@ export async function getStoreConfigByPlaceId(placeId: string): Promise<StoreCon
 }
 
 // Fetch authenticated user's store configuration (for admin dashboard)
-export async function getStoreConfig(): Promise<StoreConfig> {
-  const response = await fetch('/api/admin/my-config');
+// If userId is provided (for master admin context switching), fetch that user's config
+export async function getStoreConfig(userId?: number): Promise<StoreConfig> {
+  const url = userId ? `/api/admin/my-config?userId=${userId}` : '/api/admin/my-config';
+  const response = await fetch(url);
   if (!response.ok) throw new Error('Failed to fetch config');
   return response.json();
 }
 
 // Update store configuration (user-scoped for authenticated users)
-export async function updateStoreConfig(config: Partial<StoreConfig>): Promise<StoreConfig> {
-  const response = await fetch('/api/config', {
+// If userId is provided (for master admin context switching), update that user's config
+export async function updateStoreConfig(config: Partial<StoreConfig>, userId?: number): Promise<StoreConfig> {
+  const url = userId ? `/api/config?userId=${userId}` : '/api/config';
+  const response = await fetch(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),

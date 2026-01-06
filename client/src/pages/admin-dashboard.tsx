@@ -20,6 +20,13 @@ interface AssignedUser {
   displayName?: string;
   slug?: string;
   isActive: boolean;
+  isDemo?: boolean;
+  accountType?: string;
+}
+
+interface UsersResponse {
+  demos: AssignedUser[];
+  customers: AssignedUser[];
 }
 
 interface RecentUser {
@@ -52,10 +59,14 @@ export default function AdminDashboard() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showCreateUserPassword, setShowCreateUserPassword] = useState(false);
 
-  const { data: myUsers = [], isLoading: usersLoading } = useQuery<AssignedUser[]>({
+  const { data: usersData, isLoading: usersLoading } = useQuery<UsersResponse>({
     queryKey: ["/api/my-users"],
     enabled: isAdmin && isApproved,
   });
+  
+  const demos = usersData?.demos || [];
+  const customers = usersData?.customers || [];
+  const isMasterAdmin = user?.role === 'master_admin';
 
   const { data: recentUsers = [] } = useQuery<RecentUser[]>({
     queryKey: ["/api/my-recent-users"],
@@ -350,143 +361,220 @@ export default function AdminDashboard() {
           </Card>
         )}
 
+        {/* Demo Accounts Section */}
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                My Assigned Users ({myUsers.length})
-              </CardTitle>
-              <CardDescription>
-                Manage QR codes for your assigned users. You can create new users or email QR codes.
-              </CardDescription>
-            </div>
-            <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" data-testid="button-create-user">
-                  <UserPlus className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Create User</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New User</DialogTitle>
-                  <DialogDescription>
-                    Create a new user account. The user will be automatically assigned to you.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-user-username">Username *</Label>
-                    <Input
-                      id="new-user-username"
-                      value={newUserUsername}
-                      onChange={(e) => setNewUserUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                      placeholder="username"
-                      data-testid="input-new-user-username"
-                    />
-                    {newUserUsername && newUserUsername.length < 3 && (
-                      <p className="text-xs text-red-500">Username must be at least 3 characters</p>
-                    )}
-                    {newUserUsername && newUserUsername.length > 20 && (
-                      <p className="text-xs text-red-500">Username must be 20 characters or less</p>
-                    )}
-                    {!newUserUsername && (
-                      <p className="text-xs text-gray-500">3-20 characters, letters, numbers, and underscores only</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-user-password">Password *</Label>
-                    <div className="relative">
-                      <Input
-                        id="new-user-password"
-                        type={showCreateUserPassword ? "text" : "password"}
-                        value={newUserPassword}
-                        onChange={(e) => setNewUserPassword(e.target.value)}
-                        placeholder="Enter password"
-                        className="pr-10"
-                        data-testid="input-new-user-password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCreateUserPassword(!showCreateUserPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        data-testid="toggle-create-user-password"
-                      >
-                        {showCreateUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {newUserPassword && newUserPassword.length < 8 && (
-                      <p className="text-xs text-red-500">Password must be at least 8 characters (currently {newUserPassword.length})</p>
-                    )}
-                    {!newUserPassword && (
-                      <p className="text-xs text-gray-500">Minimum 8 characters required</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-user-displayname">Display Name *</Label>
-                    <Input
-                      id="new-user-displayname"
-                      value={newUserDisplayName}
-                      onChange={(e) => setNewUserDisplayName(e.target.value)}
-                      placeholder="Business Name"
-                      data-testid="input-new-user-displayname"
-                    />
-                    {!newUserDisplayName && (
-                      <p className="text-xs text-gray-500">This will be shown as the business name</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-user-email">Email (optional)</Label>
-                    <Input
-                      id="new-user-email"
-                      type="email"
-                      value={newUserEmail}
-                      onChange={(e) => setNewUserEmail(e.target.value)}
-                      placeholder="user@example.com"
-                      data-testid="input-new-user-email"
-                    />
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => createUserMutation.mutate({
-                      username: newUserUsername,
-                      password: newUserPassword,
-                      displayName: newUserDisplayName,
-                      email: newUserEmail || undefined,
-                    })}
-                    disabled={
-                      !newUserUsername || 
-                      newUserUsername.length < 3 || 
-                      newUserUsername.length > 20 ||
-                      !newUserPassword || 
-                      newUserPassword.length < 8 || 
-                      !newUserDisplayName || 
-                      createUserMutation.isPending
-                    }
-                    data-testid="button-submit-create-user"
-                  >
-                    {createUserMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Create User
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-orange-600" />
+              Demo Accounts ({demos.length})
+            </CardTitle>
+            <CardDescription>
+              Demo accounts for testing and demonstrations. {!isMasterAdmin && "These are automatically created for you."}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {usersLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
               </div>
-            ) : myUsers.length === 0 ? (
+            ) : demos.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500">No users assigned to you yet.</p>
-                <p className="text-sm text-gray-400">Contact the master admin to get users assigned.</p>
+                <p className="text-gray-500">No demo accounts available.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {myUsers.map(assignedUser => (
+                {demos.map((assignedUser: AssignedUser) => (
+                  <div 
+                    key={assignedUser.id} 
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border rounded-lg hover:bg-orange-50 transition-colors gap-2 sm:gap-0 border-orange-200"
+                    data-testid={`demo-row-${assignedUser.id}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm sm:text-base truncate">{assignedUser.displayName || assignedUser.email}</p>
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-500">
+                        <span className="font-mono bg-gray-100 px-1 sm:px-1.5 py-0.5 rounded text-gray-700">@{assignedUser.username}</span>
+                        {assignedUser.slug && (
+                          <span className="text-purple-600">/{assignedUser.slug}</span>
+                        )}
+                        <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">Demo</Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <Badge variant={assignedUser.isActive ? "default" : "secondary"} className="text-xs">
+                        {assignedUser.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          trackViewMutation.mutate(assignedUser.id);
+                          setLocation(`/admin?userId=${assignedUser.id}`);
+                        }}
+                        data-testid={`button-view-config-${assignedUser.id}`}
+                      >
+                        <QrCode className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">View Config</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleEmailQR(assignedUser.id, assignedUser.email)}
+                        data-testid={`button-email-qr-${assignedUser.id}`}
+                      >
+                        <Mail className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Email QR</span>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Customer Accounts Section */}
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Customer Accounts ({customers.length})
+              </CardTitle>
+              <CardDescription>
+                {isMasterAdmin 
+                  ? "Manage customer accounts. You can create new users or email QR codes."
+                  : "View your assigned customer accounts. Contact master admin for changes."}
+              </CardDescription>
+            </div>
+            {isMasterAdmin && (
+              <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" data-testid="button-create-user">
+                    <UserPlus className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Create User</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New User</DialogTitle>
+                    <DialogDescription>
+                      Create a new user account. The user will be automatically assigned to you.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-user-username">Username *</Label>
+                      <Input
+                        id="new-user-username"
+                        value={newUserUsername}
+                        onChange={(e) => setNewUserUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                        placeholder="username"
+                        data-testid="input-new-user-username"
+                      />
+                      {newUserUsername && newUserUsername.length < 3 && (
+                        <p className="text-xs text-red-500">Username must be at least 3 characters</p>
+                      )}
+                      {newUserUsername && newUserUsername.length > 20 && (
+                        <p className="text-xs text-red-500">Username must be 20 characters or less</p>
+                      )}
+                      {!newUserUsername && (
+                        <p className="text-xs text-gray-500">3-20 characters, letters, numbers, and underscores only</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-user-password">Password *</Label>
+                      <div className="relative">
+                        <Input
+                          id="new-user-password"
+                          type={showCreateUserPassword ? "text" : "password"}
+                          value={newUserPassword}
+                          onChange={(e) => setNewUserPassword(e.target.value)}
+                          placeholder="Enter password"
+                          className="pr-10"
+                          data-testid="input-new-user-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCreateUserPassword(!showCreateUserPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          data-testid="toggle-create-user-password"
+                        >
+                          {showCreateUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {newUserPassword && newUserPassword.length < 8 && (
+                        <p className="text-xs text-red-500">Password must be at least 8 characters (currently {newUserPassword.length})</p>
+                      )}
+                      {!newUserPassword && (
+                        <p className="text-xs text-gray-500">Minimum 8 characters required</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-user-displayname">Display Name *</Label>
+                      <Input
+                        id="new-user-displayname"
+                        value={newUserDisplayName}
+                        onChange={(e) => setNewUserDisplayName(e.target.value)}
+                        placeholder="Business Name"
+                        data-testid="input-new-user-displayname"
+                      />
+                      {!newUserDisplayName && (
+                        <p className="text-xs text-gray-500">This will be shown as the business name</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-user-email">Email (optional)</Label>
+                      <Input
+                        id="new-user-email"
+                        type="email"
+                        value={newUserEmail}
+                        onChange={(e) => setNewUserEmail(e.target.value)}
+                        placeholder="user@example.com"
+                        data-testid="input-new-user-email"
+                      />
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={() => createUserMutation.mutate({
+                        username: newUserUsername,
+                        password: newUserPassword,
+                        displayName: newUserDisplayName,
+                        email: newUserEmail || undefined,
+                      })}
+                      disabled={
+                        !newUserUsername || 
+                        newUserUsername.length < 3 || 
+                        newUserUsername.length > 20 ||
+                        !newUserPassword || 
+                        newUserPassword.length < 8 || 
+                        !newUserDisplayName || 
+                        createUserMutation.isPending
+                      }
+                      data-testid="button-submit-create-user"
+                    >
+                      {createUserMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      Create User
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </CardHeader>
+          <CardContent>
+            {usersLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+              </div>
+            ) : customers.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">No customer accounts yet.</p>
+                {isMasterAdmin && <p className="text-sm text-gray-400">Click "Create User" to add a new customer.</p>}
+                {!isMasterAdmin && <p className="text-sm text-gray-400">Contact the master admin to get customers assigned.</p>}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {customers.map((assignedUser: AssignedUser) => (
                   <div 
                     key={assignedUser.id} 
                     className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors gap-2 sm:gap-0"

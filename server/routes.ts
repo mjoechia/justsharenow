@@ -216,6 +216,58 @@ export async function registerRoutes(
       if (role === 'user') {
         await storage.createStoreConfigForUser(user.id);
       }
+      
+      // Auto-create 3 demo accounts for new admins
+      if (role === 'admin') {
+        const demoAccounts = [];
+        for (let i = 1; i <= 3; i++) {
+          // Generate unique slug for demo account
+          let demoSlug = `${slug}_demo${i}`;
+          let demoSlugCounter = 1;
+          while (await storage.getUserBySlug(demoSlug)) {
+            demoSlug = `${slug}_demo${i}_${demoSlugCounter}`;
+            demoSlugCounter++;
+          }
+          
+          // Generate unique username for demo account
+          let demoUsername = `${username}_demo${i}`;
+          let demoUsernameCounter = 1;
+          while (await storage.getUserByUsername(demoUsername)) {
+            demoUsername = `${username}_demo${i}_${demoUsernameCounter}`;
+            demoUsernameCounter++;
+          }
+          
+          const demoDisplayName = `${displayName} Demo ${i}`;
+          
+          // Create demo user account
+          const demoUser = await storage.createUser({
+            username: demoUsername,
+            passwordHash: passwordHash, // Same password as admin for demo accounts
+            email: null,
+            displayName: demoDisplayName,
+            role: 'user',
+            slug: demoSlug,
+            approvalStatus: 'approved',
+            approvedBy: adminUser.id,
+            isActive: true,
+            isDemo: true,
+            accountType: 'demo',
+          });
+          
+          // Create store config for demo user
+          await storage.createStoreConfigForUser(demoUser.id);
+          
+          // Assign demo user to the new admin
+          await storage.assignUserToAdmin(user.id, demoUser.id, adminUser.id);
+          
+          demoAccounts.push({
+            id: demoUser.id,
+            username: demoUser.username,
+            slug: demoUser.slug,
+          });
+        }
+        console.log(`Created 3 demo accounts for admin ${username}:`, demoAccounts.map(d => d.slug).join(', '));
+      }
 
       res.json({ 
         success: true, 
@@ -940,8 +992,15 @@ export async function registerRoutes(
       const validatedData = insertStoreConfigSchema.parse(req.body);
       
       // Determine and validate target user for the update
+      // Support userId from query params (context switching) or request body
       let targetUserId = authUser.id;
-      if (validatedData.userId !== undefined && validatedData.userId !== null) {
+      const queryUserId = req.query.userId as string | undefined;
+      if (queryUserId) {
+        targetUserId = parseInt(queryUserId);
+        if (isNaN(targetUserId) || targetUserId <= 0) {
+          return res.status(400).json({ error: "Invalid userId parameter" });
+        }
+      } else if (validatedData.userId !== undefined && validatedData.userId !== null) {
         targetUserId = validatedData.userId;
         if (isNaN(targetUserId) || targetUserId <= 0) {
           return res.status(400).json({ error: "Invalid userId parameter" });

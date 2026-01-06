@@ -57,16 +57,21 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<string>
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, user } = useAuth();
   const { language, setSelectedPhoto, setSelectedReview } = useStore();
   const t = translations[language];
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("dashboard");
+  
+  // Extract userId from URL for context switching (master admin viewing another user's config)
+  const urlParams = new URLSearchParams(window.location.search);
+  const contextUserId = urlParams.get('userId') ? parseInt(urlParams.get('userId')!) : undefined;
+  const isContextSwitching = contextUserId !== undefined && user?.role === 'master_admin';
 
   const { data: config } = useQuery({
-    queryKey: ['storeConfig'],
-    queryFn: getStoreConfig,
+    queryKey: ['storeConfig', contextUserId],
+    queryFn: () => getStoreConfig(contextUserId),
   });
 
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -192,9 +197,9 @@ export default function AdminDashboard() {
   }, [websiteUrl, googleReviewsUrl, googlePlaceId, fbUrl, igUrl, xhsUrl, tiktokUrl, whatsappUrl, companyLogo, config]);
 
   const updateConfigMutation = useMutation({
-    mutationFn: updateStoreConfig,
+    mutationFn: (config: Parameters<typeof updateStoreConfig>[0]) => updateStoreConfig(config, contextUserId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
+      queryClient.invalidateQueries({ queryKey: ['storeConfig', contextUserId] });
       setIsDirty(false);
       toast({ title: "Saved", description: "Configuration updated successfully." });
     },
@@ -296,7 +301,7 @@ export default function AdminDashboard() {
 
     setIsSavingLogo(true);
     try {
-      await updateStoreConfig({ companyLogo });
+      await updateStoreConfig({ companyLogo }, contextUserId);
       toast({ title: "Logo Saved!", description: "Your company logo has been saved." });
     } catch (error: any) {
       toast({ title: "Save Failed", description: error.message || "Could not save logo.", variant: "destructive" });
@@ -640,7 +645,7 @@ export default function AdminDashboard() {
         businessName: verifiedBusiness.businessName || undefined,
         googleReviewsUrl: googleReviewUrl,
         googlePlaceId,
-      });
+      }, contextUserId);
       
       setGoogleReviewsUrl(googleReviewUrl);
       
