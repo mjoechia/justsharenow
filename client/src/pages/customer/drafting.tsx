@@ -182,7 +182,7 @@ export default function CustomerDrafting() {
   
   const { data: authConfig, isLoading: isLoadingAuth, error: authError } = useQuery({
     queryKey: ['storeConfig'],
-    queryFn: getStoreConfig,
+    queryFn: () => getStoreConfig(),
     enabled: !slug,
   });
   

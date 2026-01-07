@@ -1729,19 +1729,20 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
         return;
       }
       
-      // Get the user's store config to find their placeId
-      const userConfig = await storage.getStoreConfigByUserId(authUser.id);
-      if (!userConfig || !userConfig.googlePlaceId) {
-        res.status(400).json({ error: "No Google Place ID configured. Please set up your business first." });
-        return;
-      }
-      
       // Validate hashtags (strings only, max 12)
       const validHashtags = hashtags
         .filter((tag): tag is string => typeof tag === 'string')
+        .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
         .slice(0, 12);
       
-      const config = await storage.setReviewHashtags(validHashtags, userConfig.googlePlaceId);
+      // Dedupe hashtags
+      const normalizedHashtags = Array.from(new Set(validHashtags));
+      
+      // Update user's config directly by userId (not by placeId)
+      // This ensures we update the correct config for this user
+      const config = await storage.updateStoreConfigByUserId(authUser.id, {
+        reviewHashtags: normalizedHashtags,
+      } as any);
       
       res.json({
         success: true,
