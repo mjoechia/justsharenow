@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getStoreConfig, trackPlatformClick } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
+import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import { useEffect, useState, useMemo } from "react";
 import {
   Carousel,
@@ -264,6 +265,15 @@ export default function Landing({ embedded = false, contextUserId }: { embedded?
         {/* Desktop: Right Buttons (1/3 width) */}
         <div className="flex-1 lg:w-1/3 p-4 lg:p-6 flex flex-col">
           <div className="text-center mb-4 lg:mb-6">
+            {/* JustShareNow Logo */}
+            <div className="flex justify-center mb-3">
+              <img 
+                src={justShareNowLogo} 
+                alt="JustShareNow" 
+                className="h-10 object-contain"
+                data-testid="img-justsharenow-logo"
+              />
+            </div>
             {(config?.businessName || (config as any)?.companyLogo) && (
               <div className="flex items-center justify-center gap-3 mb-2">
                 {(config as any)?.companyLogo && (

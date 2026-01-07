@@ -80,11 +80,12 @@ export default function QuickView({ embedded = false, contextUserId }: { embedde
   const userSlug = (config as any)?.userSlug;
 
   useEffect(() => {
-    // Use user's slug for QR code URL if available
+    // Use user's slug for QR code URL if available - always use production domain
+    const baseUrl = 'https://app.justsharenow.com';
     if (userSlug) {
-      setShareUrl(`${window.location.origin}/${userSlug}`);
+      setShareUrl(`${baseUrl}/${userSlug}`);
     } else {
-      setShareUrl(`${window.location.origin}/`);
+      setShareUrl(`${baseUrl}/`);
     }
   }, [userSlug]);
 
