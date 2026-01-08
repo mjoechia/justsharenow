@@ -205,6 +205,7 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   // Universal password-based login for all users (master admin, admins, and users)
+  // Supports login via username OR email
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
@@ -213,7 +214,11 @@ export async function setupAuth(app: Express) {
         return res.status(400).json({ error: "Username and password required" });
       }
 
-      const user = await storage.getUserByUsername(username);
+      // Try to find user by username first, then by email
+      let user = await storage.getUserByUsername(username);
+      if (!user) {
+        user = await storage.getUserByEmail(username);
+      }
       
       if (!user || !user.passwordHash) {
         return res.status(401).json({ error: "Invalid credentials" });
@@ -264,6 +269,7 @@ export async function setupAuth(app: Express) {
   });
   
   // Legacy route for backward compatibility
+  // Supports login via username OR email
   app.post("/api/auth/master-login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
@@ -272,7 +278,11 @@ export async function setupAuth(app: Express) {
         return res.status(400).json({ error: "Username and password required" });
       }
 
-      const user = await storage.getUserByUsername(username);
+      // Try to find user by username first, then by email
+      let user = await storage.getUserByUsername(username);
+      if (!user) {
+        user = await storage.getUserByEmail(username);
+      }
       
       if (!user || !user.passwordHash) {
         return res.status(401).json({ error: "Invalid credentials" });
