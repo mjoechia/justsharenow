@@ -69,8 +69,19 @@ export default function AdminDashboard() {
   const contextUserId = urlParams.get('userId') ? parseInt(urlParams.get('userId')!) : undefined;
   const isContextSwitching = contextUserId !== undefined && user?.role === 'master_admin';
   
-  // Read-only view: admins (not master admin) viewing another user's config cannot make edits
-  const isReadOnlyView = user?.role === 'admin' && contextUserId !== undefined;
+  // Check if the context user is a demo account (admins can edit demos)
+  const { data: contextUserInfo } = useQuery<{ isDemo: boolean; canEdit: boolean; user: { id: number; displayName: string; slug: string } }>({
+    queryKey: ['checkUserDemo', contextUserId],
+    queryFn: async () => {
+      const res = await fetch(`/api/check-user-demo/${contextUserId}`);
+      if (!res.ok) return { isDemo: false, canEdit: false, user: null };
+      return res.json();
+    },
+    enabled: contextUserId !== undefined && user?.role === 'admin',
+  });
+  
+  // Read-only view: admins viewing customer accounts cannot make edits, but can edit demo accounts
+  const isReadOnlyView = user?.role === 'admin' && contextUserId !== undefined && !contextUserInfo?.canEdit;
 
   const { data: config } = useQuery({
     queryKey: ['storeConfig', contextUserId],

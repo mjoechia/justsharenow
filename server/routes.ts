@@ -828,6 +828,59 @@ export async function registerRoutes(
     }
   });
 
+  // Check if a user is a demo account assigned to the current admin
+  app.get("/api/check-user-demo/:userId", requireAdmin, async (req, res) => {
+    try {
+      const adminUser = req.user as Express.User;
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      const targetUser = await storage.getUserById(userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Master admin can edit any user
+      if (adminUser.role === 'master_admin') {
+        return res.json({
+          isDemo: targetUser.isDemo || targetUser.accountType === 'demo',
+          canEdit: true,
+          user: {
+            id: targetUser.id,
+            displayName: targetUser.displayName,
+            slug: targetUser.slug,
+          }
+        });
+      }
+      
+      // Check if user is assigned to this admin
+      const assignedUsers = await storage.getUsersForAdmin(adminUser.id);
+      const isAssigned = assignedUsers.some(u => u.id === userId);
+      
+      if (!isAssigned) {
+        return res.status(403).json({ error: "User not assigned to you" });
+      }
+      
+      const isDemo = targetUser.isDemo || targetUser.accountType === 'demo';
+      
+      res.json({
+        isDemo,
+        canEdit: isDemo, // Admins can only edit demo accounts
+        user: {
+          id: targetUser.id,
+          displayName: targetUser.displayName,
+          slug: targetUser.slug,
+        }
+      });
+    } catch (error) {
+      console.error("Error checking user demo status:", error);
+      res.status(500).json({ error: "Failed to check user status" });
+    }
+  });
+
   // Get recent users for current admin
   app.get("/api/my-recent-users", requireAdmin, async (req, res) => {
     try {
