@@ -84,6 +84,9 @@ export default function MasterAdminDashboard() {
   // Error state for inline display
   const [createAdminError, setCreateAdminError] = useState<string | null>(null);
   const [createUserError, setCreateUserError] = useState<string | null>(null);
+  
+  // Backfill state
+  const [isBackfilling, setIsBackfilling] = useState(false);
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -327,6 +330,31 @@ export default function MasterAdminDashboard() {
     },
   });
 
+  const handleBackfillDemos = async () => {
+    setIsBackfilling(true);
+    try {
+      const res = await fetch('/api/admin/backfill-demos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to backfill demo accounts');
+      }
+      const result = await res.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/admins-with-users"] });
+      toast({ 
+        title: "Demo accounts created", 
+        description: `Created demos for ${result.details?.length || 0} admins` 
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsBackfilling(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">
@@ -449,16 +477,26 @@ export default function MasterAdminDashboard() {
                   <CardTitle>Admin Accounts</CardTitle>
                   <CardDescription>Manage admin accounts who can oversee users and send QR codes.</CardDescription>
                 </div>
-                <Dialog open={isCreateAdminOpen} onOpenChange={(open) => {
-                  setIsCreateAdminOpen(open);
-                  if (open) setCreateAdminError(null);
-                }}>
-                  <DialogTrigger asChild>
-                    <Button data-testid="button-create-admin">
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Create Admin
-                    </Button>
-                  </DialogTrigger>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleBackfillDemos} 
+                    disabled={isBackfilling}
+                    data-testid="button-backfill-demos"
+                  >
+                    {isBackfilling ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                    Create Demo Accounts
+                  </Button>
+                  <Dialog open={isCreateAdminOpen} onOpenChange={(open) => {
+                    setIsCreateAdminOpen(open);
+                    if (open) setCreateAdminError(null);
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button data-testid="button-create-admin">
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Create Admin
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Create New Admin</DialogTitle>
@@ -549,7 +587,8 @@ export default function MasterAdminDashboard() {
                       </Button>
                     </DialogFooter>
                   </DialogContent>
-                </Dialog>
+                  </Dialog>
+                </div>
               </CardHeader>
               <CardContent>
                 {usersLoading ? (

@@ -299,6 +299,90 @@ export async function registerRoutes(
     }
   });
 
+  // Backfill demo accounts for existing admins who don't have them
+  app.post("/api/admin/backfill-demos", requireMasterAdmin, async (req, res) => {
+    try {
+      const masterAdmin = req.user as Express.User;
+      const admins = await storage.getUsersByRole('admin');
+      const results: { adminId: number; adminSlug: string; demosCreated: string[] }[] = [];
+      
+      for (const admin of admins) {
+        // Check if this admin already has demo accounts assigned
+        const assignedUsers = await storage.getUsersForAdmin(admin.id);
+        const existingDemos = assignedUsers.filter(u => u.isDemo || u.accountType === 'demo');
+        
+        if (existingDemos.length >= 3) {
+          // Already has 3+ demos, skip
+          continue;
+        }
+        
+        const demosNeeded = 3 - existingDemos.length;
+        const createdDemos: string[] = [];
+        const adminSlug = admin.slug || admin.username || `admin${admin.id}`;
+        
+        for (let i = existingDemos.length + 1; i <= 3; i++) {
+          // Generate unique slug for demo account based on admin's slug
+          let demoSlug = `${adminSlug}_demo${i}`;
+          let demoSlugCounter = 1;
+          while (await storage.getUserBySlug(demoSlug)) {
+            demoSlug = `${adminSlug}_demo${i}_${demoSlugCounter}`;
+            demoSlugCounter++;
+          }
+          
+          // Generate unique username for demo account
+          let demoUsername = `${admin.username}_demo${i}`;
+          let demoUsernameCounter = 1;
+          while (await storage.getUserByUsername(demoUsername)) {
+            demoUsername = `${admin.username}_demo${i}_${demoUsernameCounter}`;
+            demoUsernameCounter++;
+          }
+          
+          const demoDisplayName = `${admin.displayName || admin.username} Demo ${i}`;
+          
+          // Create demo user account (use admin's password hash)
+          const demoUser = await storage.createUser({
+            username: demoUsername,
+            passwordHash: admin.passwordHash || '', // Same password as admin
+            email: null,
+            displayName: demoDisplayName,
+            role: 'user',
+            slug: demoSlug,
+            approvalStatus: 'approved',
+            approvedBy: masterAdmin.id,
+            isActive: true,
+            isDemo: true,
+            accountType: 'demo',
+          });
+          
+          // Create store config for demo user
+          await storage.createStoreConfigForUser(demoUser.id);
+          
+          // Assign demo user to the admin
+          await storage.assignUserToAdmin(admin.id, demoUser.id, masterAdmin.id);
+          
+          createdDemos.push(demoSlug);
+        }
+        
+        if (createdDemos.length > 0) {
+          results.push({
+            adminId: admin.id,
+            adminSlug: adminSlug,
+            demosCreated: createdDemos,
+          });
+        }
+      }
+      
+      res.json({
+        success: true,
+        message: `Created demo accounts for ${results.length} admins`,
+        details: results,
+      });
+    } catch (error) {
+      console.error("Error backfilling demo accounts:", error);
+      res.status(500).json({ error: "Failed to backfill demo accounts" });
+    }
+  });
+
   // Delete user
   app.delete("/api/admin/users/:userId", requireMasterAdmin, async (req, res) => {
     try {
