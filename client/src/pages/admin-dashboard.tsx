@@ -110,6 +110,27 @@ export default function AdminDashboard() {
     },
   });
 
+  const createDemosMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/admin/create-my-demos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to create demo accounts');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-users"] });
+      toast({ title: data.message, description: `${data.demos?.length || 0} demo accounts are now available.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const changePasswordMutation = useMutation({
     mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
       const res = await fetch('/api/auth/change-password', {
@@ -380,7 +401,19 @@ export default function AdminDashboard() {
             ) : demos.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500">No demo accounts available.</p>
+                <p className="text-gray-500 mb-4">No demo accounts available.</p>
+                <Button
+                  onClick={() => createDemosMutation.mutate()}
+                  disabled={createDemosMutation.isPending}
+                  data-testid="button-create-demos"
+                >
+                  {createDemosMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <UserPlus className="w-4 h-4 mr-2" />
+                  )}
+                  Create Demo Accounts
+                </Button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -400,7 +433,7 @@ export default function AdminDashboard() {
                         <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">Demo</Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 flex-wrap">
                       <Badge variant={assignedUser.isActive ? "default" : "secondary"} className="text-xs">
                         {assignedUser.isActive ? 'Active' : 'Inactive'}
                       </Badge>
@@ -411,19 +444,33 @@ export default function AdminDashboard() {
                           trackViewMutation.mutate(assignedUser.id);
                           setLocation(`/admin?userId=${assignedUser.id}`);
                         }}
-                        data-testid={`button-view-config-${assignedUser.id}`}
+                        data-testid={`button-edit-demo-${assignedUser.id}`}
                       >
                         <QrCode className="w-4 h-4 sm:mr-1" />
-                        <span className="hidden sm:inline">View Config</span>
+                        <span className="hidden sm:inline">Edit</span>
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleEmailQR(assignedUser.id, assignedUser.email)}
-                        data-testid={`button-email-qr-${assignedUser.id}`}
-                      >
-                        <Mail className="w-4 h-4 sm:mr-1" />
-                        <span className="hidden sm:inline">Email QR</span>
-                      </Button>
+                      {assignedUser.slug && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`/quick-view/${assignedUser.slug}`, '_blank')}
+                            data-testid={`button-quick-view-demo-${assignedUser.id}`}
+                          >
+                            <Eye className="w-4 h-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Quick</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`/${assignedUser.slug}`, '_blank')}
+                            data-testid={`button-shop-view-demo-${assignedUser.id}`}
+                          >
+                            <ExternalLink className="w-4 h-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Shop</span>
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}

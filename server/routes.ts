@@ -979,6 +979,97 @@ export async function registerRoutes(
     }
   });
 
+  // Admin creates their own demo accounts (up to 3)
+  app.post("/api/admin/create-my-demos", requireAdmin, async (req, res) => {
+    try {
+      const adminUser = req.user as Express.User;
+      
+      // Get admin's details
+      const admin = await storage.getUserById(adminUser.id);
+      if (!admin) {
+        return res.status(404).json({ error: "Admin not found" });
+      }
+      
+      // Check if this admin already has demo accounts assigned
+      const assignedUsers = await storage.getUsersForAdmin(adminUser.id);
+      const existingDemos = assignedUsers.filter(u => u.isDemo || u.accountType === 'demo');
+      
+      if (existingDemos.length >= 3) {
+        return res.json({
+          success: true,
+          message: "You already have 3 demo accounts",
+          demos: existingDemos.map(d => ({
+            id: d.id,
+            username: d.username,
+            displayName: d.displayName,
+            slug: d.slug,
+          })),
+        });
+      }
+      
+      const demosNeeded = 3 - existingDemos.length;
+      const createdDemos: { id: number; username: string; displayName: string; slug: string }[] = [];
+      const adminSlug = admin.slug || admin.username || `admin${admin.id}`;
+      
+      for (let i = existingDemos.length + 1; i <= 3; i++) {
+        // Generate unique slug for demo account based on admin's slug
+        let demoSlug = `${adminSlug}_demo${i}`;
+        let demoSlugCounter = 1;
+        while (await storage.getUserBySlug(demoSlug)) {
+          demoSlug = `${adminSlug}_demo${i}_${demoSlugCounter}`;
+          demoSlugCounter++;
+        }
+        
+        // Generate unique username for demo account
+        let demoUsername = `${admin.username}_demo${i}`;
+        let demoUsernameCounter = 1;
+        while (await storage.getUserByUsername(demoUsername)) {
+          demoUsername = `${admin.username}_demo${i}_${demoUsernameCounter}`;
+          demoUsernameCounter++;
+        }
+        
+        const demoDisplayName = `${admin.displayName || admin.username} Demo ${i}`;
+        
+        // Create demo user account (use admin's password hash)
+        const demoUser = await storage.createUser({
+          username: demoUsername,
+          passwordHash: admin.passwordHash || '',
+          email: null,
+          displayName: demoDisplayName,
+          role: 'user',
+          slug: demoSlug,
+          approvalStatus: 'approved',
+          approvedBy: adminUser.id,
+          isActive: true,
+          isDemo: true,
+          accountType: 'demo',
+        });
+        
+        // Create store config for demo user
+        await storage.createStoreConfigForUser(demoUser.id);
+        
+        // Assign demo user to the admin
+        await storage.assignUserToAdmin(adminUser.id, demoUser.id, adminUser.id);
+        
+        createdDemos.push({
+          id: demoUser.id,
+          username: demoUsername,
+          displayName: demoDisplayName,
+          slug: demoSlug,
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: `Created ${createdDemos.length} demo accounts`,
+        demos: createdDemos,
+      });
+    } catch (error) {
+      console.error("Error creating demo accounts:", error);
+      res.status(500).json({ error: "Failed to create demo accounts" });
+    }
+  });
+
   // Store Configuration Routes
   // Public route - for customer-facing quick view (requires placeId)
   app.get("/api/config", async (req, res) => {
