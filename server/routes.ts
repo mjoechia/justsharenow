@@ -1240,11 +1240,16 @@ export async function registerRoutes(
         if (authUser.role === 'master_admin') {
           // Master admin can update any user's config
         } else if (authUser.role === 'admin') {
-          // Admin can only update assigned users' configs
+          // Admin can only update assigned demo accounts' configs
           const assignedUsers = await storage.getUsersForAdmin(authUser.id);
-          const isAssigned = assignedUsers.some(u => u.id === targetUserId);
-          if (!isAssigned) {
+          const targetUser = assignedUsers.find(u => u.id === targetUserId);
+          if (!targetUser) {
             return res.status(403).json({ error: "Access denied - user not assigned to you" });
+          }
+          // Check if it's a demo account - admins can only edit demo accounts
+          const isDemo = targetUser.isDemo || targetUser.accountType === 'demo';
+          if (!isDemo) {
+            return res.status(403).json({ error: "Access denied - you can only edit demo accounts" });
           }
         } else {
           return res.status(403).json({ error: "Access denied" });
