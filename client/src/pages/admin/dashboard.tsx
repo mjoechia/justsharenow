@@ -109,6 +109,7 @@ export default function AdminDashboard() {
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
   const [newHashtag, setNewHashtag] = useState("");
   const [savingHashtags, setSavingHashtags] = useState(false);
+  const [hashtagsSaved, setHashtagsSaved] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [isFetchingReviews, setIsFetchingReviews] = useState(false);
   const [fetchedReviews, setFetchedReviews] = useState<GoogleReview[]>([]);
@@ -507,6 +508,7 @@ export default function AdminDashboard() {
     }
     if (!selectedHashtags.includes(hashtag)) {
       setSelectedHashtags(prev => [...prev, hashtag]);
+      setHashtagsSaved(false);
     }
     setSuggestedHashtags(prev => prev.filter(h => h !== hashtag));
   };
@@ -517,6 +519,7 @@ export default function AdminDashboard() {
 
   const handleRemoveSelectedHashtag = (hashtag: string) => {
     setSelectedHashtags(prev => prev.filter(h => h !== hashtag));
+    setHashtagsSaved(false);
   };
 
   const handleAddCustomHashtag = () => {
@@ -543,14 +546,16 @@ export default function AdminDashboard() {
     }
     
     setSelectedHashtags(prev => [...prev, formatted]);
+    setHashtagsSaved(false);
     setNewHashtag("");
   };
 
   const handleSaveHashtags = async () => {
     setSavingHashtags(true);
     try {
-      await saveHashtags(selectedHashtags);
-      queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
+      await saveHashtags(selectedHashtags, contextUserId);
+      queryClient.invalidateQueries({ queryKey: ['storeConfig', contextUserId] });
+      setHashtagsSaved(true);
       toast({ 
         title: "Saved!", 
         description: `${selectedHashtags.length} hashtags saved successfully.` 
@@ -1213,7 +1218,7 @@ export default function AdminDashboard() {
                                 </p>
                             )}
                             
-                            {!isReadOnlyView && (
+                            {!isReadOnlyView && !hashtagsSaved && (
                             <Button 
                                 onClick={handleSaveHashtags} 
                                 disabled={savingHashtags}

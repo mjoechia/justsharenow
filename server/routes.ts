@@ -1957,6 +1957,37 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
         return;
       }
       
+      // Determine target user for the update (support context switching)
+      let targetUserId = authUser.id;
+      const queryUserId = req.query.userId as string | undefined;
+      if (queryUserId) {
+        targetUserId = parseInt(queryUserId);
+        if (isNaN(targetUserId) || targetUserId <= 0) {
+          return res.status(400).json({ error: "Invalid userId parameter" });
+        }
+        
+        // Enforce tenant isolation for updates
+        if (targetUserId !== authUser.id) {
+          if (authUser.role === 'master_admin') {
+            // Master admin can update any user's config
+          } else if (authUser.role === 'admin') {
+            // Admin can only update assigned demo accounts' configs
+            const assignedUsers = await storage.getUsersForAdmin(authUser.id);
+            const targetUser = assignedUsers.find(u => u.id === targetUserId);
+            if (!targetUser) {
+              return res.status(403).json({ error: "Access denied - user not assigned to you" });
+            }
+            // Check if it's a demo account
+            const isDemo = targetUser.isDemo || targetUser.accountType === 'demo';
+            if (!isDemo) {
+              return res.status(403).json({ error: "Access denied - you can only edit demo accounts" });
+            }
+          } else {
+            return res.status(403).json({ error: "Access denied" });
+          }
+        }
+      }
+      
       // Validate hashtags (strings only, max 12)
       const validHashtags = hashtags
         .filter((tag): tag is string => typeof tag === 'string')
@@ -1968,7 +1999,7 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
       
       // Update user's config directly by userId (not by placeId)
       // This ensures we update the correct config for this user
-      const config = await storage.updateStoreConfigByUserId(authUser.id, {
+      const config = await storage.updateStoreConfigByUserId(targetUserId, {
         reviewHashtags: normalizedHashtags,
       } as any);
       

@@ -178,8 +178,9 @@ export interface SaveHashtagsResponse {
   reviewHashtags: string[];
 }
 
-export async function saveHashtags(hashtags: string[]): Promise<SaveHashtagsResponse> {
-  const response = await fetch('/api/hashtags', {
+export async function saveHashtags(hashtags: string[], userId?: number): Promise<SaveHashtagsResponse> {
+  const url = userId ? `/api/hashtags?userId=${userId}` : '/api/hashtags';
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ hashtags }),
