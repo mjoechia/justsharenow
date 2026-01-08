@@ -70,7 +70,7 @@ export default function AdminDashboard() {
   const isContextSwitching = contextUserId !== undefined && user?.role === 'master_admin';
   
   // Check if the context user is a demo account (admins can edit demos)
-  const { data: contextUserInfo } = useQuery<{ isDemo: boolean; canEdit: boolean; user: { id: number; displayName: string; slug: string } }>({
+  const { data: contextUserInfo, isLoading: isCheckingDemoStatus } = useQuery<{ isDemo: boolean; canEdit: boolean; user: { id: number; displayName: string; slug: string } }>({
     queryKey: ['checkUserDemo', contextUserId],
     queryFn: async () => {
       const res = await fetch(`/api/check-user-demo/${contextUserId}`);
@@ -81,7 +81,9 @@ export default function AdminDashboard() {
   });
   
   // Read-only view: admins viewing customer accounts cannot make edits, but can edit demo accounts
-  const isReadOnlyView = user?.role === 'admin' && contextUserId !== undefined && !contextUserInfo?.canEdit;
+  // Only set read-only after we've confirmed the user cannot edit (not during loading)
+  const isAdminViewingOther = user?.role === 'admin' && contextUserId !== undefined;
+  const isReadOnlyView = isAdminViewingOther && !isCheckingDemoStatus && contextUserInfo?.canEdit === false;
 
   const { data: config } = useQuery({
     queryKey: ['storeConfig', contextUserId],
