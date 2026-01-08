@@ -1769,8 +1769,38 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
         return;
       }
 
+      // Determine target user for the update (support context switching)
+      let targetUserId = authUser.id;
+      const queryUserId = req.query.userId as string | undefined;
+      if (queryUserId) {
+        targetUserId = parseInt(queryUserId);
+        if (isNaN(targetUserId) || targetUserId <= 0) {
+          return res.status(400).json({ error: "Invalid userId parameter" });
+        }
+        
+        // Enforce tenant isolation for updates
+        if (targetUserId !== authUser.id) {
+          if (authUser.role === 'master_admin') {
+            // Master admin can update any user's config
+          } else if (authUser.role === 'admin') {
+            // Admin can only update assigned demo accounts' configs
+            const assignedUsers = await storage.getUsersForAdmin(authUser.id);
+            const targetUser = assignedUsers.find(u => u.id === targetUserId);
+            if (!targetUser) {
+              return res.status(403).json({ error: "Access denied - user not assigned to you" });
+            }
+            const isDemo = targetUser.isDemo || targetUser.accountType === 'demo';
+            if (!isDemo) {
+              return res.status(403).json({ error: "Access denied - you can only edit demo accounts" });
+            }
+          } else {
+            return res.status(403).json({ error: "Access denied" });
+          }
+        }
+      }
+
       // Get the user's store config to check photo limit
-      const userConfig = await storage.getStoreConfigByUserId(authUser.id);
+      const userConfig = await storage.getStoreConfigByUserId(targetUserId);
 
       // Check photo limit first
       const currentPhotos = userConfig?.shopPhotos || [];
@@ -1825,7 +1855,7 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
         const dataUrl = `data:${contentType};base64,${base64}`;
 
         // Add to shop photos using userId-based method (no placeId requirement)
-        const updatedConfig = await storage.addShopPhotoByUserId(authUser.id, dataUrl);
+        const updatedConfig = await storage.addShopPhotoByUserId(targetUserId, dataUrl);
 
         res.json({
           success: true,
@@ -1866,8 +1896,38 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
         return;
       }
 
+      // Determine target user for the update (support context switching)
+      let targetUserId = authUser.id;
+      const queryUserId = req.query.userId as string | undefined;
+      if (queryUserId) {
+        targetUserId = parseInt(queryUserId);
+        if (isNaN(targetUserId) || targetUserId <= 0) {
+          return res.status(400).json({ error: "Invalid userId parameter" });
+        }
+        
+        // Enforce tenant isolation for updates
+        if (targetUserId !== authUser.id) {
+          if (authUser.role === 'master_admin') {
+            // Master admin can update any user's config
+          } else if (authUser.role === 'admin') {
+            // Admin can only update assigned demo accounts' configs
+            const assignedUsers = await storage.getUsersForAdmin(authUser.id);
+            const targetUser = assignedUsers.find(u => u.id === targetUserId);
+            if (!targetUser) {
+              return res.status(403).json({ error: "Access denied - user not assigned to you" });
+            }
+            const isDemo = targetUser.isDemo || targetUser.accountType === 'demo';
+            if (!isDemo) {
+              return res.status(403).json({ error: "Access denied - you can only edit demo accounts" });
+            }
+          } else {
+            return res.status(403).json({ error: "Access denied" });
+          }
+        }
+      }
+
       // Get the user's store config to check photo limit
-      const userConfig = await storage.getStoreConfigByUserId(authUser.id);
+      const userConfig = await storage.getStoreConfigByUserId(targetUserId);
 
       // Check photo limit first
       const currentPhotos = userConfig?.sliderPhotos || [];
@@ -1922,7 +1982,7 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
         const dataUrl = `data:${contentType};base64,${base64}`;
 
         // Add to slider photos using userId-based method (no placeId requirement)
-        const updatedConfig = await storage.addSliderPhotoByUserId(authUser.id, dataUrl);
+        const updatedConfig = await storage.addSliderPhotoByUserId(targetUserId, dataUrl);
 
         res.json({
           success: true,

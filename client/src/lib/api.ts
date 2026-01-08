@@ -139,8 +139,9 @@ export interface ApprovePhotoResponse {
   photoCount: number;
 }
 
-export async function approvePhoto(imageUrl: string): Promise<ApprovePhotoResponse> {
-  const response = await fetch('/api/photos/approve', {
+export async function approvePhoto(imageUrl: string, userId?: number): Promise<ApprovePhotoResponse> {
+  const url = userId ? `/api/photos/approve?userId=${userId}` : '/api/photos/approve';
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageUrl }),
@@ -159,8 +160,9 @@ export interface ApproveSliderPhotoResponse {
   photoCount: number;
 }
 
-export async function approveSliderPhoto(imageUrl: string): Promise<ApproveSliderPhotoResponse> {
-  const response = await fetch('/api/slider-photos/approve', {
+export async function approveSliderPhoto(imageUrl: string, userId?: number): Promise<ApproveSliderPhotoResponse> {
+  const url = userId ? `/api/slider-photos/approve?userId=${userId}` : '/api/slider-photos/approve';
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageUrl }),

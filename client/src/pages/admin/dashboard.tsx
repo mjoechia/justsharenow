@@ -439,10 +439,10 @@ export default function AdminDashboard() {
 
     setApprovingPhoto(photo.url);
     try {
-      const result = await approvePhoto(photo.url);
+      const result = await approvePhoto(photo.url, contextUserId);
       setShopPhotos(result.shopPhotos);
       setSuggestedPhotos(prev => prev.filter(p => p.url !== photo.url));
-      queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
+      queryClient.invalidateQueries({ queryKey: ['storeConfig', contextUserId] });
       toast({ 
         title: "Photo Added!", 
         description: `Photo added to your shop photos (${result.photoCount}/9).` 
@@ -474,10 +474,10 @@ export default function AdminDashboard() {
 
     setApprovingSliderPhoto(photo.url);
     try {
-      const result = await approveSliderPhoto(photo.url);
+      const result = await approveSliderPhoto(photo.url, contextUserId);
       setSliderPhotos(result.sliderPhotos);
       setSuggestedSliderPhotos(prev => prev.filter(p => p.url !== photo.url));
-      queryClient.invalidateQueries({ queryKey: ['storeConfig'] });
+      queryClient.invalidateQueries({ queryKey: ['storeConfig', contextUserId] });
       toast({ 
         title: "Photo Added!", 
         description: `Photo added to your slider (${result.photoCount}/3).` 
