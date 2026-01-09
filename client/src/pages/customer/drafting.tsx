@@ -503,32 +503,65 @@ export default function CustomerDrafting() {
     let textToCopy = getReviewWithHashtags();
     const businessName = config?.businessName || "";
     
-    if (platformId === 'facebook') {
-      // For Facebook, prepare post text with business name
+    if (platformId === 'facebook' && socialLinks.facebook) {
+      // For Facebook, include business name and link
       textToCopy = textToCopy 
-        ? `${textToCopy}\n\n📍 ${businessName}`
-        : `Check out ${businessName}!`;
+        ? `${textToCopy}\n\n📍 ${businessName}\n${socialLinks.facebook}`
+        : `Check out ${businessName}!\n${socialLinks.facebook}`;
     }
     
+    let clipboardSuccess = false;
     if (textToCopy) {
       try {
         await navigator.clipboard.writeText(textToCopy);
-        toast({
-          title: t.common.copied,
-          description: platformId === 'facebook' 
-            ? "Share dialog will open with your review!"
-            : t.customer.drafting.textCopiedReady,
-        });
+        clipboardSuccess = true;
       } catch (e) {
         console.warn("Clipboard write failed:", e);
+        // Fallback
+        try {
+          const textArea = document.createElement('textarea');
+          textArea.value = textToCopy;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-9999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          clipboardSuccess = document.execCommand('copy');
+          document.body.removeChild(textArea);
+        } catch (fallbackErr) {
+          console.warn("Fallback copy failed:", fallbackErr);
+        }
       }
     }
     
-    // Open the platform URL - use Facebook share dialog for Facebook
-    if (platformId === 'facebook' && socialLinks.facebook) {
-      const encodedUrl = encodeURIComponent(socialLinks.facebook);
-      const encodedQuote = encodeURIComponent(textToCopy);
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedQuote}`, '_blank');
+    if (clipboardSuccess) {
+      toast({
+        title: t.common.copied,
+        description: platformId === 'facebook' 
+          ? "Create a new post on Facebook and paste your review!"
+          : t.customer.drafting.textCopiedReady,
+      });
+    }
+    
+    // Open the platform URL - for Facebook, try to open app first
+    if (platformId === 'facebook') {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(userAgent);
+      const isAndroid = /android/.test(userAgent);
+      
+      if (isIOS) {
+        window.location.href = 'fb://';
+        setTimeout(() => {
+          window.open('https://www.facebook.com/', '_blank');
+        }, 1500);
+      } else if (isAndroid) {
+        window.location.href = 'intent://facebook.com/#Intent;scheme=https;package=com.facebook.katana;end';
+        setTimeout(() => {
+          window.open('https://www.facebook.com/', '_blank');
+        }, 1500);
+      } else {
+        window.open('https://www.facebook.com/', '_blank');
+      }
     } else {
       window.open(url, '_blank');
     }
@@ -614,27 +647,67 @@ export default function CustomerDrafting() {
         }
       }
       
-      // Build review text with business name
+      // Build review text with business name and link
       const reviewText = getReviewWithHashtags();
       const businessName = config?.businessName || "";
       const postText = reviewText 
-        ? `${reviewText}\n\n📍 ${businessName}`
-        : `Check out ${businessName}!`;
+        ? `${reviewText}\n\n📍 ${businessName}\n${facebookUrl}`
+        : `Check out ${businessName}!\n${facebookUrl}`;
       
-      // Copy text to clipboard as backup
+      // Copy text to clipboard - user will paste this in Facebook
+      let clipboardSuccess = false;
       if (postText) {
         try {
           await navigator.clipboard.writeText(postText);
+          clipboardSuccess = true;
         } catch (clipboardErr) {
           console.warn("Clipboard write failed:", clipboardErr);
+          // Fallback for older browsers
+          try {
+            const textArea = document.createElement('textarea');
+            textArea.value = postText;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            clipboardSuccess = document.execCommand('copy');
+            document.body.removeChild(textArea);
+          } catch (e) {
+            console.warn("Fallback copy failed:", e);
+          }
         }
       }
       
-      // Open Facebook share dialog with the business page URL and review as quote
-      // This opens a share composer where users can post to their wall
-      const encodedUrl = encodeURIComponent(facebookUrl);
-      const encodedQuote = encodeURIComponent(postText);
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedQuote}`, '_blank');
+      // Show toast confirming copy
+      toast({
+        title: clipboardSuccess ? "Review Copied!" : "Ready to share",
+        description: clipboardSuccess 
+          ? "Create a new post on Facebook and paste your review!"
+          : "Open Facebook and type your review.",
+      });
+      
+      // Detect mobile and try to open Facebook app
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(userAgent);
+      const isAndroid = /android/.test(userAgent);
+      
+      if (isIOS) {
+        // Try to open Facebook app on iOS
+        window.location.href = 'fb://';
+        setTimeout(() => {
+          window.open('https://www.facebook.com/', '_blank');
+        }, 1500);
+      } else if (isAndroid) {
+        // Try to open Facebook app on Android
+        window.location.href = 'intent://facebook.com/#Intent;scheme=https;package=com.facebook.katana;end';
+        setTimeout(() => {
+          window.open('https://www.facebook.com/', '_blank');
+        }, 1500);
+      } else {
+        // Desktop - open Facebook directly
+        window.open('https://www.facebook.com/', '_blank');
+      }
       
       await trackPlatformClick('facebook');
       
