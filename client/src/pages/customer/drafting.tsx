@@ -476,16 +476,8 @@ export default function CustomerDrafting() {
     
     switch (platformId) {
       case 'facebook':
-        url = socialLinks.facebook;
-        if (url && !url.includes('/reviews')) {
-          try {
-            const urlObj = new URL(url);
-            urlObj.pathname = urlObj.pathname.replace(/\/?$/, '/reviews');
-            url = urlObj.toString();
-          } catch {
-            url = url.replace(/\/?(\?.*)?$/, '/reviews$1');
-          }
-        }
+        // For Facebook, open homepage to post on personal wall
+        url = 'https://www.facebook.com/';
         break;
       case 'instagram':
         url = socialLinks.instagram;
@@ -507,14 +499,23 @@ export default function CustomerDrafting() {
       return;
     }
     
-    // Copy text to clipboard
-    const textToCopy = getReviewWithHashtags();
+    // Copy text to clipboard - for Facebook, include business link for tagging
+    let textToCopy = getReviewWithHashtags();
+    if (platformId === 'facebook' && socialLinks.facebook) {
+      const businessName = config?.businessName || "";
+      textToCopy = textToCopy 
+        ? `${textToCopy}\n\n📍 ${businessName}\n${socialLinks.facebook}`
+        : `Check out ${businessName}!\n${socialLinks.facebook}`;
+    }
+    
     if (textToCopy) {
       try {
         await navigator.clipboard.writeText(textToCopy);
         toast({
           title: t.common.copied,
-          description: t.customer.drafting.textCopiedReady,
+          description: platformId === 'facebook' 
+            ? "Paste on your wall and tag the business!"
+            : t.customer.drafting.textCopiedReady,
         });
       } catch (e) {
         console.warn("Clipboard write failed:", e);
@@ -605,29 +606,25 @@ export default function CustomerDrafting() {
         }
       }
       
+      // Build review text with business link for tagging
       const reviewText = getReviewWithHashtags();
-      if (reviewText) {
+      const businessName = config?.businessName || "";
+      // Include the Facebook page link so users can easily tag/mention the business
+      const postText = reviewText 
+        ? `${reviewText}\n\n📍 ${businessName}\n${facebookUrl}`
+        : `Check out ${businessName}!\n${facebookUrl}`;
+      
+      if (postText) {
         try {
-          await navigator.clipboard.writeText(reviewText);
+          await navigator.clipboard.writeText(postText);
         } catch (clipboardErr) {
           console.warn("Clipboard write failed:", clipboardErr);
         }
       }
       
-      let reviewsUrl = facebookUrl;
-      try {
-        const urlObj = new URL(facebookUrl);
-        if (!urlObj.pathname.includes('/reviews')) {
-          urlObj.pathname = urlObj.pathname.replace(/\/?$/, '/reviews');
-        }
-        reviewsUrl = urlObj.toString();
-      } catch {
-        if (!reviewsUrl.includes('/reviews')) {
-          reviewsUrl = reviewsUrl.replace(/\/?(\?.*)?$/, '/reviews$1');
-        }
-      }
-      
-      window.open(reviewsUrl, '_blank');
+      // Open Facebook homepage to create a new post on personal wall
+      // Users will paste their review and the business link will make it easy to tag
+      window.open('https://www.facebook.com/', '_blank');
       
       await trackPlatformClick('facebook');
       
