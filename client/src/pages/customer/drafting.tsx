@@ -476,8 +476,8 @@ export default function CustomerDrafting() {
     
     switch (platformId) {
       case 'facebook':
-        // For Facebook, open homepage to post on personal wall
-        url = 'https://www.facebook.com/';
+        // For Facebook, we'll use the share dialog (handled specially below)
+        url = socialLinks.facebook || 'https://www.facebook.com/';
         break;
       case 'instagram':
         url = socialLinks.instagram;
@@ -499,13 +499,15 @@ export default function CustomerDrafting() {
       return;
     }
     
-    // Copy text to clipboard - for Facebook, include business link for tagging
+    // Copy text to clipboard
     let textToCopy = getReviewWithHashtags();
-    if (platformId === 'facebook' && socialLinks.facebook) {
-      const businessName = config?.businessName || "";
+    const businessName = config?.businessName || "";
+    
+    if (platformId === 'facebook') {
+      // For Facebook, prepare post text with business name
       textToCopy = textToCopy 
-        ? `${textToCopy}\n\n📍 ${businessName}\n${socialLinks.facebook}`
-        : `Check out ${businessName}!\n${socialLinks.facebook}`;
+        ? `${textToCopy}\n\n📍 ${businessName}`
+        : `Check out ${businessName}!`;
     }
     
     if (textToCopy) {
@@ -514,7 +516,7 @@ export default function CustomerDrafting() {
         toast({
           title: t.common.copied,
           description: platformId === 'facebook' 
-            ? "Paste on your wall and tag the business!"
+            ? "Share dialog will open with your review!"
             : t.customer.drafting.textCopiedReady,
         });
       } catch (e) {
@@ -522,8 +524,14 @@ export default function CustomerDrafting() {
       }
     }
     
-    // Open the platform URL
-    window.open(url, '_blank');
+    // Open the platform URL - use Facebook share dialog for Facebook
+    if (platformId === 'facebook' && socialLinks.facebook) {
+      const encodedUrl = encodeURIComponent(socialLinks.facebook);
+      const encodedQuote = encodeURIComponent(textToCopy);
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedQuote}`, '_blank');
+    } else {
+      window.open(url, '_blank');
+    }
     
     if (platformId) {
       await trackPlatformClick(platformId);
@@ -606,14 +614,14 @@ export default function CustomerDrafting() {
         }
       }
       
-      // Build review text with business link for tagging
+      // Build review text with business name
       const reviewText = getReviewWithHashtags();
       const businessName = config?.businessName || "";
-      // Include the Facebook page link so users can easily tag/mention the business
       const postText = reviewText 
-        ? `${reviewText}\n\n📍 ${businessName}\n${facebookUrl}`
-        : `Check out ${businessName}!\n${facebookUrl}`;
+        ? `${reviewText}\n\n📍 ${businessName}`
+        : `Check out ${businessName}!`;
       
+      // Copy text to clipboard as backup
       if (postText) {
         try {
           await navigator.clipboard.writeText(postText);
@@ -622,9 +630,11 @@ export default function CustomerDrafting() {
         }
       }
       
-      // Open Facebook homepage to create a new post on personal wall
-      // Users will paste their review and the business link will make it easy to tag
-      window.open('https://www.facebook.com/', '_blank');
+      // Open Facebook share dialog with the business page URL and review as quote
+      // This opens a share composer where users can post to their wall
+      const encodedUrl = encodeURIComponent(facebookUrl);
+      const encodedQuote = encodeURIComponent(postText);
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedQuote}`, '_blank');
       
       await trackPlatformClick('facebook');
       
