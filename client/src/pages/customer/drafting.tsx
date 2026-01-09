@@ -262,7 +262,7 @@ export default function CustomerDrafting() {
   const baseReviews = generatedReviews.length > 0 
     ? generatedReviews 
     : t.customer.drafting.reviewSets[reviewSetIndex];
-  const currentReviews = isGoogleReview ? baseReviews.slice(0, 2) : baseReviews;
+  const currentReviews = (isGoogleReview || isFacebook) ? baseReviews.slice(0, 2) : baseReviews;
 
   useEffect(() => {
     if (isModalOpen && modalView === 'action' && activePlatform?.id === 'facebook' && selectedReview && !facebookAutoCopied) {
