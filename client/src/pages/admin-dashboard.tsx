@@ -117,6 +117,9 @@ export default function AdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
       });
       if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Session expired. Please log in again.');
+        }
         const err = await res.json();
         throw new Error(err.error || 'Failed to create demo accounts');
       }
@@ -128,6 +131,10 @@ export default function AdminDashboard() {
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+      // If session expired, redirect to login
+      if (error.message.includes('Session expired')) {
+        setLocation('/login');
+      }
     },
   });
 

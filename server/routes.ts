@@ -1040,18 +1040,23 @@ export async function registerRoutes(
   app.post("/api/admin/create-my-demos", requireAdmin, async (req, res) => {
     try {
       const adminUser = req.user as Express.User;
+      console.log(`[create-my-demos] Request from user id=${adminUser.id}, role=${adminUser.role}`);
       
       // Get admin's details
       const admin = await storage.getUserById(adminUser.id);
       if (!admin) {
+        console.log(`[create-my-demos] Admin not found for id=${adminUser.id}`);
         return res.status(404).json({ error: "Admin not found" });
       }
+      console.log(`[create-my-demos] Admin found: username=${admin.username}, role=${admin.role}`);
       
       // Check if this admin already has demo accounts assigned
       const assignedUsers = await storage.getUsersForAdmin(adminUser.id);
       const existingDemos = assignedUsers.filter(u => u.isDemo || u.accountType === 'demo');
+      console.log(`[create-my-demos] Found ${assignedUsers.length} assigned users, ${existingDemos.length} are demos`);
       
       if (existingDemos.length >= 3) {
+        console.log(`[create-my-demos] Admin already has 3+ demos, returning existing`);
         return res.json({
           success: true,
           message: "You already have 3 demo accounts",
