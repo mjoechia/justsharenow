@@ -259,10 +259,13 @@ export default function CustomerDrafting() {
   const activePlatform = allPlatforms.find(p => p.id === selectedPlatform);
   const isGoogleReview = selectedPlatform === 'google-reviews';
   const isFacebook = selectedPlatform === 'facebook';
+  const isInstagram = selectedPlatform === 'instagram';
+  const isXiaohongshu = selectedPlatform === 'xiaohongshu';
   const baseReviews = generatedReviews.length > 0 
     ? generatedReviews 
     : t.customer.drafting.reviewSets[reviewSetIndex];
-  const currentReviews = (isGoogleReview || isFacebook) ? baseReviews.slice(0, 2) : baseReviews;
+  // Limit all share platforms to 2 review options
+  const currentReviews = (isGoogleReview || isFacebook || isInstagram || isXiaohongshu) ? baseReviews.slice(0, 2) : baseReviews;
 
   useEffect(() => {
     if (isModalOpen && modalView === 'action' && activePlatform?.id === 'facebook' && selectedReview && !facebookAutoCopied) {
@@ -279,25 +282,7 @@ export default function CustomerDrafting() {
     }
   }, [isModalOpen, modalView, activePlatform?.id, selectedReview, facebookAutoCopied]);
 
-  // XHS auto-copy when modal opens
-  useEffect(() => {
-    if (isModalOpen && modalView === 'action' && activePlatform?.id === 'xiaohongshu' && selectedReview && !xhsCopied) {
-      setXhsCopied(true);
-      const formattedText = formatForXiaohongshu(
-        selectedReview,
-        selectedHashtags,
-        config?.businessName || undefined
-      );
-      navigator.clipboard.writeText(formattedText).then(() => {
-        toast({
-          title: `✅ ${t.customer.platform?.xhsCopied || "Content Copied!"}`,
-          description: t.customer.platform?.xhsPasteReady || "Open Xiaohongshu and paste to post.",
-        });
-      }).catch((err) => {
-        console.warn("XHS auto-copy failed:", err);
-      });
-    }
-  }, [isModalOpen, modalView, activePlatform?.id, selectedReview, xhsCopied, selectedHashtags, config?.businessName]);
+  // XHS copy is now done on explicit user action, not auto-copy
   
   const handleNext = () => {
     // For Google Review, only review is required (no photo)
@@ -585,29 +570,114 @@ export default function CustomerDrafting() {
   };
 
   const handleXiaohongshuAction = async () => {
-    const formattedText = formatForXiaohongshu(
-      selectedReview || '',
-      selectedHashtags,
-      config?.businessName || undefined
-    );
+    // Build review text with business name and XHS profile link
+    const businessName = config?.businessName || "";
+    const xhsUrl = socialLinks.xiaohongshu || "";
+    const reviewText = getReviewWithHashtags();
+    const postText = reviewText 
+      ? `${reviewText}\n\n📍 ${businessName}${xhsUrl ? `\n${xhsUrl}` : ''}`
+      : `Check out ${businessName}!${xhsUrl ? `\n${xhsUrl}` : ''}`;
     
+    // Copy text to clipboard
+    let clipboardSuccess = false;
     try {
-      await navigator.clipboard.writeText(formattedText);
-      setXhsCopied(true);
-      toast({
-        title: `✅ ${t.customer.platform?.xhsCopied || "Content Copied!"}`,
-        description: t.customer.platform?.xhsPasteReady || "Open Xiaohongshu and paste to post.",
-      });
+      await navigator.clipboard.writeText(postText);
+      clipboardSuccess = true;
     } catch (e) {
       console.warn("Clipboard failed:", e);
+      // Fallback
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = postText;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        clipboardSuccess = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (fallbackErr) {
+        console.warn("Fallback copy failed:", fallbackErr);
+      }
     }
+    
+    // Show toast
+    toast({
+      title: clipboardSuccess ? (t.customer.platform?.xhsCopied || "Content Copied!") : "Ready to share",
+      description: clipboardSuccess 
+        ? "Create a new post on XiaoHongShu and paste your review!"
+        : "Open XiaoHongShu and type your review.",
+    });
     
     await trackPlatformClick('xiaohongshu');
     
-    setTimeout(() => {
-      openXiaohongshu(socialLinks.xiaohongshu);
-      setIsModalOpen(false);
-    }, 800);
+    // Open XHS app or website
+    openXiaohongshu(socialLinks.xiaohongshu);
+    setIsModalOpen(false);
+  };
+
+  const handleInstagramAction = async () => {
+    // Build review text with business name and Instagram profile link
+    const businessName = config?.businessName || "";
+    const igUrl = socialLinks.instagram || "";
+    const reviewText = getReviewWithHashtags();
+    const postText = reviewText 
+      ? `${reviewText}\n\n📍 ${businessName}${igUrl ? `\n${igUrl}` : ''}`
+      : `Check out ${businessName}!${igUrl ? `\n${igUrl}` : ''}`;
+    
+    // Copy text to clipboard
+    let clipboardSuccess = false;
+    try {
+      await navigator.clipboard.writeText(postText);
+      clipboardSuccess = true;
+    } catch (e) {
+      console.warn("Clipboard failed:", e);
+      // Fallback
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = postText;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        clipboardSuccess = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (fallbackErr) {
+        console.warn("Fallback copy failed:", fallbackErr);
+      }
+    }
+    
+    // Show toast
+    toast({
+      title: clipboardSuccess ? "Review Copied!" : "Ready to share",
+      description: clipboardSuccess 
+        ? "Create a new post on Instagram and paste your review!"
+        : "Open Instagram and type your review.",
+    });
+    
+    await trackPlatformClick('instagram');
+    
+    // Try to open Instagram app
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+    
+    if (isIOS) {
+      window.location.href = 'instagram://app';
+      setTimeout(() => {
+        window.open(igUrl || 'https://www.instagram.com/', '_blank');
+      }, 1500);
+    } else if (isAndroid) {
+      window.location.href = 'intent://instagram.com/#Intent;package=com.instagram.android;scheme=https;end';
+      setTimeout(() => {
+        window.open(igUrl || 'https://www.instagram.com/', '_blank');
+      }, 1500);
+    } else {
+      window.open(igUrl || 'https://www.instagram.com/', '_blank');
+    }
+    
+    setIsModalOpen(false);
   };
 
   const handleFacebookSubmit = async () => {
@@ -1085,7 +1155,7 @@ export default function CustomerDrafting() {
                 <p className="text-sm text-muted-foreground text-center">
                   Share your experience on Instagram!
                 </p>
-                <Button onClick={handleShareAction} className="h-12 w-full bg-pink-600 hover:bg-pink-700 text-white" data-testid="button-share-ig">
+                <Button onClick={handleInstagramAction} className="h-12 w-full bg-pink-600 hover:bg-pink-700 text-white" data-testid="button-share-ig">
                   <Share2 className="mr-2 h-4 w-4" />
                   Share on Instagram
                 </Button>
