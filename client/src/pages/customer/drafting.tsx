@@ -85,27 +85,67 @@ const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): stri
   const thirdTag = cleanTags[2] || secondaryTag;
   const allTags = hashtags.slice(0, 5).join(' ');
   
-  // More natural review templates that flow better with various business types
+  // Diverse review templates with different tones, lengths, and styles
   const reviewTemplates = [
+    // Set 1: Enthusiastic & detailed
     [
-      `What an incredible ${primaryTag} journey! I felt so relaxed and transformed after my session. The ${secondaryTag} approach here is truly special. Highly recommend to anyone looking for a meaningful experience!`,
-      `I've tried many places but nothing compares to what I experienced here. The focus on ${primaryTag} and ${secondaryTag} really shows in their attention to detail. Life-changing results!`,
-      `From the moment I walked in, I knew this was the right choice. Their expertise in ${primaryTag} is evident, and the ${thirdTag} atmosphere made everything perfect. Will definitely be back!`,
+      `Wow! My ${primaryTag} experience here was absolutely incredible. The team really knows their craft and the ${secondaryTag} atmosphere was so welcoming. Already planning my next visit!`,
+      `Best decision ever coming here! The ${primaryTag} service was top-notch and I felt so taken care of. Highly recommend to anyone!`,
     ],
+    // Set 2: Short & punchy
     [
-      `Absolutely blown away by my experience! The ${primaryTag} session exceeded all my expectations. The team truly understands ${secondaryTag} and creates such a welcoming environment. Five stars!`,
-      `This place is a hidden gem! Their approach to ${primaryTag} is both professional and deeply personal. I left feeling renewed and can't wait to return for more ${secondaryTag} sessions.`,
-      `If you're looking for genuine ${primaryTag} results, look no further. The quality of service and dedication to ${thirdTag} is unmatched. Thank you for such an amazing experience!`,
+      `Amazing ${primaryTag}! Quick, professional, and exactly what I needed. 10/10 would recommend.`,
+      `Finally found my go-to spot for ${primaryTag}. Great vibes, great results, great people!`,
     ],
+    // Set 3: Story-driven
     [
-      `My journey with ${primaryTag} started here and I couldn't be happier! The staff are so knowledgeable about ${secondaryTag} and made me feel completely at ease. Transformative experience!`,
-      `I was skeptical at first, but the ${primaryTag} session completely changed my perspective. The ${secondaryTag} techniques they use are incredible. Highly recommend to everyone!`,
-      `What a wonderful discovery! Their passion for ${primaryTag} and ${thirdTag} shines through in everything they do. The results speak for themselves. Already booked my next session!`,
+      `A friend recommended this place for ${primaryTag} and I'm so glad I listened. From booking to finish, everything was seamless. The ${secondaryTag} focus really sets them apart.`,
+      `Been searching for quality ${primaryTag} for months. This place exceeded every expectation. The staff genuinely care about what they do.`,
     ],
+    // Set 4: Emotional & personal
     [
-      `Finding this place was the best decision I've made! The ${primaryTag} experience was exactly what I needed. Their ${secondaryTag} expertise and warm hospitality made all the difference.`,
-      `Truly a special place for ${primaryTag}! The attention to ${secondaryTag} details and the caring staff made this an unforgettable experience. Can't recommend enough!`,
-      `After my ${primaryTag} session, I feel like a new person! The ${thirdTag} focus and professional approach here sets them apart. This is now my go-to place!`,
+      `This ${primaryTag} experience changed my perspective completely. Left feeling renewed, refreshed, and grateful I found this gem of a place.`,
+      `Such a positive experience! The ${secondaryTag} approach here made all the difference. I felt valued as a customer from start to finish.`,
+    ],
+    // Set 5: Casual & friendly
+    [
+      `Super happy with my visit! The ${primaryTag} was great and the staff were so friendly. Will definitely be back soon.`,
+      `Loved it here! Great ${primaryTag}, chill atmosphere, and fair prices. What more could you ask for?`,
+    ],
+    // Set 6: Professional tone
+    [
+      `Excellent service quality. The ${primaryTag} expertise here is evident and the ${secondaryTag} standards are impeccable. Highly professional team.`,
+      `Impressed by the attention to detail. Their ${primaryTag} approach is thorough and results-oriented. Would recommend to colleagues.`,
+    ],
+    // Set 7: Grateful & warm
+    [
+      `Thank you for such a wonderful ${primaryTag} experience! The team made me feel right at home. Can't wait to return!`,
+      `So grateful I discovered this place. The ${primaryTag} service was exactly what I needed. You've gained a loyal customer!`,
+    ],
+    // Set 8: First-timer perspective
+    [
+      `First time trying ${primaryTag} here and I'm hooked! The ${secondaryTag} expertise really shows. Now I understand why everyone raves about this place.`,
+      `New to ${primaryTag} but this team made it so easy. Patient, knowledgeable, and genuinely helpful. Perfect for beginners!`,
+    ],
+    // Set 9: Comparison style
+    [
+      `Tried several places for ${primaryTag} before finding this one. The difference is night and day. Quality and service are unmatched!`,
+      `After years of searching, finally found the best ${primaryTag} spot. The ${thirdTag} focus here puts them in a league of their own.`,
+    ],
+    // Set 10: Concise & impactful
+    [
+      `Outstanding ${primaryTag}. Professional team. Beautiful results. Enough said!`,
+      `Five stars, no hesitation. Best ${primaryTag} experience I've had. Period.`,
+    ],
+    // Set 11: Descriptive & sensory
+    [
+      `The moment I walked in, I knew this was special. Calm atmosphere, skilled team, and the ${primaryTag} results speak for themselves. Pure quality.`,
+      `Such attention to detail! Every aspect of my ${primaryTag} experience was thoughtfully crafted. From the ambiance to the ${secondaryTag} techniques, perfection.`,
+    ],
+    // Set 12: Return customer
+    [
+      `Back for my third visit and it just keeps getting better! Consistent quality ${primaryTag} every single time. This is my spot now.`,
+      `Regular customer here and proud of it! The ${primaryTag} never disappoints. If you haven't tried them yet, what are you waiting for?`,
     ],
   ];
   

@@ -145,24 +145,52 @@ export const translations = {
         step3: "3. Add Photo",
         reviewSets: [
           [
-            "What an incredible experience! I felt so relaxed and renewed after my visit. The results exceeded all my expectations. Highly recommend!",
-            "Professional service from start to finish. The staff was attentive, caring, and truly passionate about what they do.",
-            "This place transformed my perspective completely. I walked out feeling like a new person. Amazing!"
+            "Wow, what an amazing experience! The team really knows what they're doing. Already planning my next visit!",
+            "Best decision I've made this month. Professional, friendly, and the results speak for themselves!"
           ],
           [
-            "The team here truly understands their craft. I've never experienced anything quite like this before. Five stars!",
-            "From the warm welcome to the outstanding results, everything was perfect. Can't wait to come back!",
-            "Such a wonderful discovery! The quality of service and attention to detail is unmatched."
+            "Quick, professional, and exactly what I needed. 10/10 would come back!",
+            "Finally found my go-to spot. Great vibes, great results, great people!"
           ],
           [
-            "Exceeded all my expectations! Everyone keeps asking about my experience here. So grateful I found this place!",
-            "The staff made me feel completely at ease. Professional, friendly, and incredibly skilled at what they do.",
-            "Worth every penny! The results speak for themselves. Highly recommend to everyone looking for quality service!"
+            "A friend recommended this place and I'm so glad I listened. Everything was seamless from start to finish.",
+            "Been searching for quality service for months. This place exceeded every expectation!"
           ],
           [
-            "Life-changing experience! My confidence has improved so much since my visit. Thank you!",
-            "I've tried many places but nothing compares to the expertise and care here. This is my new go-to!",
-            "The attention to detail is outstanding. They really care about each and every client. Incredible!"
+            "Left feeling renewed and refreshed. Such a positive experience from start to finish.",
+            "The approach here made all the difference. I felt valued as a customer the entire time."
+          ],
+          [
+            "Super happy with my visit! Staff were so friendly and welcoming. Will definitely be back!",
+            "Loved it! Chill atmosphere and fair prices. What more could you ask for?"
+          ],
+          [
+            "Excellent service quality. Highly professional team that knows their craft.",
+            "Impressed by the attention to detail. Thorough and results-oriented. Would recommend!"
+          ],
+          [
+            "Thank you for such a wonderful experience! The team made me feel right at home.",
+            "So grateful I discovered this place. You've gained a loyal customer!"
+          ],
+          [
+            "First time here and I'm hooked! Now I understand why everyone raves about this place.",
+            "New here but the team made it so easy. Patient, knowledgeable, and genuinely helpful."
+          ],
+          [
+            "Tried several places before finding this one. The difference is night and day!",
+            "After searching for ages, finally found the best spot. Quality is unmatched!"
+          ],
+          [
+            "Outstanding service. Beautiful results. Five stars, no hesitation!",
+            "Best experience I've had. Simple as that. Highly recommend!"
+          ],
+          [
+            "The moment I walked in, I knew this was special. Pure quality from start to finish.",
+            "Such attention to detail! Every aspect was thoughtfully crafted. Perfection."
+          ],
+          [
+            "Back for my third visit and it keeps getting better! Consistent quality every time.",
+            "Regular customer now and proud of it. If you haven't tried them, what are you waiting for?"
           ]
         ]
       },
@@ -351,28 +379,52 @@ export const translations = {
         step3: "3. 添加照片",
         reviewSets: [
           [
-            "非常喜欢这次的护理！我的头发感觉非常健康有光泽。强烈推荐！",
-            "专业的服务和惊人的效果。工作人员非常关注我的需求。",
-            "这是我几年来最好的沙龙体验。前后对比简直不可思议！",
-            "这个地方完全改变了我的造型。对结果非常满意！"
+            "哇，体验太棒了！团队真的很专业，已经在计划下次光顾了！",
+            "这个月做的最好决定！专业、友好，效果显著！"
           ],
           [
-            "团队真正了解护发。我的头发从未如此好看过！",
-            "惊人的转变！造型师非常有才华，真的会倾听你的需求。",
-            "五星好评！从咨询到最终结果，一切都很完美。",
-            "一次疗程后就看到如此大的变化，简直不敢相信。一定会再来！"
+            "快速、专业，正是我需要的。10分满分会再来！",
+            "终于找到我的心仪之地。氛围好，效果棒，人也nice！"
           ],
           [
-            "超出了我所有的期望。服务质量无与伦比！",
-            "我的朋友们一直问我头发做了什么。很感激找到了这个地方！",
-            "员工让我感到非常舒适。专业、友好，技术精湛。",
-            "物超所值！效果不言自明。强烈推荐给所有人！"
+            "朋友推荐来的，真的没让我失望。整个过程都很顺畅。",
+            "找了好几个月，这家完全超出预期！"
           ],
           [
-            "改变生活的体验！自从来过之后，我的自信心大增。",
-            "我去过很多沙龙，但没有一家能比得上这里的专业水平。",
-            "对细节的关注令人印象深刻。他们真的很关心客户。",
-            "效果惊人，服务周到。这是我新的首选沙龙！"
+            "离开时感觉焕然一新。从头到尾都是积极的体验。",
+            "这里的服务让我感觉被重视。体验非常好！"
+          ],
+          [
+            "非常满意这次光顾！员工很友好热情，一定会再来！",
+            "太喜欢了！氛围轻松，价格公道，还要啥自行车？"
+          ],
+          [
+            "服务质量一流。非常专业的团队。",
+            "对细节的把控让我印象深刻，强烈推荐！"
+          ],
+          [
+            "感谢这次美好的体验！团队让我有宾至如归的感觉。",
+            "很庆幸发现了这家店，你们又多了一个忠实顾客！"
+          ],
+          [
+            "第一次来就被圈粉了！终于明白大家为什么这么推荐了。",
+            "新手友好！团队耐心、专业，非常贴心。"
+          ],
+          [
+            "之前试过好几家，这家真的是天花板！",
+            "找了好久终于找到最好的店，品质无敌！"
+          ],
+          [
+            "服务一流，效果完美，五星好评！",
+            "最好的体验，没有之一！强烈推荐！"
+          ],
+          [
+            "一进门就觉得这里不一般。从头到尾都是高品质。",
+            "每个细节都很用心。完美！"
+          ],
+          [
+            "第三次来了，越来越好！每次品质都很稳定。",
+            "已经是常客了！还没来过的朋友们，还在等什么？"
           ]
         ]
       },
@@ -561,28 +613,52 @@ export const translations = {
         step3: "3. புகைப்படம் சேர்",
         reviewSets: [
           [
-            "சிகிச்சை மிகவும் பிடித்திருந்தது! என் தலைமுடி மிகவும் ஆரோக்கியமாகவும் பளபளப்பாகவும் உள்ளது. கண்டிப்பாகப் பரிந்துரைக்கிறேன்!",
-            "தொழில்முறை சேவை மற்றும் அற்புதமான முடிவுகள். ஊழியர்கள் என் தேவைகளுக்கு மிகவும் கவனம் செலுத்தினார்கள்.",
-            "பல ஆண்டுகளில் இது என்னுடைய சிறந்த சலூன் அனுபவம். முன்னும் பின்னும் வேறுபாடு நம்பமுடியாதது!",
-            "இந்த இடம் என் தோற்றத்தை முற்றிலும் மாற்றியது. முடிவுகளில் மிகவும் மகிழ்ச்சி!"
+            "அற்புதமான அனுபவம்! குழு மிகவும் தொழில்முறையானது. அடுத்த வருகையை ஏற்கனவே திட்டமிடுகிறேன்!",
+            "இந்த மாதம் எடுத்த சிறந்த முடிவு! தொழில்முறை, நட்பான, முடிவுகள் அற்புதம்!"
           ],
           [
-            "குழு தலைமுடி பராமரிப்பை உண்மையாகப் புரிந்துகொள்கிறது. என் தலைமுடி இதுவரை இவ்வளவு அழகாக இருந்ததில்லை!",
-            "அற்புதமான மாற்றம்! ஸ்டைலிஸ்ட்கள் மிகவும் திறமையானவர்கள், நீங்கள் என்ன விரும்புகிறீர்கள் என்பதை உண்மையாகக் கேட்கிறார்கள்.",
-            "முழு ஐந்து நட்சத்திரங்கள்! ஆலோசனை முதல் இறுதி முடிவு வரை எல்லாம் சரியாக இருந்தது.",
-            "ஒரு அமர்வுக்குப் பிறகு வேறுபாட்டை நம்ப முடியவில்லை. நிச்சயமாக மீண்டும் வருவேன்!"
+            "வேகமான, தொழில்முறையான, எனக்கு தேவையான அனைத்தும். 10/10 மீண்டும் வருவேன்!",
+            "என் விருப்பமான இடத்தைக் கண்டுபிடித்தேன். நல்ல சூழல், நல்ல முடிவுகள், நல்ல மக்கள்!"
           ],
           [
-            "என் எல்லா எதிர்பார்ப்புகளையும் மீறியது. சேவையின் தரம் ஒப்பற்றது!",
-            "என் நண்பர்கள் என் தலைமுடிக்கு என்ன செய்தேன் என்று தொடர்ந்து கேட்கிறார்கள். இந்த இடத்தைக் கண்டுபிடித்ததில் மிகவும் நன்றி!",
-            "ஊழியர்கள் என்னை மிகவும் வசதியாக உணர வைத்தார்கள். தொழில்முறை, நட்பான, மற்றும் நம்பமுடியாத திறமையானவர்கள்.",
-            "ஒவ்வொரு பைசாவும் மதிப்புக்குரியது! முடிவுகள் தானே பேசுகின்றன. அனைவருக்கும் கண்டிப்பாகப் பரிந்துரைக்கிறேன்!"
+            "நண்பர் பரிந்துரைத்தார், கேட்டதில் மகிழ்ச்சி. எல்லாம் சீராக நடந்தது.",
+            "பல மாதங்கள் தேடியபின், இது எல்லா எதிர்பார்ப்புகளையும் மீறியது!"
           ],
           [
-            "வாழ்க்கையை மாற்றும் அனுபவம்! என் வருகைக்குப் பிறகு என் நம்பிக்கை உயர்ந்துள்ளது.",
-            "நான் பல சலூன்களுக்குச் சென்றிருக்கிறேன், ஆனால் இங்குள்ள நிபுணத்துவத்துடன் ஒப்பிட முடியாது.",
-            "விவரங்களுக்கான கவனம் சிறப்பானது. அவர்கள் தங்கள் வாடிக்கையாளர்களை உண்மையாகக் கவனிக்கிறார்கள்.",
-            "நம்பமுடியாத முடிவுகள் மற்றும் அற்புதமான சேவை. இது என்னுடைய புதிய விருப்பமான சலூன்!"
+            "புத்துணர்வுடன் வெளியேறினேன். ஆரம்பம் முதல் இறுதி வரை நேர்மறையான அனுபவம்.",
+            "இங்கு நான் மதிப்பு பெற்றதாக உணர்ந்தேன். அற்புதமான அனுபவம்!"
+          ],
+          [
+            "என் வருகையில் மிகவும் மகிழ்ச்சி! ஊழியர்கள் நட்பானவர்கள். நிச்சயம் மீண்டும் வருவேன்!",
+            "மிகவும் பிடித்தது! அமைதியான சூழல், நியாயமான விலை!"
+          ],
+          [
+            "சிறந்த சேவை தரம். மிகவும் தொழில்முறையான குழு.",
+            "விவரங்களுக்கான கவனம் ஈர்த்தது. கண்டிப்பாகப் பரிந்துரைக்கிறேன்!"
+          ],
+          [
+            "அற்புதமான அனுபவத்திற்கு நன்றி! குழு என்னை வீட்டில் உள்ளதுபோல் உணர வைத்தது.",
+            "இந்த இடத்தைக் கண்டுபிடித்ததில் நன்றி. நீங்கள் ஒரு விசுவாசமான வாடிக்கையாளரைப் பெற்றீர்கள்!"
+          ],
+          [
+            "முதல் முறை இங்கு, ஆனால் மிகவும் பிடித்தது! ஏன் எல்லோரும் பரிந்துரைக்கிறார்கள் என்று இப்போது புரிகிறது.",
+            "புதியவர்களுக்கு ஏற்றது! குழு பொறுமையான, அறிவுள்ள, உதவிகரமானவர்கள்."
+          ],
+          [
+            "பல இடங்களை முயற்சித்தேன், இது சிறந்தது! தரமும் சேவையும் ஒப்பற்றது!",
+            "பல ஆண்டுகள் தேடியபின், சிறந்த இடத்தைக் கண்டுபிடித்தேன்!"
+          ],
+          [
+            "சிறந்த சேவை. அழகான முடிவுகள். ஐந்து நட்சத்திரங்கள்!",
+            "என்னுடைய சிறந்த அனுபவம். கண்டிப்பாகப் பரிந்துரைக்கிறேன்!"
+          ],
+          [
+            "நுழைந்த தருணமே இது சிறப்பானது என்று தெரிந்தது. தரம் முதல் கடைசி வரை.",
+            "ஒவ்வொரு விவரமும் கவனமாக செய்யப்பட்டது. சரியான!"
+          ],
+          [
+            "மூன்றாவது முறை வருகிறேன், இன்னும் சிறப்பாகிறது! ஒவ்வொரு முறையும் ஒரே தரம்.",
+            "இப்போது வழக்கமான வாடிக்கையாளர்! இன்னும் வராதவர்கள், என்ன காத்திருக்கிறீர்கள்?"
           ]
         ]
       },
@@ -771,28 +847,52 @@ export const translations = {
         step3: "3. Tambah Gambar",
         reviewSets: [
           [
-            "Sangat suka rawatan ini! Rambut saya terasa sangat sihat dan berkilau. Sangat mengesyorkan!",
-            "Perkhidmatan profesional dan hasil yang menakjubkan. Kakitangan sangat memberi perhatian kepada keperluan saya.",
-            "Pengalaman salon terbaik yang saya alami dalam beberapa tahun. Perbezaan sebelum dan selepas sungguh luar biasa!",
-            "Tempat ini mengubah penampilan saya sepenuhnya. Sangat gembira dengan hasilnya!"
+            "Wow, pengalaman yang luar biasa! Pasukan sangat profesional. Sudah merancang lawatan seterusnya!",
+            "Keputusan terbaik bulan ini! Profesional, mesra, dan hasilnya hebat!"
           ],
           [
-            "Pasukan benar-benar memahami penjagaan rambut. Rambut saya tidak pernah kelihatan lebih baik!",
-            "Transformasi yang menakjubkan! Penggaya sangat berbakat dan benar-benar mendengar apa yang anda mahu.",
-            "Lima bintang sepenuhnya! Dari konsultasi hingga hasil akhir, semuanya sempurna.",
-            "Tidak percaya perbezaan selepas hanya satu sesi. Pasti akan kembali!"
+            "Cepat, profesional, dan tepat apa yang saya perlukan. 10/10 akan kembali!",
+            "Akhirnya jumpa tempat kegemaran saya. Suasana bagus, hasil bagus, orang bagus!"
           ],
           [
-            "Melebihi semua jangkaan saya. Kualiti perkhidmatan tiada tandingan!",
-            "Kawan-kawan saya terus bertanya apa yang saya buat pada rambut saya. Sangat bersyukur menemui tempat ini!",
-            "Kakitangan membuat saya berasa sangat selesa. Profesional, mesra, dan sangat mahir.",
-            "Berbaloi setiap sen! Hasilnya berbicara sendiri. Sangat mengesyorkan kepada semua orang!"
+            "Kawan cadangkan tempat ini dan saya gembira mendengarnya. Semuanya lancar dari awal hingga akhir.",
+            "Cari tempat berkualiti berbulan-bulan. Tempat ini melebihi semua jangkaan!"
           ],
           [
-            "Pengalaman yang mengubah hidup! Keyakinan saya meningkat sejak lawatan saya.",
-            "Saya telah pergi ke banyak salon tetapi tiada yang setanding dengan kepakaran di sini.",
-            "Perhatian terhadap perincian sangat luar biasa. Mereka benar-benar mengambil berat tentang pelanggan mereka.",
-            "Hasil yang luar biasa dan perkhidmatan yang hebat. Ini adalah salon pilihan baru saya!"
+            "Keluar dengan rasa segar dan diperbaharui. Pengalaman positif dari awal hingga akhir.",
+            "Pendekatan di sini membuat perbezaan. Saya berasa dihargai sebagai pelanggan!"
+          ],
+          [
+            "Sangat gembira dengan lawatan saya! Kakitangan mesra dan ramah. Pasti akan kembali!",
+            "Suka sangat! Suasana santai dan harga berpatutan. Apa lagi yang anda mahu?"
+          ],
+          [
+            "Kualiti perkhidmatan cemerlang. Pasukan sangat profesional.",
+            "Kagum dengan perhatian terhadap perincian. Sangat mengesyorkan!"
+          ],
+          [
+            "Terima kasih untuk pengalaman yang indah! Pasukan buat saya rasa seperti di rumah.",
+            "Sangat bersyukur menemui tempat ini. Anda dapat pelanggan setia!"
+          ],
+          [
+            "Pertama kali di sini dan terus suka! Sekarang faham kenapa semua orang puji tempat ini.",
+            "Baru di sini tapi pasukan buat ia mudah. Sabar, berpengetahuan, dan sangat membantu."
+          ],
+          [
+            "Dah cuba beberapa tempat sebelum ini. Yang ini memang yang terbaik!",
+            "Selepas bertahun-tahun mencari, akhirnya jumpa tempat terbaik. Kualiti tiada tandingan!"
+          ],
+          [
+            "Perkhidmatan cemerlang. Hasil cantik. Lima bintang, tiada keraguan!",
+            "Pengalaman terbaik yang pernah saya alami. Sangat mengesyorkan!"
+          ],
+          [
+            "Dari saat saya masuk, saya tahu ini istimewa. Kualiti dari awal hingga akhir.",
+            "Perhatian terhadap perincian! Setiap aspek dibuat dengan teliti. Sempurna."
+          ],
+          [
+            "Kembali untuk lawatan ketiga dan makin baik! Kualiti konsisten setiap kali.",
+            "Sekarang pelanggan tetap dan bangga! Kalau belum cuba, tunggu apa lagi?"
           ]
         ]
       },
