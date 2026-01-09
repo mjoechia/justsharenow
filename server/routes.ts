@@ -766,6 +766,10 @@ export async function registerRoutes(
     try {
       const adminUser = req.user as Express.User;
       
+      // Debug: Log admin user info
+      const adminDetails = await storage.getUserById(adminUser.id);
+      console.log(`[/api/my-users] Admin user id=${adminUser.id}, username=${adminDetails?.username}, role=${adminDetails?.role}`);
+      
       // Master admin sees all users
       if (adminUser.role === 'master_admin') {
         const allUsers = await storage.getUsersByRole('user');

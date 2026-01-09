@@ -220,7 +220,10 @@ export default function AdminDashboard() {
             <img src={justShareNowLogo} alt="JustShareNow" className="w-10 h-10 sm:w-12 sm:h-auto object-contain flex-shrink-0" />
             <div className="min-w-0">
               <h1 className="font-bold text-gray-900 text-sm sm:text-base">Admin Dashboard</h1>
-              <p className="text-xs sm:text-sm text-gray-500 truncate">Logged in as {user.displayName || user.email}</p>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">
+                Logged in as {user.displayName || user.email}
+                {user.username && <span className="ml-1 text-purple-600">(@{user.username})</span>}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">

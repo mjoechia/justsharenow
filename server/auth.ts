@@ -232,6 +232,9 @@ export async function setupAuth(app: Express) {
       if (!isValid) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
+      
+      // Debug: Log successful login
+      console.log(`[Login] User logged in: id=${user.id}, username=${user.username}, role=${user.role}`);
 
       // Master admin bypasses approval check, others must be approved
       if (user.role !== 'master_admin' && user.approvalStatus !== 'approved') {

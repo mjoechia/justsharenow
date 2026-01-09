@@ -561,10 +561,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUsersForAdmin(adminId: number): Promise<User[]> {
+    console.log(`[getUsersForAdmin] Looking up assignments for adminId=${adminId}`);
     const assignments = await db
       .select({ userId: adminUserAssignments.userId })
       .from(adminUserAssignments)
       .where(eq(adminUserAssignments.adminId, adminId));
+    
+    console.log(`[getUsersForAdmin] Found ${assignments.length} assignments for adminId=${adminId}:`, assignments.map(a => a.userId));
     
     if (assignments.length === 0) return [];
     
@@ -574,6 +577,7 @@ export class DatabaseStorage implements IStorage {
       const user = await this.getUserById(userId);
       if (user) result.push(user);
     }
+    console.log(`[getUsersForAdmin] Returning ${result.length} users for adminId=${adminId}`);
     return result;
   }
 
