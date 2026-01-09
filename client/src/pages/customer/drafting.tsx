@@ -365,27 +365,62 @@ export default function CustomerDrafting() {
     if (activePlatform?.id === 'google-reviews') {
       const reviewText = getReviewWithHashtags();
       
-      // Open Google Reviews page FIRST (synchronously) to avoid mobile popup blockers
-      // The window.open must happen in the same tick as the user click
+      // Determine the target URL
+      let targetUrl = "";
       if (socialLinks.googlePlaceId) {
-        const reviewUrl = `https://search.google.com/local/writereview?placeid=${socialLinks.googlePlaceId}`;
-        window.open(reviewUrl, '_blank');
+        targetUrl = `https://search.google.com/local/writereview?placeid=${socialLinks.googlePlaceId}`;
       } else {
-        const url = socialLinks.googleReviews || "https://www.google.com/maps";
-        window.open(url, '_blank');
+        targetUrl = socialLinks.googleReviews || "https://www.google.com/maps";
       }
       
-      // Copy review text to clipboard AFTER opening the URL
+      // Open window SYNCHRONOUSLY to maintain user gesture (avoids popup blockers)
+      // Open with about:blank first, then navigate after clipboard operation
+      const newWindow = window.open('about:blank', '_blank');
+      
+      // Copy review text to clipboard
+      let clipboardSuccess = false;
       if (reviewText) {
         try {
           await navigator.clipboard.writeText(reviewText);
-          toast({
-            title: t.customer.drafting.reviewCopied,
-            description: t.customer.drafting.pasteInGoogle,
-          });
+          clipboardSuccess = true;
         } catch (err) {
           console.warn("Clipboard write failed:", err);
+          // Fallback: try using execCommand (deprecated but works on some Android browsers)
+          try {
+            const textArea = document.createElement('textarea');
+            textArea.value = reviewText;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            clipboardSuccess = document.execCommand('copy');
+            document.body.removeChild(textArea);
+          } catch (fallbackErr) {
+            console.warn("Fallback clipboard also failed:", fallbackErr);
+          }
         }
+      }
+      
+      // Navigate the new window to the target URL
+      if (newWindow) {
+        newWindow.location.href = targetUrl;
+      }
+      
+      // Show toast about clipboard status
+      if (clipboardSuccess) {
+        toast({
+          title: t.customer.drafting.reviewCopied,
+          description: t.customer.drafting.pasteInGoogle,
+        });
+      } else if (reviewText) {
+        // Clipboard failed - show instructions to copy manually
+        toast({
+          title: "Review ready",
+          description: "Please copy the review text manually and paste it in Google.",
+          variant: "default",
+        });
       }
     }
     if (activePlatform?.id) {
