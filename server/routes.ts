@@ -478,17 +478,30 @@ export async function registerRoutes(
       const { newPassword } = req.body;
       const actorUser = req.user as Express.User;
       
+      console.log(`[reset-password] Request from user id=${actorUser.id} to reset password for userId=${userId}`);
+      
+      if (isNaN(userId)) {
+        console.log(`[reset-password] Invalid userId: ${req.params.userId}`);
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
       if (!newPassword || newPassword.length < 8) {
+        console.log(`[reset-password] Password too short or missing`);
         return res.status(400).json({ error: "Password must be at least 8 characters" });
       }
 
       const user = await storage.getUserById(userId);
       if (!user) {
+        console.log(`[reset-password] User not found for id=${userId}`);
         return res.status(404).json({ error: "User not found" });
       }
+      
+      console.log(`[reset-password] Found user: ${user.username}, hashing new password...`);
 
       const passwordHash = await bcrypt.hash(newPassword, 12);
       await storage.updatePassword(userId, passwordHash);
+      
+      console.log(`[reset-password] Password updated, logging audit event...`);
       
       // Log audit event
       await storage.logPasswordEvent({
@@ -499,12 +512,11 @@ export async function registerRoutes(
         userAgent: req.headers['user-agent'] || null,
       });
       
+      console.log(`[reset-password] Success for userId=${userId}`);
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error resetting password:", error);
-      if (error?.message) {
-        console.error("Error details:", error.message);
-      }
+      console.error("Error stack:", error?.stack);
       res.status(500).json({ error: "Failed to reset password. Please try again." });
     }
   });
