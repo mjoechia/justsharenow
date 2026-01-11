@@ -62,7 +62,8 @@ export async function getSession() {
     rolling: true, // Reset session expiry on each request
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: sessionTtl,
     },
   });
