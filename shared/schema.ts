@@ -218,4 +218,4 @@ export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 
 // Default session timeout in minutes
-export const DEFAULT_SESSION_TIMEOUT_MINUTES = 3;
+export const DEFAULT_SESSION_TIMEOUT_MINUTES = 2;
