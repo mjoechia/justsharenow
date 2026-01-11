@@ -38,7 +38,7 @@ export async function getStoreConfigByPlaceId(placeId: string): Promise<StoreCon
 // If userId is provided (for master admin context switching), fetch that user's config
 export async function getStoreConfig(userId?: number): Promise<StoreConfig> {
   const url = userId ? `/api/admin/my-config?userId=${userId}` : '/api/admin/my-config';
-  const response = await fetch(url);
+  const response = await fetch(url, { credentials: 'include' });
   if (!response.ok) throw new Error('Failed to fetch config');
   return response.json();
 }
@@ -51,6 +51,7 @@ export async function updateStoreConfig(config: Partial<StoreConfig>, userId?: n
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),
+    credentials: 'include',
   });
   if (!response.ok) throw new Error('Failed to update config');
   return response.json();
@@ -58,7 +59,7 @@ export async function updateStoreConfig(config: Partial<StoreConfig>, userId?: n
 
 // Fetch analytics data
 export async function getAnalytics(): Promise<Analytics[]> {
-  const response = await fetch('/api/analytics');
+  const response = await fetch('/api/analytics', { credentials: 'include' });
   if (!response.ok) throw new Error('Failed to fetch analytics');
   return response.json();
 }
@@ -103,6 +104,7 @@ export async function discoverSocialLinks(websiteUrl: string): Promise<DiscoverR
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ websiteUrl }),
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json();
@@ -124,6 +126,7 @@ export async function discoverLogo(websiteUrl: string): Promise<DiscoverLogoResp
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ websiteUrl }),
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json();
@@ -145,6 +148,7 @@ export async function approvePhoto(imageUrl: string, userId?: number): Promise<A
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageUrl }),
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json();
@@ -166,6 +170,7 @@ export async function approveSliderPhoto(imageUrl: string, userId?: number): Pro
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageUrl }),
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json();
@@ -186,6 +191,7 @@ export async function saveHashtags(hashtags: string[], userId?: number): Promise
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ hashtags }),
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json();
@@ -217,7 +223,7 @@ export interface FetchGoogleReviewsResponse {
 }
 
 export async function getGoogleReviews(): Promise<GoogleReview[]> {
-  const response = await fetch('/api/google-reviews');
+  const response = await fetch('/api/google-reviews', { credentials: 'include' });
   if (!response.ok) throw new Error('Failed to fetch Google reviews');
   return response.json();
 }
@@ -227,6 +233,7 @@ export async function fetchGoogleReviews(placeId: string): Promise<FetchGoogleRe
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ placeId }),
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json();
@@ -267,6 +274,7 @@ export async function resolveGoogleMapsUrl(url: string): Promise<ResolveUrlRespo
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url }),
+    credentials: 'include',
   });
   if (!response.ok) {
     const errorData = await response.json() as ResolveErrorResponse;
@@ -282,6 +290,7 @@ export async function verifyGooglePlaceId(placeId: string): Promise<VerifyPlaceI
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ placeId }),
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json();
@@ -319,6 +328,7 @@ export async function saveTestimonial(data: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json();
