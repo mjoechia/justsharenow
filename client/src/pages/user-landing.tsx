@@ -91,6 +91,14 @@ const platforms = [
     bgColor: 'bg-green-50',
     borderColor: 'border-green-200',
     hoverBg: 'hover:bg-green-100',
+  },
+  {
+    id: 'tiktok',
+    name: 'TikTok',
+    icon: <span className="text-2xl font-bold text-black">TikTok</span>,
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-300',
+    hoverBg: 'hover:bg-gray-100',
   }
 ];
 
@@ -146,6 +154,9 @@ export default function UserLanding() {
       }
       if (platform.id === 'whatsapp') {
         return !!config?.whatsappUrl;
+      }
+      if (platform.id === 'tiktok') {
+        return !!config?.tiktokUrl;
       }
       return false;
     });
@@ -259,6 +270,13 @@ export default function UserLanding() {
       if (config?.whatsappUrl) {
         trackPlatformClick('whatsapp');
         window.open(config.whatsappUrl, '_blank');
+      }
+      return;
+    }
+    if (platformId === 'tiktok') {
+      if (config?.tiktokUrl) {
+        trackPlatformClick('tiktok');
+        window.open(config.tiktokUrl, '_blank');
       }
       return;
     }
