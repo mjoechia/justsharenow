@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Users, LogOut, Mail, QrCode, AlertCircle, Clock, ExternalLink, UserPlus, Key, Eye, EyeOff } from "lucide-react";
+import { Loader2, Users, LogOut, QrCode, AlertCircle, Clock, ExternalLink, UserPlus, Key, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import { useState, useEffect } from "react";
@@ -212,12 +212,6 @@ export default function AdminDashboard() {
     );
   }
 
-  const handleEmailQR = async (userId: number, userEmail?: string) => {
-    toast({ 
-      title: "Email QR Code",
-      description: `QR code email would be sent to ${userEmail || 'user'}. (Email integration coming soon)`,
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
@@ -499,7 +493,7 @@ export default function AdminDashboard() {
               </CardTitle>
               <CardDescription>
                 {isMasterAdmin 
-                  ? "Manage customer accounts. You can create new users or email QR codes."
+                  ? "Manage customer accounts. You can create new users."
                   : "View your assigned customer accounts. Contact master admin for changes."}
               </CardDescription>
             </div>
@@ -661,14 +655,6 @@ export default function AdminDashboard() {
                       >
                         <QrCode className="w-4 h-4 sm:mr-1" />
                         <span className="hidden sm:inline">View Config</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleEmailQR(assignedUser.id, assignedUser.email)}
-                        data-testid={`button-email-qr-${assignedUser.id}`}
-                      >
-                        <Mail className="w-4 h-4 sm:mr-1" />
-                        <span className="hidden sm:inline">Email QR</span>
                       </Button>
                     </div>
                   </div>

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink, Settings, Clock, Building2, Eye, EyeOff, Pencil, QrCode, Mail } from "lucide-react";
+import { AlertCircle, Check, X, Loader2, Users, UserPlus, LogOut, RefreshCw, Link2, Edit2, ExternalLink, Settings, Clock, Building2, Eye, EyeOff, Pencil, QrCode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
@@ -895,19 +895,6 @@ export default function MasterAdminDashboard() {
                             >
                               <QrCode className="w-4 h-4 mr-1" />
                               View Config
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                toast({ 
-                                  title: "Email QR Code",
-                                  description: `QR code email would be sent to ${userItem.email || 'user'}. (Email integration coming soon)`,
-                                });
-                              }}
-                              data-testid={`button-email-qr-${userItem.id}`}
-                            >
-                              <Mail className="w-4 h-4 mr-1" />
-                              Email QR
                             </Button>
                           </div>
                         </div>
