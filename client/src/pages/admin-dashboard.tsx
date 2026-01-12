@@ -75,7 +75,7 @@ export default function AdminDashboard() {
 
   const trackViewMutation = useMutation({
     mutationFn: async (userId: number) => {
-      await fetch(`/api/track-view/${userId}`, { method: 'POST' });
+      await fetch(`/api/track-view/${userId}`, { method: 'POST', credentials: 'include' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/my-recent-users"] });
@@ -88,6 +88,7 @@ export default function AdminDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!res.ok) {
         const err = await res.json();
@@ -115,6 +116,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/create-my-demos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
       if (!res.ok) {
         if (res.status === 401) {
@@ -144,6 +146,7 @@ export default function AdminDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!res.ok) {
         const err = await res.json();

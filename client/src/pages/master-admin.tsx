@@ -123,6 +123,7 @@ export default function MasterAdminDashboard() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionTimeoutMinutes: minutes }),
+        credentials: 'include',
       });
       if (!res.ok) {
         const err = await res.json();
@@ -145,6 +146,7 @@ export default function MasterAdminDashboard() {
       const res = await fetch(`/api/admin/users/${userId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to approve user');
       return res.json();
@@ -160,6 +162,7 @@ export default function MasterAdminDashboard() {
       const res = await fetch(`/api/admin/users/${userId}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to reject user');
       return res.json();
@@ -182,6 +185,7 @@ export default function MasterAdminDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, displayName, email, role }),
+        credentials: 'include',
       });
       if (!res.ok) {
         const err = await res.json();
@@ -225,6 +229,7 @@ export default function MasterAdminDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newPassword }),
+        credentials: 'include',
       });
       if (!res.ok) {
         const err = await res.json();
@@ -249,6 +254,7 @@ export default function MasterAdminDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, adminId }),
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to assign user');
       return res.json();
@@ -264,6 +270,7 @@ export default function MasterAdminDashboard() {
       const res = await fetch(`/api/admin/users/${userId}/toggle-active`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
       if (!res.ok) {
         const err = await res.json();
@@ -287,6 +294,7 @@ export default function MasterAdminDashboard() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug }),
+        credentials: 'include',
       });
       if (!res.ok) {
         const err = await res.json();
@@ -311,6 +319,7 @@ export default function MasterAdminDashboard() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
+        credentials: 'include',
       });
       if (!res.ok) {
         const err = await res.json();
@@ -336,6 +345,7 @@ export default function MasterAdminDashboard() {
       const res = await fetch('/api/admin/backfill-demos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
       if (!res.ok) {
         const err = await res.json();
