@@ -235,7 +235,7 @@ export default function InstagramReview() {
     const isAndroid = /android/.test(userAgent);
 
     if (isIOS) {
-      window.location.href = 'instagram://camera';
+      window.location.href = 'instagram://app';
       setTimeout(() => {
         window.open('https://www.instagram.com/', '_blank');
       }, 2000);
@@ -524,7 +524,7 @@ export default function InstagramReview() {
                 ) : (
                   <div className="flex items-center gap-2">
                     <Instagram className="w-5 h-5" />
-                    Copy and Share to Instagram
+                    Copy and Paste to Instagram
                   </div>
                 )}
               </Button>
