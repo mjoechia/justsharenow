@@ -1248,6 +1248,13 @@ export async function registerRoutes(
       const authUser = req.user as Express.User;
       const validatedData = insertStoreConfigSchema.parse(req.body);
       
+      // Auto-clean WhatsApp URL: remove + sign from wa.me links
+      let whatsappCleaned = false;
+      if (validatedData.whatsappUrl && validatedData.whatsappUrl.includes('wa.me/+')) {
+        validatedData.whatsappUrl = validatedData.whatsappUrl.replace('wa.me/+', 'wa.me/');
+        whatsappCleaned = true;
+      }
+      
       // Determine and validate target user for the update
       // Support userId from query params (context switching) or request body
       let targetUserId = authUser.id;
@@ -1288,7 +1295,16 @@ export async function registerRoutes(
       // Always scope update to specific user
       validatedData.userId = targetUserId;
       const config = await storage.updateStoreConfigByUserId(targetUserId, validatedData);
-      res.json(config);
+      
+      // Include cleanup message if WhatsApp URL was modified
+      if (whatsappCleaned) {
+        res.json({ 
+          ...config, 
+          _message: "The '+' sign is not needed for WhatsApp links and has been removed automatically." 
+        });
+      } else {
+        res.json(config);
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Invalid data", details: error.errors });

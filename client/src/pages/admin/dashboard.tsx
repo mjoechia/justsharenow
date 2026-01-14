@@ -215,10 +215,14 @@ export default function AdminDashboard() {
 
   const updateConfigMutation = useMutation({
     mutationFn: (config: Parameters<typeof updateStoreConfig>[0]) => updateStoreConfig(config, contextUserId),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['storeConfig', contextUserId] });
       setIsDirty(false);
-      toast({ title: "Saved", description: "Configuration updated successfully." });
+      if (data._message) {
+        toast({ title: "Saved", description: data._message });
+      } else {
+        toast({ title: "Saved", description: "Configuration updated successfully." });
+      }
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to save configuration.", variant: "destructive" });

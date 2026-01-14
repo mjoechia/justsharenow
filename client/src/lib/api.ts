@@ -45,7 +45,10 @@ export async function getStoreConfig(userId?: number): Promise<StoreConfig> {
 
 // Update store configuration (user-scoped for authenticated users)
 // If userId is provided (for master admin context switching), update that user's config
-export async function updateStoreConfig(config: Partial<StoreConfig>, userId?: number): Promise<StoreConfig> {
+export interface UpdateConfigResult extends StoreConfig {
+  _message?: string;
+}
+export async function updateStoreConfig(config: Partial<StoreConfig>, userId?: number): Promise<UpdateConfigResult> {
   const url = userId ? `/api/config?userId=${userId}` : '/api/config';
   const response = await fetch(url, {
     method: 'PUT',
