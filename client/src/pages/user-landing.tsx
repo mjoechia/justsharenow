@@ -280,6 +280,11 @@ export default function UserLanding() {
       }
       return;
     }
+    if (platformId === 'facebook') {
+      trackPlatformClick('facebook');
+      setLocation(`/${slug}/facebook`);
+      return;
+    }
     
     setSelectedPlatform(platformId);
     trackPlatformClick(platformId);
