@@ -110,73 +110,86 @@ export default function FacebookReview() {
       return;
     }
 
-    setIsSubmitting(true);
+    const postContent = buildPostContent();
     
+    // IMPORTANT: Copy to clipboard FIRST, synchronously with user tap
+    // iOS Safari requires clipboard access to happen immediately on user gesture
+    let clipboardSuccess = false;
     try {
-      const postContent = buildPostContent();
-      
-      if (config?.googlePlaceId) {
-        try {
-          await saveTestimonial({
-            placeId: config.googlePlaceId,
-            platform: 'facebook',
-            rating: 5,
-            reviewText: reviews[selectedReviewIndex],
-            photoUrl: selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null,
-            language: language,
-          });
-        } catch (saveError) {
-          console.warn("Failed to save testimonial:", saveError);
-        }
-      }
-
-      trackClick('facebook');
-
-      let clipboardSuccess = false;
+      // Try modern clipboard API first
+      await navigator.clipboard.writeText(postContent);
+      clipboardSuccess = true;
+    } catch (clipboardErr) {
+      console.warn("Clipboard API failed, trying fallback:", clipboardErr);
+    }
+    
+    // Fallback for iOS Safari
+    if (!clipboardSuccess) {
       try {
-        await navigator.clipboard.writeText(postContent);
-        clipboardSuccess = true;
-      } catch (clipboardErr) {
-        console.warn("Clipboard write failed:", clipboardErr);
-        try {
-          const textArea = document.createElement('textarea');
-          textArea.value = postContent;
-          textArea.style.position = 'fixed';
-          textArea.style.left = '-9999px';
-          textArea.style.opacity = '0';
-          document.body.appendChild(textArea);
-          textArea.focus();
-          textArea.select();
-          clipboardSuccess = document.execCommand('copy');
-          document.body.removeChild(textArea);
-        } catch (e) {
-          console.warn("Fallback copy failed:", e);
+        const textArea = document.createElement('textarea');
+        textArea.value = postContent;
+        textArea.style.position = 'fixed';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.width = '2em';
+        textArea.style.height = '2em';
+        textArea.style.padding = '0';
+        textArea.style.border = 'none';
+        textArea.style.outline = 'none';
+        textArea.style.boxShadow = 'none';
+        textArea.style.background = 'transparent';
+        textArea.setAttribute('readonly', '');
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        // For iOS Safari
+        const range = document.createRange();
+        range.selectNodeContents(textArea);
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
         }
+        textArea.setSelectionRange(0, postContent.length);
+        
+        clipboardSuccess = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (e) {
+        console.warn("Fallback copy also failed:", e);
       }
+    }
 
-      if (clipboardSuccess) {
-        setCopiedText(postContent);
-        setStep('ready');
-        toast({
-          title: "Review Copied!",
-          description: "Now open Facebook and paste your review.",
-        });
-      } else {
-        toast({
-          title: "Copy failed",
-          description: "Please try again or copy manually.",
-          variant: "destructive",
-        });
-      }
-
-    } catch (e) {
-      console.error("Facebook flow error:", e);
+    if (clipboardSuccess) {
+      setCopiedText(postContent);
+      setStep('ready');
       toast({
-        title: "Error",
-        variant: "destructive",
+        title: "Review Copied!",
+        description: "Now open Facebook and paste your review.",
       });
-    } finally {
+      
+      // Do async operations after clipboard success (non-blocking)
+      setIsSubmitting(true);
+      trackClick('facebook');
+      if (config?.googlePlaceId) {
+        saveTestimonial({
+          placeId: config.googlePlaceId,
+          platform: 'facebook',
+          rating: 5,
+          reviewText: reviews[selectedReviewIndex],
+          photoUrl: selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null,
+          language: language,
+        }).catch(err => console.warn("Failed to save testimonial:", err));
+      }
       setIsSubmitting(false);
+    } else {
+      // Show the text so user can copy manually
+      setCopiedText(postContent);
+      setStep('ready');
+      toast({
+        title: "Tap and hold the text below to copy",
+        description: "Then paste it in Facebook.",
+      });
     }
   };
 
