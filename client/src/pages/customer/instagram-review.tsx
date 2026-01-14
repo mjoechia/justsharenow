@@ -59,6 +59,8 @@ export default function InstagramReview() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<'select' | 'ready'>('select');
   const [copiedText, setCopiedText] = useState('');
+  const [aiCaptions, setAiCaptions] = useState<string[] | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: configBySlug, isLoading } = useQuery<PublicConfigResponse>({
     queryKey: ['user-config', slug],
@@ -78,9 +80,51 @@ export default function InstagramReview() {
     return allPhotos.slice(0, 2);
   }, [config?.shopPhotos]);
 
-  const captions = useMemo(() => {
+  const defaultCaptions = useMemo(() => {
     return generateInstagramCaptions(config?.reviewHashtags || [], businessName);
   }, [config?.reviewHashtags, businessName]);
+
+  const captions = aiCaptions || defaultCaptions;
+
+  const handleGenerateNewCaptions = async () => {
+    if (!businessName) return;
+    
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/generate-captions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName,
+          hashtags: config?.reviewHashtags || [],
+          platform: 'instagram',
+        }),
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to generate captions');
+      }
+      
+      const data = await res.json();
+      if (data.captions && data.captions.length >= 2) {
+        setAiCaptions(data.captions);
+        setSelectedReviewIndex(0);
+        toast({
+          title: "New captions generated!",
+          description: "Pick the one you like best.",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to generate captions:', error);
+      toast({
+        title: "Couldn't generate new captions",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const trackClick = (platform: string) => {
     if (config?.placeId) {
@@ -387,12 +431,13 @@ export default function InstagramReview() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSelectedReviewIndex(selectedReviewIndex === 0 ? 1 : 0)}
+                onClick={handleGenerateNewCaptions}
+                disabled={isGenerating}
                 className="text-pink-600 hover:text-pink-700 hover:bg-pink-50"
                 data-testid="button-switch-caption"
               >
-                <RefreshCw className="w-4 h-4 mr-1" />
-                Switch
+                <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                {isGenerating ? 'Generating...' : 'New Captions'}
               </Button>
             </div>
             <div className="space-y-3">

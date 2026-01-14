@@ -2469,6 +2469,73 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
     }
   });
 
+  // AI Caption Generation for Instagram/Facebook
+  app.post("/api/generate-captions", async (req, res) => {
+    try {
+      const { businessName, hashtags, platform } = req.body;
+      
+      if (!businessName) {
+        res.status(400).json({ error: "Business name is required" });
+        return;
+      }
+
+      const openai = getOpenAIClient();
+      if (!openai) {
+        res.status(503).json({ error: "AI service is not available" });
+        return;
+      }
+
+      const hashtagList = (hashtags || []).slice(0, 5).join(', ') || 'experience, quality, service';
+      const platformName = platform === 'facebook' ? 'Facebook' : 'Instagram';
+      
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are a social media expert that writes engaging ${platformName} captions for businesses. 
+Write short, authentic-sounding customer review captions that feel genuine and relatable.
+Include relevant emojis naturally. Keep captions under 200 characters.
+The tone should be enthusiastic but not over-the-top.`
+          },
+          {
+            role: "user",
+            content: `Generate 2 unique ${platformName} captions as if a happy customer is reviewing "${businessName}".
+Use these themes/keywords naturally: ${hashtagList}
+
+Return as JSON array with exactly 2 strings:
+["caption 1", "caption 2"]`
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 300,
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        res.status(500).json({ error: "AI did not return a response" });
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(content);
+        const captions = Array.isArray(parsed) ? parsed : (parsed.captions || parsed.reviews || []);
+        
+        if (!Array.isArray(captions) || captions.length < 2) {
+          throw new Error("Invalid response format");
+        }
+        
+        res.json({ captions: captions.slice(0, 2) });
+      } catch (parseErr) {
+        console.error("Failed to parse AI response:", content);
+        res.status(500).json({ error: "Failed to parse AI response" });
+      }
+    } catch (error) {
+      console.error("Error generating captions:", error);
+      res.status(500).json({ error: "Failed to generate captions" });
+    }
+  });
+
   // Testimonials Routes
   app.get("/api/testimonials/:placeId", async (req, res) => {
     try {
