@@ -134,30 +134,6 @@ export default function FacebookReview() {
       const userAgent = navigator.userAgent.toLowerCase();
       const isIOS = /iphone|ipad|ipod/.test(userAgent);
       const isAndroid = /android/.test(userAgent);
-      const isMobile = isIOS || isAndroid;
-
-      if (isMobile && navigator.share) {
-        try {
-          await navigator.share({
-            title: businessName,
-            text: postContent,
-            url: config?.facebookUrl || undefined,
-          });
-          setCopied(true);
-          toast({
-            title: "Shared!",
-            description: "Don't forget to add location when posting!",
-          });
-          return;
-        } catch (shareErr: any) {
-          if (shareErr.name !== 'AbortError') {
-            console.warn("Web Share failed, falling back to clipboard:", shareErr);
-          } else {
-            setIsSubmitting(false);
-            return;
-          }
-        }
-      }
 
       let clipboardSuccess = false;
       try {
@@ -171,6 +147,7 @@ export default function FacebookReview() {
           textArea.value = postContent;
           textArea.style.position = 'fixed';
           textArea.style.left = '-9999px';
+          textArea.style.opacity = '0';
           document.body.appendChild(textArea);
           textArea.focus();
           textArea.select();
@@ -183,25 +160,27 @@ export default function FacebookReview() {
       }
 
       toast({
-        title: clipboardSuccess ? "Copied to clipboard!" : "Ready to share",
-        description: "Paste your review when Facebook opens. Add location to tag the business!",
+        title: clipboardSuccess ? "Review Copied!" : "Ready to share",
+        description: clipboardSuccess 
+          ? "Opening Facebook... Create a new post and PASTE your review!" 
+          : "Open Facebook and type your review.",
       });
 
       setTimeout(() => {
         if (isIOS) {
-          window.location.href = 'fb://';
+          window.location.href = 'fb://profile';
           setTimeout(() => {
             window.open('https://www.facebook.com/', '_blank');
-          }, 1500);
+          }, 2000);
         } else if (isAndroid) {
           window.location.href = 'intent://facebook.com/#Intent;scheme=https;package=com.facebook.katana;end';
           setTimeout(() => {
             window.open('https://www.facebook.com/', '_blank');
-          }, 1500);
+          }, 2000);
         } else {
           window.open('https://www.facebook.com/', '_blank');
         }
-      }, 500);
+      }, 800);
 
     } catch (e) {
       console.error("Facebook flow error:", e);
