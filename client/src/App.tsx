@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import CustomerDrafting from "@/pages/customer/drafting";
 import FacebookReview from "@/pages/customer/facebook-review";
+import InstagramReview from "@/pages/customer/instagram-review";
 import AdminDashboard from "@/pages/admin/dashboard";
 import QuickView from "@/pages/quick-view";
 import HelpPage from "@/pages/help";
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/:slug" component={UserLanding} />
       <Route path="/:slug/drafting" component={CustomerDrafting} />
       <Route path="/:slug/facebook" component={FacebookReview} />
+      <Route path="/:slug/instagram" component={InstagramReview} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />

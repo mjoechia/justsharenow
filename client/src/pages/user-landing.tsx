@@ -285,6 +285,11 @@ export default function UserLanding() {
       setLocation(`/${slug}/facebook`);
       return;
     }
+    if (platformId === 'instagram') {
+      trackPlatformClick('instagram');
+      setLocation(`/${slug}/instagram`);
+      return;
+    }
     
     setSelectedPlatform(platformId);
     trackPlatformClick(platformId);
