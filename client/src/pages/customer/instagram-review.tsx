@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { useState, useMemo } from "react";
 import { useParams } from "wouter";
 import { motion } from "framer-motion";
-import { Check, MapPin, Instagram, Copy } from "lucide-react";
+import { Check, MapPin, Instagram, Copy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -379,10 +379,22 @@ export default function InstagramReview() {
           )}
 
           <div>
-            <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center text-xs font-bold">{photos.length > 0 ? '2' : '1'}</span>
-              Choose Your Caption
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <span className="w-6 h-6 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center text-xs font-bold">{photos.length > 0 ? '2' : '1'}</span>
+                Choose Your Caption
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedReviewIndex(selectedReviewIndex === 0 ? 1 : 0)}
+                className="text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+                data-testid="button-switch-caption"
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Switch
+              </Button>
+            </div>
             <div className="space-y-3">
               {captions.map((caption, index) => (
                 <motion.div
@@ -465,8 +477,8 @@ export default function InstagramReview() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Copy className="w-5 h-5" />
-                  Copy Caption
+                  <Instagram className="w-5 h-5" />
+                  Copy and Share to Instagram
                 </div>
               )}
             </Button>
