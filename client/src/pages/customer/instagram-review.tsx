@@ -423,23 +423,10 @@ export default function InstagramReview() {
           )}
 
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <span className="w-6 h-6 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center text-xs font-bold">{photos.length > 0 ? '2' : '1'}</span>
-                Choose Your Caption
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleGenerateNewCaptions}
-                disabled={isGenerating}
-                className="text-pink-600 hover:text-pink-700 hover:bg-pink-50"
-                data-testid="button-switch-caption"
-              >
-                <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-                {isGenerating ? 'Generating...' : 'New Captions'}
-              </Button>
-            </div>
+            <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <span className="w-6 h-6 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center text-xs font-bold">{photos.length > 0 ? '2' : '1'}</span>
+              Choose Your Caption
+            </h2>
             <div className="space-y-3">
               {captions.map((caption, index) => (
                 <motion.div
@@ -509,26 +496,41 @@ export default function InstagramReview() {
 
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4">
           <div className="container max-w-lg mx-auto">
-            <Button
-              onClick={handleCopyCaption}
-              disabled={!canSubmit || isSubmitting}
-              className="w-full h-12 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 text-white font-semibold"
-              data-testid="button-copy-caption"
-            >
-              {isSubmitting ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Copying...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Instagram className="w-5 h-5" />
-                  Copy and Share to Instagram
-                </div>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleGenerateNewCaptions}
+                disabled={isGenerating}
+                variant="outline"
+                className="h-12 px-4 border-pink-300 text-pink-600 hover:bg-pink-50"
+                data-testid="button-switch-caption"
+              >
+                <RefreshCw className={`w-5 h-5 ${isGenerating ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button
+                onClick={handleCopyCaption}
+                disabled={!canSubmit || isSubmitting || isGenerating}
+                className="flex-1 h-12 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 text-white font-semibold"
+                data-testid="button-copy-caption"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Copying...
+                  </div>
+                ) : isGenerating ? (
+                  <div className="flex items-center gap-2">
+                    Generating...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Instagram className="w-5 h-5" />
+                    Copy and Share to Instagram
+                  </div>
+                )}
+              </Button>
+            </div>
             <p className="text-xs text-center text-muted-foreground mt-2">
-              Step 1: Copy your caption, then open Instagram to paste it.
+              Tap the refresh button for new AI-generated captions
             </p>
           </div>
         </div>
