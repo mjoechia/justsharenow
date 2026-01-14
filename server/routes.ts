@@ -157,6 +157,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Username, password, display name, and role are required" });
       }
       
+      if (/\s/.test(username)) {
+        return res.status(400).json({ error: "Username cannot contain spaces" });
+      }
+      
       if (password.length < 8) {
         return res.status(400).json({ error: "Password must be at least 8 characters" });
       }
@@ -965,6 +969,10 @@ export async function registerRoutes(
 
       if (!username || !password || !displayName) {
         return res.status(400).json({ error: "Username, password, and display name are required" });
+      }
+
+      if (/\s/.test(username)) {
+        return res.status(400).json({ error: "Username cannot contain spaces" });
       }
 
       if (password.length < 8) {
