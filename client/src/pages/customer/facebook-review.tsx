@@ -57,7 +57,8 @@ export default function FacebookReview() {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [selectedReviewIndex, setSelectedReviewIndex] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [step, setStep] = useState<'select' | 'ready'>('select');
+  const [copiedText, setCopiedText] = useState('');
 
   const { data: configBySlug, isLoading } = useQuery<PublicConfigResponse>({
     queryKey: ['user-config', slug],
@@ -100,7 +101,7 @@ export default function FacebookReview() {
     return `${review}${location}${link}${hashtags ? `\n\n${hashtags}` : ''}`;
   };
 
-  const handleCopyAndShare = async () => {
+  const handleCopyReview = async () => {
     if (selectedReviewIndex === null) {
       toast({
         title: "Please select a review",
@@ -131,15 +132,10 @@ export default function FacebookReview() {
 
       trackClick('facebook');
 
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isIOS = /iphone|ipad|ipod/.test(userAgent);
-      const isAndroid = /android/.test(userAgent);
-
       let clipboardSuccess = false;
       try {
         await navigator.clipboard.writeText(postContent);
         clipboardSuccess = true;
-        setCopied(true);
       } catch (clipboardErr) {
         console.warn("Clipboard write failed:", clipboardErr);
         try {
@@ -153,34 +149,25 @@ export default function FacebookReview() {
           textArea.select();
           clipboardSuccess = document.execCommand('copy');
           document.body.removeChild(textArea);
-          if (clipboardSuccess) setCopied(true);
         } catch (e) {
           console.warn("Fallback copy failed:", e);
         }
       }
 
-      toast({
-        title: clipboardSuccess ? "Review Copied!" : "Ready to share",
-        description: clipboardSuccess 
-          ? "Opening Facebook... Create a new post and PASTE your review!" 
-          : "Open Facebook and type your review.",
-      });
-
-      setTimeout(() => {
-        if (isIOS) {
-          window.location.href = 'fb://profile';
-          setTimeout(() => {
-            window.open('https://www.facebook.com/', '_blank');
-          }, 2000);
-        } else if (isAndroid) {
-          window.location.href = 'intent://facebook.com/#Intent;scheme=https;package=com.facebook.katana;end';
-          setTimeout(() => {
-            window.open('https://www.facebook.com/', '_blank');
-          }, 2000);
-        } else {
-          window.open('https://www.facebook.com/', '_blank');
-        }
-      }, 800);
+      if (clipboardSuccess) {
+        setCopiedText(postContent);
+        setStep('ready');
+        toast({
+          title: "Review Copied!",
+          description: "Now open Facebook and paste your review.",
+        });
+      } else {
+        toast({
+          title: "Copy failed",
+          description: "Please try again or copy manually.",
+          variant: "destructive",
+        });
+      }
 
     } catch (e) {
       console.error("Facebook flow error:", e);
@@ -190,6 +177,35 @@ export default function FacebookReview() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenFacebook = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+
+    if (isIOS) {
+      window.location.href = 'fb://profile';
+      setTimeout(() => {
+        window.open('https://www.facebook.com/', '_blank');
+      }, 2000);
+    } else if (isAndroid) {
+      window.location.href = 'intent://facebook.com/#Intent;scheme=https;package=com.facebook.katana;end';
+      setTimeout(() => {
+        window.open('https://www.facebook.com/', '_blank');
+      }, 2000);
+    } else {
+      window.open('https://www.facebook.com/', '_blank');
+    }
+  };
+
+  const handleCopyAgain = async () => {
+    try {
+      await navigator.clipboard.writeText(copiedText);
+      toast({ title: "Copied again!" });
+    } catch (e) {
+      toast({ title: "Copy failed", variant: "destructive" });
     }
   };
 
@@ -220,6 +236,74 @@ export default function FacebookReview() {
   }
 
   const canSubmit = selectedReviewIndex !== null;
+
+  if (step === 'ready') {
+    return (
+      <Layout>
+        <div className="container max-w-lg mx-auto px-4 py-6 pb-32">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="w-8 h-8 text-green-600" />
+            </div>
+            <h1 className="text-xl font-bold text-foreground mb-2">
+              Review Copied!
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Your review is ready to paste in Facebook
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Card className="p-4 bg-gray-50 dark:bg-gray-900">
+              <p className="text-sm text-foreground whitespace-pre-wrap">{copiedText}</p>
+            </Card>
+
+            <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                How to paste on iPhone:
+              </h3>
+              <ol className="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
+                <li>Open Facebook and tap to create a new post</li>
+                <li>Tap and hold in the text area</li>
+                <li>Tap "Paste" when it appears</li>
+                <li>Add location by tapping "Check in"</li>
+              </ol>
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={handleCopyAgain}
+              className="w-full"
+              data-testid="button-copy-again"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Again
+            </Button>
+          </div>
+
+          <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4">
+            <div className="container max-w-lg mx-auto space-y-2">
+              <Button
+                onClick={handleOpenFacebook}
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                data-testid="button-open-facebook"
+              >
+                <Facebook className="w-5 h-5 mr-2" />
+                Open Facebook
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setStep('select')}
+                className="w-full text-muted-foreground"
+              >
+                ← Back to selection
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -363,7 +447,7 @@ export default function FacebookReview() {
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4">
           <div className="container max-w-lg mx-auto">
             <Button
-              onClick={handleCopyAndShare}
+              onClick={handleCopyReview}
               disabled={!canSubmit || isSubmitting}
               className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
               data-testid="button-post-facebook"
@@ -371,22 +455,17 @@ export default function FacebookReview() {
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Preparing...
-                </div>
-              ) : copied ? (
-                <div className="flex items-center gap-2">
-                  <Check className="w-5 h-5" />
-                  Copied! Opening Facebook...
+                  Copying...
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Copy className="w-5 h-5" />
-                  Copy Review & Open Facebook
+                  Copy Review
                 </div>
               )}
             </Button>
             <p className="text-xs text-center text-muted-foreground mt-2">
-              Your review will be copied. Paste it in your new Facebook post.
+              Step 1: Copy your review, then open Facebook to paste it.
             </p>
           </div>
         </div>
