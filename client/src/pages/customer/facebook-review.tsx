@@ -3,12 +3,12 @@ import { Layout } from "@/components/layout";
 import { useState, useMemo } from "react";
 import { useParams } from "wouter";
 import { motion } from "framer-motion";
-import { Check, MapPin, Facebook, Copy, ExternalLink } from "lucide-react";
+import { Check, MapPin, Facebook, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { trackPlatformClick, saveTestimonial } from "@/lib/api";
+import { saveTestimonial } from "@/lib/api";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
 interface PublicConfig {
@@ -81,6 +81,16 @@ export default function FacebookReview() {
     return generateFacebookReviews(config?.reviewHashtags || [], businessName);
   }, [config?.reviewHashtags, businessName]);
 
+  const trackClick = (platform: string) => {
+    if (config?.placeId) {
+      fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, placeId: config.placeId }),
+      }).catch(console.error);
+    }
+  };
+
   const buildPostContent = () => {
     const review = selectedReviewIndex !== null ? reviews[selectedReviewIndex] : '';
     const location = businessName ? `\n\n📍 ${businessName}` : '';
@@ -119,7 +129,7 @@ export default function FacebookReview() {
         }
       }
 
-      await trackPlatformClick('facebook');
+      trackClick('facebook');
 
       const userAgent = navigator.userAgent.toLowerCase();
       const isIOS = /iphone|ipad|ipod/.test(userAgent);
