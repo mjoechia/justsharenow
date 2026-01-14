@@ -525,7 +525,7 @@ export default function InstagramReview() {
                 ) : (
                   <div className="flex items-center gap-2">
                     <Instagram className="w-5 h-5" />
-                    Copy and Paste to Instagram
+                    Copy & Paste to Insta
                   </div>
                 )}
               </Button>
