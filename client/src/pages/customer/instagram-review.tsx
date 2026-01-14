@@ -501,10 +501,11 @@ export default function InstagramReview() {
                 onClick={handleGenerateNewCaptions}
                 disabled={isGenerating}
                 variant="outline"
-                className="h-12 px-4 border-pink-300 text-pink-600 hover:bg-pink-50"
+                className="h-12 px-6 border-pink-300 text-pink-600 hover:bg-pink-50"
                 data-testid="button-switch-caption"
               >
-                <RefreshCw className={`w-5 h-5 ${isGenerating ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
+                Switch
               </Button>
               <Button
                 onClick={handleCopyCaption}
@@ -530,7 +531,7 @@ export default function InstagramReview() {
               </Button>
             </div>
             <p className="text-xs text-center text-muted-foreground mt-2">
-              Tap the refresh button for new AI-generated captions
+              Tap Switch for new AI-generated captions
             </p>
           </div>
         </div>
