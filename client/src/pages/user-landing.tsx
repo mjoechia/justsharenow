@@ -36,6 +36,7 @@ interface UserConfigData {
 }
 
 const platforms = [
+  // Row 1: Google Reviews | XiaoHongShu
   {
     id: 'google-reviews',
     name: 'Google Reviews',
@@ -52,14 +53,7 @@ const platforms = [
     borderColor: 'border-red-200',
     hoverBg: 'hover:bg-red-100',
   },
-  {
-    id: 'instagram',
-    name: 'Instagram',
-    icon: <Instagram className="w-8 h-8 text-pink-600" />,
-    bgColor: 'bg-pink-50',
-    borderColor: 'border-pink-200',
-    hoverBg: 'hover:bg-pink-100',
-  },
+  // Row 2: Facebook | Follow Facebook
   {
     id: 'facebook',
     name: 'Facebook',
@@ -76,6 +70,15 @@ const platforms = [
     borderColor: 'border-blue-200',
     hoverBg: 'hover:bg-blue-100',
   },
+  // Row 3: Instagram | Follow Instagram
+  {
+    id: 'instagram',
+    name: 'Instagram',
+    icon: <Instagram className="w-8 h-8 text-pink-600" />,
+    bgColor: 'bg-pink-50',
+    borderColor: 'border-pink-200',
+    hoverBg: 'hover:bg-pink-100',
+  },
   {
     id: 'follow-instagram',
     name: 'Follow Instagram',
@@ -84,6 +87,7 @@ const platforms = [
     borderColor: 'border-pink-200',
     hoverBg: 'hover:bg-pink-100',
   },
+  // Row 4: WhatsApp | TikTok
   {
     id: 'whatsapp',
     name: 'WhatsApp',
