@@ -209,7 +209,7 @@ export default function XiaohongshuReview() {
       setStep('ready');
       toast({
         title: "笔记已复制！",
-        description: "打开小红书粘贴发布",
+        description: "点击分享按钮发布到小红书",
       });
       
       setIsSubmitting(true);
@@ -235,10 +235,30 @@ export default function XiaohongshuReview() {
     }
   };
 
-  const handleOpenXiaohongshu = () => {
+  const handleOpenXiaohongshu = async () => {
     const userAgent = navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
     const isAndroid = /android/.test(userAgent);
+    const isMobile = isIOS || isAndroid;
+
+    if (isMobile && selectedPhotoIndex !== null && photos[selectedPhotoIndex]) {
+      try {
+        const photoUrl = photos[selectedPhotoIndex];
+        const response = await fetch(photoUrl);
+        const blob = await response.blob();
+        const fileName = `review-photo-${Date.now()}.jpg`;
+        const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn('Web Share API failed, falling back to deep link:', err);
+      }
+    }
 
     if (isIOS) {
       window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
@@ -318,11 +338,10 @@ export default function XiaohongshuReview() {
                 发布步骤：
               </h3>
               <ol className="text-xs text-red-700 dark:text-red-300 space-y-1 list-decimal list-inside">
-                <li>打开小红书，点击底部 + 发布</li>
-                <li>选择照片或视频</li>
-                <li>长按正文区域，点击"粘贴"</li>
-                <li>添加话题和地点</li>
-                <li>点击发布</li>
+                <li>点击下方按钮，选择 <strong>"小红书"</strong></li>
+                <li>当提示"允许粘贴"时，点击 <strong>"允许"</strong></li>
+                <li>照片和文字将自动填入</li>
+                <li>确认内容后点击 <strong>"发布"</strong></li>
               </ol>
             </div>
 
@@ -345,7 +364,7 @@ export default function XiaohongshuReview() {
                 data-testid="button-open-xiaohongshu"
               >
                 <span className="text-lg font-bold mr-2">小红书</span>
-                打开小红书
+                分享到小红书
               </Button>
               <Button
                 variant="ghost"
@@ -504,14 +523,11 @@ export default function XiaohongshuReview() {
               发布步骤：
             </h3>
             <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
-              <li>点击下方按钮打开小红书发布页面</li>
+              <li>点击下方按钮，在分享菜单中选择 <strong>"小红书"</strong></li>
               <li>当提示 <strong>"允许粘贴"</strong> 时，点击允许</li>
-              <li>从相册选择照片</li>
+              <li>照片和文字将自动填入</li>
               <li>确认内容后点击 <strong>"发布"</strong></li>
             </ol>
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 italic">
-              如看到"继续编辑图文笔记？"，点击"存草稿"后重新操作
-            </p>
           </div>
         </div>
 
