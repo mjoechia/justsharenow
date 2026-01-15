@@ -498,6 +498,18 @@ export default function XiaohongshuReview() {
               </Button>
             </div>
           )}
+
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              发布正确的笔记：
+            </h3>
+            <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
+              <li>如看到"继续编辑图文笔记？"，点击 <strong>"存草稿"</strong> 保存旧笔记</li>
+              <li>点击底部 <strong>+</strong> 按钮创建新笔记</li>
+              <li>从相册选择照片</li>
+              <li><strong>长按</strong>正文区域，点击 <strong>"粘贴"</strong> 粘贴复制的内容</li>
+            </ol>
+          </div>
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4">
