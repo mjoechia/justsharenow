@@ -1,6 +1,6 @@
 import { useStore, translations } from "@/lib/store";
 import { Layout } from "@/components/layout";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { motion } from "framer-motion";
 import { Check, MapPin, Copy, RefreshCw } from "lucide-react";
@@ -61,6 +61,7 @@ export default function XiaohongshuReview() {
   const [copiedText, setCopiedText] = useState('');
   const [aiCaptions, setAiCaptions] = useState<string[] | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const selectedReviewTextRef = useRef<string>('');
 
   const { data: configBySlug, isLoading } = useQuery<PublicConfigResponse>({
     queryKey: ['user-config', slug],
@@ -109,6 +110,7 @@ export default function XiaohongshuReview() {
       if (data.captions && data.captions.length >= 2) {
         setAiCaptions(data.captions);
         setSelectedReviewIndex(0);
+        selectedReviewTextRef.current = data.captions[0];
         toast({
           title: "新笔记已生成！",
           description: "选择你喜欢的风格",
@@ -137,10 +139,15 @@ export default function XiaohongshuReview() {
   };
 
   const buildPostContent = () => {
-    const review = selectedReviewIndex !== null ? reviews[selectedReviewIndex] : '';
+    const review = selectedReviewTextRef.current || '';
     const hashtags = config?.reviewHashtags?.slice(0, 8).join(' ') || '';
     
     return `${review}${hashtags ? `\n\n${hashtags}` : ''}`;
+  };
+
+  const handleSelectReview = (index: number) => {
+    setSelectedReviewIndex(index);
+    selectedReviewTextRef.current = reviews[index];
   };
 
   const handleCopyReview = async () => {
@@ -431,7 +438,7 @@ export default function XiaohongshuReview() {
                 <motion.div
                   key={index}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedReviewIndex(index)}
+                  onClick={() => handleSelectReview(index)}
                   className="cursor-pointer"
                   data-testid={`review-option-${index}`}
                 >
