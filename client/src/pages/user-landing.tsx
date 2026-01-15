@@ -267,7 +267,8 @@ export default function UserLanding() {
       return;
     }
     if (platformId === 'xiaohongshu') {
-      setXhsModalOpen(true);
+      trackPlatformClick('xiaohongshu');
+      setLocation(`/${slug}/xiaohongshu`);
       return;
     }
     if (platformId === 'whatsapp') {
