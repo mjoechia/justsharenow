@@ -241,15 +241,15 @@ export default function XiaohongshuReview() {
     const isAndroid = /android/.test(userAgent);
 
     if (isIOS) {
-      window.location.href = 'xhsdiscover://';
+      window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
       setTimeout(() => {
         window.open('https://www.xiaohongshu.com/', '_blank');
-      }, 2000);
+      }, 2500);
     } else if (isAndroid) {
-      window.location.href = 'intent://xhsdiscover/#Intent;scheme=xhsdiscover;package=com.xingin.xhs;end';
+      window.location.href = 'intent://post_note#Intent;scheme=xhsdiscovery;package=com.xingin.xhs;end';
       setTimeout(() => {
         window.open('https://www.xiaohongshu.com/', '_blank');
-      }, 2000);
+      }, 2500);
     } else {
       window.open('https://www.xiaohongshu.com/', '_blank');
     }
@@ -501,14 +501,17 @@ export default function XiaohongshuReview() {
 
           <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-              发布正确的笔记：
+              发布步骤：
             </h3>
             <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
-              <li>如看到"继续编辑图文笔记？"，点击 <strong>"存草稿"</strong> 保存旧笔记</li>
-              <li>点击底部 <strong>+</strong> 按钮创建新笔记</li>
+              <li>点击下方按钮打开小红书发布页面</li>
+              <li>当提示 <strong>"允许粘贴"</strong> 时，点击允许</li>
               <li>从相册选择照片</li>
-              <li><strong>长按</strong>正文区域，点击 <strong>"粘贴"</strong> 粘贴复制的内容</li>
+              <li>确认内容后点击 <strong>"发布"</strong></li>
             </ol>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 italic">
+              如看到"继续编辑图文笔记？"，点击"存草稿"后重新操作
+            </p>
           </div>
         </div>
 
