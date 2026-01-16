@@ -242,18 +242,28 @@ export default function XiaohongshuReview() {
       return;
     }
 
+    // Proxy ALWAYS returns JPEG
     const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(imageUrl)}`;
     
-    const imagePromise = fetch(proxyUrl, { cache: 'no-store' })
-      .then(r => r.blob());
+    // Image promise - NO await, NO transform (proxy handles JPEG conversion)
+    const imagePromise = fetch(proxyUrl, {
+      cache: 'no-store',
+      credentials: 'omit'
+    }).then(r => {
+      if (!r.ok) throw new Error('Image fetch failed');
+      return r.blob();
+    });
 
+    // Single atomic clipboard item with JPEG (matches proxy output)
     const clipboardItem = new ClipboardItem({
-      'image/png': imagePromise,
+      'image/jpeg': imagePromise,
       'text/plain': new Blob([text], { type: 'text/plain' }),
     });
 
+    // Write clipboard (do NOT await)
     navigator.clipboard.write([clipboardItem]);
 
+    // Immediate deep link (same task) - platform-specific
     setTimeout(() => {
       const userAgent = navigator.userAgent.toLowerCase();
       const isIOS = /iphone|ipad|ipod/.test(userAgent);
@@ -261,14 +271,8 @@ export default function XiaohongshuReview() {
 
       if (isIOS) {
         window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
-        setTimeout(() => {
-          window.open('https://www.xiaohongshu.com/', '_blank');
-        }, 2500);
       } else if (isAndroid) {
         window.location.href = 'intent://post_note#Intent;scheme=xhsdiscovery;package=com.xingin.xhs;end';
-        setTimeout(() => {
-          window.open('https://www.xiaohongshu.com/', '_blank');
-        }, 2500);
       } else {
         window.open('https://www.xiaohongshu.com/', '_blank');
       }

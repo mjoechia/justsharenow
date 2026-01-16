@@ -713,6 +713,7 @@ export async function registerRoutes(
   });
 
   // Image proxy endpoint to bypass CORS for clipboard operations
+  // ALWAYS returns JPEG for XiaoHongShu clipboard compatibility
   app.get("/api/public/image-proxy", async (req, res) => {
     try {
       const imageUrl = req.query.url as string;
@@ -742,10 +743,20 @@ export async function registerRoutes(
 
       const buffer = await response.arrayBuffer();
       
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+      // Convert all images to JPEG for consistent MIME type (required for XiaoHongShu)
+      const sharp = (await import('sharp')).default;
+      const jpegBuffer = await sharp(Buffer.from(buffer))
+        .jpeg({ quality: 90 })
+        .toBuffer();
+      
+      // Set headers for XiaoHongShu clipboard compatibility
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Content-Disposition', 'inline; filename="share.jpg"');
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send(Buffer.from(buffer));
+      res.send(jpegBuffer);
     } catch (error) {
       console.error("Image proxy error:", error);
       res.status(500).json({ error: "Failed to proxy image" });
