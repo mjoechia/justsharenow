@@ -236,7 +236,7 @@ export default function XiaohongshuReview() {
     }
   };
 
-  const copyImageAndTextToClipboard = async (imageUrl: string, text: string): Promise<boolean> => {
+  const copyImageToClipboard = async (imageUrl: string): Promise<boolean> => {
     try {
       if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
         console.warn('ClipboardItem API not supported');
@@ -282,14 +282,13 @@ export default function XiaohongshuReview() {
               img.src = objectUrl;
             });
           }),
-        'text/plain': new Blob([text], { type: 'text/plain' }),
       });
 
       await navigator.clipboard.write([clipboardItem]);
-      console.log('Successfully copied image and text to clipboard');
+      console.log('Successfully copied image to clipboard');
       return true;
     } catch (error) {
-      console.error('Failed to copy image and text to clipboard:', error);
+      console.error('Failed to copy image to clipboard:', error);
       return false;
     }
   };
@@ -325,29 +324,34 @@ export default function XiaohongshuReview() {
 
     setIsSubmitting(true);
     const postContent = buildPostContent();
-    let clipboardSuccess = false;
+    let imageSuccess = false;
+    let textSuccess = false;
 
     if (selectedPhotoIndex !== null && photos[selectedPhotoIndex]) {
       const photoUrl = photos[selectedPhotoIndex];
-      console.log('Attempting to copy image + text to clipboard (Safari Promise method)...');
+      console.log('Step 1: Copying image to clipboard...');
       
       try {
-        clipboardSuccess = await copyImageAndTextToClipboard(photoUrl, postContent);
-        console.log('Image + text clipboard result:', clipboardSuccess);
+        imageSuccess = await copyImageToClipboard(photoUrl);
+        console.log('Image clipboard result:', imageSuccess);
       } catch (error) {
         console.warn('Image clipboard failed:', error);
       }
     }
 
-    if (!clipboardSuccess) {
-      console.log('Falling back to text-only clipboard...');
-      clipboardSuccess = await copyTextToClipboard(postContent);
+    if (!imageSuccess) {
+      console.log('Image copy failed or no photo selected, copying text only...');
+      textSuccess = await copyTextToClipboard(postContent);
     }
+    
+    const clipboardSuccess = imageSuccess || textSuccess;
     
     if (clipboardSuccess) {
       toast({
         title: "正在打开小红书...",
-        description: '请在弹出窗口中点击"允许粘贴"',
+        description: imageSuccess 
+          ? '照片已复制，请点击"允许粘贴"' 
+          : '文字已复制，请点击"允许粘贴"',
       });
 
       setTimeout(() => {
