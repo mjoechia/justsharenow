@@ -242,16 +242,25 @@ export default function XiaohongshuReview() {
       return;
     }
 
-    // Proxy ALWAYS returns JPEG
+    // Proxy ALWAYS returns JPEG <800KB
     const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(imageUrl)}`;
     
-    // Image promise - NO await, NO transform (proxy handles JPEG conversion)
+    // Image promise - NO await, NO transform (proxy handles JPEG conversion + size limit)
     const imagePromise = fetch(proxyUrl, {
       cache: 'no-store',
       credentials: 'omit'
-    }).then(r => {
+    }).then(async r => {
       if (!r.ok) throw new Error('Image fetch failed');
-      return r.blob();
+      const blob = await r.blob();
+      
+      // Log blob size for debugging
+      console.log('XHS Share - Blob size (KB):', (blob.size / 1024).toFixed(1), 'type:', blob.type);
+      
+      if (blob.size > 800 * 1024) {
+        console.warn('Image exceeds 800KB, may be ignored by XHS');
+      }
+      
+      return blob;
     });
 
     // Single atomic clipboard item with JPEG (matches proxy output)
@@ -260,23 +269,32 @@ export default function XiaohongshuReview() {
       'text/plain': new Blob([text], { type: 'text/plain' }),
     });
 
-    // Write clipboard (do NOT await)
-    navigator.clipboard.write([clipboardItem]);
+    // ShareLah pattern: chain .then() with micro-delay before deep link
+    navigator.clipboard.write([clipboardItem])
+      .then(() => {
+        // 25ms delay after clipboard write completes - allows Safari to commit
+        setTimeout(() => {
+          const userAgent = navigator.userAgent.toLowerCase();
+          const isIOS = /iphone|ipad|ipod/.test(userAgent);
+          const isAndroid = /android/.test(userAgent);
 
-    // Immediate deep link (same task) - platform-specific
-    setTimeout(() => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isIOS = /iphone|ipad|ipod/.test(userAgent);
-      const isAndroid = /android/.test(userAgent);
-
-      if (isIOS) {
-        window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
-      } else if (isAndroid) {
-        window.location.href = 'intent://post_note#Intent;scheme=xhsdiscovery;package=com.xingin.xhs;end';
-      } else {
-        window.open('https://www.xiaohongshu.com/', '_blank');
-      }
-    }, 0);
+          if (isIOS) {
+            window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
+          } else if (isAndroid) {
+            window.location.href = 'intent://post_note#Intent;scheme=xhsdiscovery;package=com.xingin.xhs;end';
+          } else {
+            window.open('https://www.xiaohongshu.com/', '_blank');
+          }
+        }, 25);
+      })
+      .catch((err) => {
+        console.error('Clipboard write failed:', err);
+        toast({
+          title: "复制失败",
+          description: "请重试",
+          variant: "destructive",
+        });
+      });
   };
 
   const openXiaohongshuApp = () => {
