@@ -712,6 +712,46 @@ export async function registerRoutes(
     }
   });
 
+  // Image proxy endpoint to bypass CORS for clipboard operations
+  app.get("/api/public/image-proxy", async (req, res) => {
+    try {
+      const imageUrl = req.query.url as string;
+      
+      if (!imageUrl) {
+        return res.status(400).json({ error: "Missing url parameter" });
+      }
+
+      if (!isValidExternalUrl(imageUrl)) {
+        return res.status(400).json({ error: "Invalid URL" });
+      }
+
+      const response = await fetch(imageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; JustShareNow/1.0)',
+        },
+      });
+
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch image" });
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.startsWith('image/')) {
+        return res.status(400).json({ error: "URL does not point to an image" });
+      }
+
+      const buffer = await response.arrayBuffer();
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error("Image proxy error:", error);
+      res.status(500).json({ error: "Failed to proxy image" });
+    }
+  });
+
   // Get all admins with their assigned users
   app.get("/api/admin/admins-with-users", requireMasterAdmin, async (_req, res) => {
     try {

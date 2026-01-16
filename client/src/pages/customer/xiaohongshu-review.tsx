@@ -196,8 +196,9 @@ export default function XiaohongshuReview() {
 
   const fetchImageAsBlob = async (imageUrl: string): Promise<Blob | null> => {
     try {
-      const response = await fetch(imageUrl);
-      if (!response.ok) throw new Error('Failed to fetch image');
+      const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error('Failed to fetch image via proxy');
       const blob = await response.blob();
       
       if (blob.type === 'image/png') {
@@ -205,8 +206,8 @@ export default function XiaohongshuReview() {
       }
       
       return new Promise((resolve) => {
+        const objectUrl = URL.createObjectURL(blob);
         const img = new Image();
-        img.crossOrigin = 'anonymous';
         img.onload = () => {
           const canvas = document.createElement('canvas');
           canvas.width = img.naturalWidth;
@@ -215,14 +216,19 @@ export default function XiaohongshuReview() {
           if (ctx) {
             ctx.drawImage(img, 0, 0);
             canvas.toBlob((pngBlob) => {
+              URL.revokeObjectURL(objectUrl);
               resolve(pngBlob);
             }, 'image/png');
           } else {
+            URL.revokeObjectURL(objectUrl);
             resolve(null);
           }
         };
-        img.onerror = () => resolve(null);
-        img.src = imageUrl;
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          resolve(null);
+        };
+        img.src = objectUrl;
       });
     } catch (error) {
       console.error('Failed to fetch image:', error);
@@ -282,58 +288,94 @@ export default function XiaohongshuReview() {
 
     setIsSubmitting(true);
     const postContent = buildPostContent();
-    let clipboardSuccess = false;
+    
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+    const isMobile = isIOS || isAndroid;
 
-    if (selectedPhotoIndex !== null && photos[selectedPhotoIndex]) {
+    let shareSuccess = false;
+
+    if (isMobile && selectedPhotoIndex !== null && photos[selectedPhotoIndex]) {
       const photoUrl = photos[selectedPhotoIndex];
-      console.log('Attempting to copy image + text to clipboard...');
+      console.log('Attempting Web Share API with file...');
       
       try {
+        await copyTextToClipboard(postContent);
+        
         const imageBlob = await fetchImageAsBlob(photoUrl);
         if (imageBlob) {
-          clipboardSuccess = await copyImageAndTextToClipboard(imageBlob, postContent);
-          console.log('Image + text clipboard result:', clipboardSuccess);
+          const fileName = `review-photo-${Date.now()}.png`;
+          const file = new File([imageBlob], fileName, { type: 'image/png' });
+
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+            });
+            shareSuccess = true;
+            console.log('Web Share API with file succeeded');
+          }
         }
-      } catch (error) {
-        console.warn('Failed to copy image, falling back to text-only:', error);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('abort') || errorMessage.includes('cancel')) {
+          console.log('User cancelled share');
+        } else {
+          console.warn('Web Share API failed:', error);
+        }
       }
     }
 
-    if (!clipboardSuccess) {
-      console.log('Falling back to text-only clipboard...');
-      clipboardSuccess = await copyTextToClipboard(postContent);
-    }
-    
-    if (clipboardSuccess) {
-      setCopiedText(postContent);
-      trackClick('xiaohongshu');
+    if (!shareSuccess) {
+      console.log('Falling back to clipboard + deep link...');
+      let clipboardSuccess = false;
       
-      if (config?.googlePlaceId) {
-        saveTestimonial({
-          placeId: config.googlePlaceId,
-          platform: 'xiaohongshu',
-          rating: 5,
-          reviewText: reviews[selectedReviewIndex],
-          photoUrl: selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null,
-          language: language,
-        }).catch(err => console.warn("Failed to save testimonial:", err));
+      if (selectedPhotoIndex !== null && photos[selectedPhotoIndex]) {
+        try {
+          const imageBlob = await fetchImageAsBlob(photos[selectedPhotoIndex]);
+          if (imageBlob) {
+            clipboardSuccess = await copyImageAndTextToClipboard(imageBlob, postContent);
+          }
+        } catch (error) {
+          console.warn('Image clipboard failed:', error);
+        }
       }
+      
+      if (!clipboardSuccess) {
+        clipboardSuccess = await copyTextToClipboard(postContent);
+      }
+      
+      if (clipboardSuccess) {
+        toast({
+          title: "正在打开小红书...",
+          description: '请在弹出窗口中点击"允许粘贴"',
+        });
 
-      toast({
-        title: "正在打开小红书...",
-        description: '请在弹出窗口中点击"允许粘贴"',
-      });
+        setTimeout(() => {
+          openXiaohongshuApp();
+        }, 300);
+      } else {
+        setCopiedText(postContent);
+        setStep('ready');
+        toast({
+          title: "复制失败",
+          description: "请手动复制下方文字",
+        });
+      }
+    }
 
-      setTimeout(() => {
-        openXiaohongshuApp();
-      }, 300);
-    } else {
-      setCopiedText(postContent);
-      setStep('ready');
-      toast({
-        title: "复制失败",
-        description: "请手动复制下方文字",
-      });
+    setCopiedText(postContent);
+    trackClick('xiaohongshu');
+    
+    if (config?.googlePlaceId) {
+      saveTestimonial({
+        placeId: config.googlePlaceId,
+        platform: 'xiaohongshu',
+        rating: 5,
+        reviewText: reviews[selectedReviewIndex],
+        photoUrl: selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null,
+        language: language,
+      }).catch(err => console.warn("Failed to save testimonial:", err));
     }
     
     setIsSubmitting(false);
