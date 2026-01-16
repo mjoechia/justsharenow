@@ -263,49 +263,6 @@ export default function XiaohongshuReview() {
     setIsSubmitting(false);
   };
 
-  const handleCopyReview = async () => {
-    if (selectedReviewIndex === null) {
-      toast({
-        title: "请选择一条笔记",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const postContent = buildPostContent();
-    const clipboardSuccess = await copyToClipboard(postContent);
-
-    if (clipboardSuccess) {
-      setCopiedText(postContent);
-      setStep('ready');
-      toast({
-        title: "笔记已复制！",
-        description: "点击分享按钮发布到小红书",
-      });
-      
-      setIsSubmitting(true);
-      trackClick('xiaohongshu');
-      if (config?.googlePlaceId) {
-        saveTestimonial({
-          placeId: config.googlePlaceId,
-          platform: 'xiaohongshu',
-          rating: 5,
-          reviewText: reviews[selectedReviewIndex],
-          photoUrl: selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null,
-          language: language,
-        }).catch(err => console.warn("Failed to save testimonial:", err));
-      }
-      setIsSubmitting(false);
-    } else {
-      setCopiedText(postContent);
-      setStep('ready');
-      toast({
-        title: "长按下方文字复制",
-        description: "然后在小红书粘贴",
-      });
-    }
-  };
-
   const handleOpenXiaohongshu = () => {
     openXiaohongshuApp();
   };
@@ -373,9 +330,9 @@ export default function XiaohongshuReview() {
                 发布步骤：
               </h3>
               <ol className="text-xs text-red-700 dark:text-red-300 space-y-1 list-decimal list-inside">
-                <li>点击下方按钮，选择 <strong>"小红书"</strong></li>
-                <li>当提示"允许粘贴"时，点击 <strong>"允许"</strong></li>
-                <li>照片和文字将自动填入</li>
+                <li>点击下方 <strong>"分享到小红书"</strong> 按钮</li>
+                <li>当提示 <strong>"允许粘贴"</strong> 时，点击允许</li>
+                <li>选择照片，文字将自动填入</li>
                 <li>确认内容后点击 <strong>"发布"</strong></li>
               </ol>
             </div>
