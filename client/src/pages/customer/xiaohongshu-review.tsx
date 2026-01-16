@@ -472,12 +472,14 @@ export default function XiaohongshuReview() {
     trackClick('xiaohongshu');
     
     if (config?.googlePlaceId && selectedReviewIndex !== null) {
+      // Only record photoUrl if image was actually shared (not text-only fallback)
+      const imageWasShared = selectedPhotoIndex !== null && imagePreloadStatus === 'ready' && preloadedImageBlob !== null;
       saveTestimonial({
         placeId: config.googlePlaceId,
         platform: 'xiaohongshu',
         rating: 5,
         reviewText: reviews[selectedReviewIndex],
-        photoUrl: selectedPhotoIndex !== null && preloadedImageBlob ? photos[selectedPhotoIndex] : null,
+        photoUrl: imageWasShared ? photos[selectedPhotoIndex] : null,
         language: language,
       }).catch(err => console.warn("Failed to save testimonial:", err));
     }
