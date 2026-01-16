@@ -1,0 +1,119 @@
+Here is a production-grade preflight checklist you can run before enabling the “Share to XHS” button. This is designed specifically for iOS Safari + XiaoHongShu clipboard ingestion and reflects everything we’ve learned so far.
+You can treat this as a hard gate: if any item fails, do not enable the button.
+
+✅ XHS Share Preflight Checklist (iOS Safari)
+1️⃣ User Gesture Readiness
+Purpose: Prevent Safari clipboard rejection (“复制失败”).
+Checklist
+* Share button is a direct user click (no auto-trigger)
+* Click handler is NOT async
+* No await / Promise resolution before clipboard.write
+* No debounce / throttle / analytics wrapper delaying execution
+Fail Action
+* Disable button
+* Show: “准备中，请稍候…”
+
+2️⃣ Image Preload Status (MANDATORY)
+Purpose: Ensure clipboard write is synchronous.
+Checklist
+* Image blob is already loaded
+* Blob stored in memory (state or ref)
+* No fetch triggered on share tap
+* preloadedImageBlob instanceof Blob === true
+Fail Action
+* Disable button
+* Show: “图片加载中…”
+
+3️⃣ Image MIME & Integrity
+Purpose: Prevent silent XHS rejection.
+Checklist
+* blob.type === "image/jpeg"
+* Blob header matches JPEG (FF D8 FF)
+* Not HEIC, PNG, or renamed format
+Fail Action
+* Disable button
+* Log warning
+* Force reprocess via proxy
+
+4️⃣ Image Size & Dimensions (STRICT)
+Purpose: Avoid XHS silently opening photo picker.
+Checklist
+* blob.size ≤ 600 KB
+* Image width ≤ 1080px
+* Height proportional (no panoramas)
+* EXIF / ICC / orientation stripped
+Fail Action
+* Disable button
+* Show: “图片需压缩后才能分享”
+
+5️⃣ Clipboard Item Structure
+Purpose: Ensure XHS accepts clipboard image.
+Checklist
+* Exactly ONE ClipboardItem
+* Contains both:
+    * image/jpeg
+    * text/plain
+* No secondary clipboard writes
+* No fallback write logic
+Fail Action
+* Disable button
+* Developer log only
+
+6️⃣ Clipboard Permission Health (Safari)
+Purpose: Detect Safari refusal early.
+Checklist
+* navigator.clipboard exists
+* Page is served over HTTPS
+* Not in iframe / embedded WebView
+* Not in private mode (if detected)
+Fail Action
+* Disable button
+* Show: “当前浏览器不支持分享”
+
+7️⃣ Deep Link Readiness
+Purpose: Prevent clipboard loss before XHS reads it.
+Checklist
+* Target URL exactly: xhsdiscover://post_note?ignore_draft=true
+* 
+* No intermediate navigation
+* Delay ≥ 60ms after clipboard success
+* No redirect / routing interference
+Fail Action
+* Disable button
+* Developer log
+
+8️⃣ Content Readiness (Text)
+Purpose: Prevent empty or malformed post.
+Checklist
+* Text is non-empty
+* UTF-8 safe (no null chars)
+* Length within XHS limits (safe: <1,000 chars)
+Fail Action
+* Disable button
+* Prompt user to select content
+
+🟢 Preflight PASS = Enable Share Button
+Only enable the Share button when ALL checks pass.
+
+Suggested Implementation Pattern
+const canShare =
+  isUserGestureSafe &&
+  preloadedImageBlob &&
+  preloadedImageBlob.type === 'image/jpeg' &&
+  preloadedImageBlob.size <= 600 * 1024 &&
+  text.length > 0 &&
+  isClipboardSupported &&
+  isDeepLinkReady;
+
+<button disabled={!canShare}>
+  分享到小红书
+</button>
+
+Why this matters
+If any one of these fails:
+* Safari shows “复制失败”, or
+* XHS opens photo picker, or
+* Text pastes without image
+This checklist turns a fragile hack into a deterministic system.
+
+
