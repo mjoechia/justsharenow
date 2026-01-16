@@ -150,6 +150,119 @@ export default function XiaohongshuReview() {
     selectedReviewTextRef.current = reviews[index];
   };
 
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (clipboardErr) {
+      console.warn("Clipboard API failed, trying fallback:", clipboardErr);
+    }
+    
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.width = '2em';
+      textArea.style.height = '2em';
+      textArea.style.padding = '0';
+      textArea.style.border = 'none';
+      textArea.style.outline = 'none';
+      textArea.style.boxShadow = 'none';
+      textArea.style.background = 'transparent';
+      textArea.setAttribute('readonly', '');
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      const range = document.createRange();
+      range.selectNodeContents(textArea);
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      textArea.setSelectionRange(0, text.length);
+      
+      const success = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return success;
+    } catch (e) {
+      console.warn("Fallback copy also failed:", e);
+      return false;
+    }
+  };
+
+  const openXiaohongshuApp = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+
+    if (isIOS) {
+      window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
+      setTimeout(() => {
+        window.open('https://www.xiaohongshu.com/', '_blank');
+      }, 2500);
+    } else if (isAndroid) {
+      window.location.href = 'intent://post_note#Intent;scheme=xhsdiscovery;package=com.xingin.xhs;end';
+      setTimeout(() => {
+        window.open('https://www.xiaohongshu.com/', '_blank');
+      }, 2500);
+    } else {
+      window.open('https://www.xiaohongshu.com/', '_blank');
+    }
+  };
+
+  const handleShareToXiaohongshu = async () => {
+    if (selectedReviewIndex === null) {
+      toast({
+        title: "请选择一条笔记",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    const postContent = buildPostContent();
+    
+    const clipboardSuccess = await copyToClipboard(postContent);
+    
+    if (clipboardSuccess) {
+      setCopiedText(postContent);
+      trackClick('xiaohongshu');
+      
+      if (config?.googlePlaceId) {
+        saveTestimonial({
+          placeId: config.googlePlaceId,
+          platform: 'xiaohongshu',
+          rating: 5,
+          reviewText: reviews[selectedReviewIndex],
+          photoUrl: selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null,
+          language: language,
+        }).catch(err => console.warn("Failed to save testimonial:", err));
+      }
+
+      toast({
+        title: "正在打开小红书...",
+        description: '请在弹出窗口中点击"允许粘贴"',
+      });
+
+      setTimeout(() => {
+        openXiaohongshuApp();
+      }, 300);
+    } else {
+      setCopiedText(postContent);
+      setStep('ready');
+      toast({
+        title: "复制失败",
+        description: "请手动复制下方文字",
+      });
+    }
+    
+    setIsSubmitting(false);
+  };
+
   const handleCopyReview = async () => {
     if (selectedReviewIndex === null) {
       toast({
@@ -160,49 +273,7 @@ export default function XiaohongshuReview() {
     }
 
     const postContent = buildPostContent();
-    
-    let clipboardSuccess = false;
-    try {
-      await navigator.clipboard.writeText(postContent);
-      clipboardSuccess = true;
-    } catch (clipboardErr) {
-      console.warn("Clipboard API failed, trying fallback:", clipboardErr);
-    }
-    
-    if (!clipboardSuccess) {
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = postContent;
-        textArea.style.position = 'fixed';
-        textArea.style.top = '0';
-        textArea.style.left = '0';
-        textArea.style.width = '2em';
-        textArea.style.height = '2em';
-        textArea.style.padding = '0';
-        textArea.style.border = 'none';
-        textArea.style.outline = 'none';
-        textArea.style.boxShadow = 'none';
-        textArea.style.background = 'transparent';
-        textArea.setAttribute('readonly', '');
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        const range = document.createRange();
-        range.selectNodeContents(textArea);
-        const selection = window.getSelection();
-        if (selection) {
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
-        textArea.setSelectionRange(0, postContent.length);
-        
-        clipboardSuccess = document.execCommand('copy');
-        document.body.removeChild(textArea);
-      } catch (e) {
-        console.warn("Fallback copy also failed:", e);
-      }
-    }
+    const clipboardSuccess = await copyToClipboard(postContent);
 
     if (clipboardSuccess) {
       setCopiedText(postContent);
@@ -235,44 +306,8 @@ export default function XiaohongshuReview() {
     }
   };
 
-  const handleOpenXiaohongshu = async () => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isIOS = /iphone|ipad|ipod/.test(userAgent);
-    const isAndroid = /android/.test(userAgent);
-    const isMobile = isIOS || isAndroid;
-
-    if (isMobile && selectedPhotoIndex !== null && photos[selectedPhotoIndex]) {
-      try {
-        const photoUrl = photos[selectedPhotoIndex];
-        const response = await fetch(photoUrl);
-        const blob = await response.blob();
-        const fileName = `review-photo-${Date.now()}.jpg`;
-        const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
-
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-          });
-          return;
-        }
-      } catch (err) {
-        console.warn('Web Share API failed, falling back to deep link:', err);
-      }
-    }
-
-    if (isIOS) {
-      window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
-      setTimeout(() => {
-        window.open('https://www.xiaohongshu.com/', '_blank');
-      }, 2500);
-    } else if (isAndroid) {
-      window.location.href = 'intent://post_note#Intent;scheme=xhsdiscovery;package=com.xingin.xhs;end';
-      setTimeout(() => {
-        window.open('https://www.xiaohongshu.com/', '_blank');
-      }, 2500);
-    } else {
-      window.open('https://www.xiaohongshu.com/', '_blank');
-    }
+  const handleOpenXiaohongshu = () => {
+    openXiaohongshuApp();
   };
 
   const handleCopyAgain = async () => {
@@ -523,9 +558,9 @@ export default function XiaohongshuReview() {
               发布步骤：
             </h3>
             <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
-              <li>点击下方按钮，在分享菜单中选择 <strong>"小红书"</strong></li>
+              <li>点击下方 <strong>"分享到小红书"</strong> 按钮</li>
               <li>当提示 <strong>"允许粘贴"</strong> 时，点击允许</li>
-              <li>照片和文字将自动填入</li>
+              <li>选择照片，文字将自动填入</li>
               <li>确认内容后点击 <strong>"发布"</strong></li>
             </ol>
           </div>
@@ -545,15 +580,15 @@ export default function XiaohongshuReview() {
                 换一换
               </Button>
               <Button
-                onClick={handleCopyReview}
+                onClick={handleShareToXiaohongshu}
                 disabled={!canSubmit || isSubmitting || isGenerating}
                 className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-semibold"
-                data-testid="button-copy-review"
+                data-testid="button-share-xiaohongshu"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    复制中...
+                    正在打开...
                   </div>
                 ) : isGenerating ? (
                   <div className="flex items-center gap-2">
@@ -561,14 +596,14 @@ export default function XiaohongshuReview() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Copy className="w-5 h-5" />
-                    复制并发布小红书
+                    <span className="font-bold">小红书</span>
+                    分享到小红书
                   </div>
                 )}
               </Button>
             </div>
             <p className="text-xs text-center text-muted-foreground mt-2">
-              点击"换一换"生成新的笔记内容
+              点击按钮直接打开小红书发布
             </p>
           </div>
         </div>
