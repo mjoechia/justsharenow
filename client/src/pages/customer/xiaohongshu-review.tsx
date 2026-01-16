@@ -236,61 +236,43 @@ export default function XiaohongshuReview() {
     }
   };
 
-  const copyImageToClipboard = async (imageUrl: string): Promise<boolean> => {
-    try {
-      if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
-        console.warn('ClipboardItem API not supported');
-        return false;
-      }
-
-      const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(imageUrl)}`;
-      
-      const clipboardItem = new ClipboardItem({
-        'image/png': fetch(proxyUrl)
-          .then(response => response.blob())
-          .then(blob => {
-            if (blob.type === 'image/png') {
-              return blob;
-            }
-            return new Promise<Blob>((resolve, reject) => {
-              const objectUrl = URL.createObjectURL(blob);
-              const img = new Image();
-              img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                  ctx.drawImage(img, 0, 0);
-                  canvas.toBlob((pngBlob) => {
-                    URL.revokeObjectURL(objectUrl);
-                    if (pngBlob) {
-                      resolve(pngBlob);
-                    } else {
-                      reject(new Error('Failed to convert to PNG'));
-                    }
-                  }, 'image/png');
-                } else {
-                  URL.revokeObjectURL(objectUrl);
-                  reject(new Error('Failed to get canvas context'));
-                }
-              };
-              img.onerror = () => {
-                URL.revokeObjectURL(objectUrl);
-                reject(new Error('Failed to load image'));
-              };
-              img.src = objectUrl;
-            });
-          }),
-      });
-
-      await navigator.clipboard.write([clipboardItem]);
-      console.log('Successfully copied image to clipboard');
-      return true;
-    } catch (error) {
-      console.error('Failed to copy image to clipboard:', error);
-      return false;
+  const copyImageAndTextToClipboardAndNavigate = (imageUrl: string, text: string): void => {
+    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+      console.warn('ClipboardItem API not supported');
+      return;
     }
+
+    const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+    
+    const imagePromise = fetch(proxyUrl, { cache: 'no-store' })
+      .then(r => r.blob());
+
+    const clipboardItem = new ClipboardItem({
+      'image/png': imagePromise,
+      'text/plain': new Blob([text], { type: 'text/plain' }),
+    });
+
+    navigator.clipboard.write([clipboardItem]);
+
+    setTimeout(() => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(userAgent);
+      const isAndroid = /android/.test(userAgent);
+
+      if (isIOS) {
+        window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
+        setTimeout(() => {
+          window.open('https://www.xiaohongshu.com/', '_blank');
+        }, 2500);
+      } else if (isAndroid) {
+        window.location.href = 'intent://post_note#Intent;scheme=xhsdiscovery;package=com.xingin.xhs;end';
+        setTimeout(() => {
+          window.open('https://www.xiaohongshu.com/', '_blank');
+        }, 2500);
+      } else {
+        window.open('https://www.xiaohongshu.com/', '_blank');
+      }
+    }, 0);
   };
 
   const openXiaohongshuApp = () => {
@@ -313,7 +295,7 @@ export default function XiaohongshuReview() {
     }
   };
 
-  const handleShareToXiaohongshu = async () => {
+  const handleShareToXiaohongshu = () => {
     if (selectedReviewIndex === null) {
       toast({
         title: "请选择一条笔记",
@@ -322,47 +304,24 @@ export default function XiaohongshuReview() {
       return;
     }
 
-    setIsSubmitting(true);
     const postContent = buildPostContent();
-    let imageSuccess = false;
-    let textSuccess = false;
-
+    
     if (selectedPhotoIndex !== null && photos[selectedPhotoIndex]) {
       const photoUrl = photos[selectedPhotoIndex];
-      console.log('Step 1: Copying image to clipboard...');
       
-      try {
-        imageSuccess = await copyImageToClipboard(photoUrl);
-        console.log('Image clipboard result:', imageSuccess);
-      } catch (error) {
-        console.warn('Image clipboard failed:', error);
-      }
-    }
-
-    if (!imageSuccess) {
-      console.log('Image copy failed or no photo selected, copying text only...');
-      textSuccess = await copyTextToClipboard(postContent);
-    }
-    
-    const clipboardSuccess = imageSuccess || textSuccess;
-    
-    if (clipboardSuccess) {
       toast({
         title: "正在打开小红书...",
-        description: imageSuccess 
-          ? '照片已复制，请点击"允许粘贴"' 
-          : '文字已复制，请点击"允许粘贴"',
+        description: '请点击"允许粘贴"',
       });
-
-      setTimeout(() => {
-        openXiaohongshuApp();
-      }, 300);
+      
+      copyImageAndTextToClipboardAndNavigate(photoUrl, postContent);
     } else {
-      setCopiedText(postContent);
-      setStep('ready');
-      toast({
-        title: "复制失败",
-        description: "请手动复制下方文字",
+      copyTextToClipboard(postContent).then(() => {
+        toast({
+          title: "正在打开小红书...",
+          description: '文字已复制，请点击"允许粘贴"',
+        });
+        openXiaohongshuApp();
       });
     }
 
@@ -379,8 +338,6 @@ export default function XiaohongshuReview() {
         language: language,
       }).catch(err => console.warn("Failed to save testimonial:", err));
     }
-    
-    setIsSubmitting(false);
   };
 
   const handleOpenXiaohongshu = () => {
