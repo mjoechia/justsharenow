@@ -747,17 +747,16 @@ export async function registerRoutes(
       // ShareLah pattern: max 1080px width, target ≤600KB, strip ALL metadata
       const sharp = (await import('sharp')).default;
       
-      // First pass: resize to 1080px max width, strip metadata, quality 80
+      // First pass: resize to 1080px max width, strip ALL metadata, quality 80
       let jpegBuffer = await sharp(Buffer.from(buffer))
-        .rotate() // Auto-rotate based on EXIF then strip it
+        .rotate() // Auto-rotate based on EXIF orientation
         .resize(1080, null, { withoutEnlargement: true })
         .jpeg({ 
           quality: 80, 
           mozjpeg: true,
           chromaSubsampling: '4:2:0' // Better compression
         })
-        .withMetadata() // This actually removes metadata when no options passed after rotate()
-        .toBuffer();
+        .toBuffer(); // NO .withMetadata() - this strips all EXIF/ICC/XMP data
       
       // If still over 600KB, reduce quality further
       if (jpegBuffer.length > 600 * 1024) {
