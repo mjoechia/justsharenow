@@ -345,7 +345,7 @@ export default function XiaohongshuReview() {
     }
   };
 
-  // SYNCHRONOUS clipboard write using preloaded blob - NO PROMISES in ClipboardItem
+  // Clipboard write using preloaded blob wrapped in Promise for iOS Safari compatibility
   const copyPreloadedImageAndTextToClipboard = (blob: Blob, text: string): void => {
     if (!navigator.clipboard?.write || !('ClipboardItem' in window)) {
       console.warn('ClipboardItem API not supported');
@@ -357,12 +357,14 @@ export default function XiaohongshuReview() {
       return;
     }
 
-    // CRITICAL: Both blobs are already resolved - NO async operations
     const textBlob = new Blob([text], { type: 'text/plain' });
 
-    // SINGLE ClipboardItem with BOTH image and text
+    // CRITICAL FIX: Safari iOS requires Promise-wrapped blobs in ClipboardItem
+    // Even though blob is already resolved, Safari internally expects async materialization
+    // Raw Blob → ❌ intermittent "复制失败"
+    // Promise.resolve(Blob) → ✅ consistent success
     const clipboardItem = new ClipboardItem({
-      'image/jpeg': blob, // Already-fetched blob, NOT a Promise
+      'image/jpeg': Promise.resolve(blob),
       'text/plain': textBlob,
     });
 
