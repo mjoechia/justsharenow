@@ -1,6 +1,6 @@
 import { useStore, translations } from "@/lib/store";
 import { Layout } from "@/components/layout";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useParams } from "wouter";
 import { motion } from "framer-motion";
 import { Check, MapPin, Copy, RefreshCw } from "lucide-react";
@@ -62,6 +62,13 @@ export default function XiaohongshuReview() {
   const [aiCaptions, setAiCaptions] = useState<string[] | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const selectedReviewTextRef = useRef<string>('');
+  
+  // Preflight state for XHS clipboard - preload image when selected
+  const [preloadedImageBlob, setPreloadedImageBlob] = useState<Blob | null>(null);
+  const [imagePreloadStatus, setImagePreloadStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [imageValidation, setImageValidation] = useState<{ isJpeg: boolean; sizeOk: boolean; headerValid: boolean }>({ 
+    isJpeg: false, sizeOk: false, headerValid: false 
+  });
 
   const { data: configBySlug, isLoading } = useQuery<PublicConfigResponse>({
     queryKey: ['user-config', slug],
@@ -173,6 +180,127 @@ export default function XiaohongshuReview() {
     selectedReviewTextRef.current = reviews[index];
   };
 
+  // Validate JPEG header (FF D8 FF)
+  const validateJpegHeader = useCallback(async (blob: Blob): Promise<boolean> => {
+    try {
+      const buffer = await blob.slice(0, 3).arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      return bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Preload and validate image when photo is selected
+  useEffect(() => {
+    if (selectedPhotoIndex === null || !photos[selectedPhotoIndex]) {
+      setPreloadedImageBlob(null);
+      setImagePreloadStatus('idle');
+      setImageValidation({ isJpeg: false, sizeOk: false, headerValid: false });
+      return;
+    }
+
+    const photoUrl = photos[selectedPhotoIndex];
+    const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(photoUrl)}`;
+
+    setImagePreloadStatus('loading');
+    setPreloadedImageBlob(null);
+    setImageValidation({ isJpeg: false, sizeOk: false, headerValid: false });
+
+    const controller = new AbortController();
+
+    fetch(proxyUrl, { 
+      cache: 'no-store',
+      credentials: 'omit',
+      signal: controller.signal
+    })
+      .then(r => {
+        if (!r.ok) throw new Error('Image fetch failed');
+        return r.blob();
+      })
+      .then(async (blob) => {
+        const isJpeg = blob.type === 'image/jpeg';
+        const sizeOk = blob.size <= 600 * 1024; // ≤600KB
+        const headerValid = await validateJpegHeader(blob);
+
+        console.log('XHS Preflight - Image preloaded:', {
+          type: blob.type,
+          size: `${(blob.size / 1024).toFixed(1)}KB`,
+          isJpeg,
+          sizeOk,
+          headerValid
+        });
+
+        setPreloadedImageBlob(blob);
+        setImageValidation({ isJpeg, sizeOk, headerValid });
+        setImagePreloadStatus(isJpeg && sizeOk && headerValid ? 'ready' : 'error');
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error('XHS Preflight - Image preload failed:', err);
+          setImagePreloadStatus('error');
+        }
+      });
+
+    return () => controller.abort();
+  }, [selectedPhotoIndex, photos, validateJpegHeader]);
+
+  // Clipboard support check
+  const isClipboardSupported = useMemo(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const hasClipboardItem = typeof window !== 'undefined' && 'ClipboardItem' in window;
+      return !!(navigator.clipboard?.write && hasClipboardItem);
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Can share to XHS - all preflight checks must pass
+  const canShareToXhs = useMemo(() => {
+    const hasReview = selectedReviewIndex !== null;
+    const hasPhoto = selectedPhotoIndex !== null;
+    const imageReady = imagePreloadStatus === 'ready' && preloadedImageBlob !== null;
+    const imageValid = imageValidation.isJpeg && imageValidation.sizeOk && imageValidation.headerValid;
+    const imageFailed = imagePreloadStatus === 'error' || (hasPhoto && !imageValid && imagePreloadStatus !== 'loading');
+
+    // If no photo selected, we can share text-only
+    if (hasReview && !hasPhoto) return true;
+    
+    // If photo selected and image ready with all validations, enable sharing
+    if (hasReview && hasPhoto && imageReady && imageValid && isClipboardSupported) return true;
+    
+    // If photo selected but image failed validation, allow text-only fallback
+    if (hasReview && hasPhoto && imageFailed) return true;
+    
+    return false;
+  }, [selectedReviewIndex, selectedPhotoIndex, imagePreloadStatus, preloadedImageBlob, imageValidation, isClipboardSupported]);
+
+  // Get share button state message
+  const getShareButtonState = useCallback(() => {
+    if (selectedReviewIndex === null) {
+      return { disabled: true, message: '请选择一条笔记' };
+    }
+    if (selectedPhotoIndex !== null) {
+      if (imagePreloadStatus === 'loading') {
+        return { disabled: true, message: '图片加载中…' };
+      }
+      // If image validation failed but we have a review, offer text-only sharing
+      if (imagePreloadStatus === 'error' || !imageValidation.isJpeg || !imageValidation.sizeOk) {
+        return { disabled: false, message: null, imageError: true };
+      }
+      if (!isClipboardSupported) {
+        return { disabled: true, message: '当前浏览器不支持分享' };
+      }
+    }
+    return { disabled: false, message: null };
+  }, [selectedReviewIndex, selectedPhotoIndex, imagePreloadStatus, imageValidation, isClipboardSupported]);
+
+  // Allow text-only fallback when image fails validation
+  const canShareTextOnly = selectedReviewIndex !== null && 
+    selectedPhotoIndex !== null && 
+    (imagePreloadStatus === 'error' || !imageValidation.isJpeg || !imageValidation.sizeOk);
+
   const copyTextToClipboard = async (text: string): Promise<boolean> => {
     try {
       await navigator.clipboard.writeText(text);
@@ -217,95 +345,39 @@ export default function XiaohongshuReview() {
     }
   };
 
-  const fetchImageAsBlob = async (imageUrl: string): Promise<Blob | null> => {
-    try {
-      const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(imageUrl)}`;
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error('Failed to fetch image via proxy');
-      const blob = await response.blob();
-      
-      if (blob.type === 'image/png') {
-        return blob;
-      }
-      
-      return new Promise((resolve) => {
-        const objectUrl = URL.createObjectURL(blob);
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            canvas.toBlob((pngBlob) => {
-              URL.revokeObjectURL(objectUrl);
-              resolve(pngBlob);
-            }, 'image/png');
-          } else {
-            URL.revokeObjectURL(objectUrl);
-            resolve(null);
-          }
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(objectUrl);
-          resolve(null);
-        };
-        img.src = objectUrl;
-      });
-    } catch (error) {
-      console.error('Failed to fetch image:', error);
-      return null;
-    }
-  };
-
-  const copyImageAndTextToClipboardAndNavigate = (imageUrl: string, text: string): void => {
-    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+  // SYNCHRONOUS clipboard write using preloaded blob - NO PROMISES in ClipboardItem
+  const copyPreloadedImageAndTextToClipboard = (blob: Blob, text: string): void => {
+    if (!navigator.clipboard?.write || !('ClipboardItem' in window)) {
       console.warn('ClipboardItem API not supported');
+      toast({
+        title: "复制失败",
+        description: "当前浏览器不支持分享",
+        variant: "destructive",
+      });
       return;
     }
 
-    // Proxy ALWAYS returns JPEG ≤600KB, max 1080px, no metadata
-    const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(imageUrl)}`;
-    
-    // Store blob reference for logging after clipboard write
-    let capturedBlob: Blob | null = null;
-    
-    // Image promise - pure .then() chain, NO async/await wrapper
-    const imagePromise = fetch(proxyUrl, {
-      cache: 'no-store',
-      credentials: 'omit'
-    }).then(r => {
-      if (!r.ok) throw new Error('Image fetch failed');
-      return r.blob();
-    }).then(blob => {
-      capturedBlob = blob;
-      return blob;
-    });
-
-    // Text blob - created synchronously
+    // CRITICAL: Both blobs are already resolved - NO async operations
     const textBlob = new Blob([text], { type: 'text/plain' });
 
-    // SINGLE ClipboardItem with BOTH image and text (ShareLah pattern)
+    // SINGLE ClipboardItem with BOTH image and text
     const clipboardItem = new ClipboardItem({
-      'image/jpeg': imagePromise,
+      'image/jpeg': blob, // Already-fetched blob, NOT a Promise
       'text/plain': textBlob,
     });
 
-    console.log('XHS Share - Starting clipboard write...');
+    console.log('XHS Share - Starting SYNC clipboard write...', {
+      imageType: blob.type,
+      imageSize: `${(blob.size / 1024).toFixed(1)}KB`,
+      textLength: text.length
+    });
 
-    // ShareLah pattern: chain .then() with 60ms micro-delay before deep link
+    // Write is synchronous relative to user gesture since blob is preloaded
     navigator.clipboard.write([clipboardItem])
       .then(() => {
-        // Log success with blob details
-        console.log('XHS Share - Clipboard write SUCCESS', {
-          imageType: capturedBlob?.type,
-          imageSize: capturedBlob ? `${(capturedBlob.size / 1024).toFixed(1)}KB` : 'unknown',
-          textLength: text.length,
-          itemCount: 1
-        });
+        console.log('XHS Share - Clipboard write SUCCESS');
         
-        // 60ms delay after clipboard write completes - allows Safari to fully commit
+        // 60ms delay after clipboard write - allows Safari to fully commit
         setTimeout(() => {
           const userAgent = navigator.userAgent.toLowerCase();
           const isIOS = /iphone|ipad|ipod/.test(userAgent);
@@ -353,26 +425,40 @@ export default function XiaohongshuReview() {
   };
 
   const handleShareToXiaohongshu = () => {
-    if (selectedReviewIndex === null) {
-      toast({
-        title: "请选择一条笔记",
-        variant: "destructive",
-      });
+    // Hard gate: never proceed if preflight fails
+    if (!canShareToXhs) {
+      const state = getShareButtonState();
+      if (state.message) {
+        toast({
+          title: state.message,
+          variant: "destructive",
+        });
+      }
       return;
     }
 
     const postContent = buildPostContent();
     
-    if (selectedPhotoIndex !== null && photos[selectedPhotoIndex]) {
-      const photoUrl = photos[selectedPhotoIndex];
-      
+    // If photo is selected and preloaded blob is ready, use SYNC clipboard write
+    if (selectedPhotoIndex !== null && preloadedImageBlob && imagePreloadStatus === 'ready') {
       toast({
         title: "正在打开小红书...",
         description: '请点击"允许粘贴"',
       });
       
-      copyImageAndTextToClipboardAndNavigate(photoUrl, postContent);
+      // Use preloaded blob - NO fetch inside ClipboardItem
+      copyPreloadedImageAndTextToClipboard(preloadedImageBlob, postContent);
+    } else if (canShareTextOnly) {
+      // Image failed validation - fall back to text-only
+      toast({
+        title: "图片无法分享",
+        description: "仅复制文字内容",
+      });
+      copyTextToClipboard(postContent).then(() => {
+        openXiaohongshuApp();
+      });
     } else {
+      // Text-only share (no photo selected)
       copyTextToClipboard(postContent).then(() => {
         toast({
           title: "正在打开小红书...",
@@ -385,13 +471,13 @@ export default function XiaohongshuReview() {
     setCopiedText(postContent);
     trackClick('xiaohongshu');
     
-    if (config?.googlePlaceId) {
+    if (config?.googlePlaceId && selectedReviewIndex !== null) {
       saveTestimonial({
         placeId: config.googlePlaceId,
         platform: 'xiaohongshu',
         rating: 5,
         reviewText: reviews[selectedReviewIndex],
-        photoUrl: selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null,
+        photoUrl: selectedPhotoIndex !== null && preloadedImageBlob ? photos[selectedPhotoIndex] : null,
         language: language,
       }).catch(err => console.warn("Failed to save testimonial:", err));
     }
@@ -672,8 +758,8 @@ export default function XiaohongshuReview() {
               </Button>
               <Button
                 onClick={handleShareToXiaohongshu}
-                disabled={!canSubmit || isSubmitting || isGenerating}
-                className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-semibold"
+                disabled={!canShareToXhs || isSubmitting || isGenerating}
+                className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-semibold disabled:opacity-70"
                 data-testid="button-share-xiaohongshu"
               >
                 {isSubmitting ? (
@@ -684,6 +770,20 @@ export default function XiaohongshuReview() {
                 ) : isGenerating ? (
                   <div className="flex items-center gap-2">
                     生成中...
+                  </div>
+                ) : imagePreloadStatus === 'loading' && selectedPhotoIndex !== null ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    图片加载中…
+                  </div>
+                ) : getShareButtonState().message ? (
+                  <div className="flex items-center gap-2">
+                    {getShareButtonState().message}
+                  </div>
+                ) : canShareTextOnly ? (
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">小红书</span>
+                    分享文字
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
