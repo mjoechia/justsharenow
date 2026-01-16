@@ -242,41 +242,53 @@ export default function XiaohongshuReview() {
       return;
     }
 
-    // Proxy ALWAYS returns JPEG <800KB
+    // Proxy ALWAYS returns JPEG ≤600KB, max 1080px, no metadata
     const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(imageUrl)}`;
     
-    // Image promise - NO await, NO transform (proxy handles JPEG conversion + size limit)
+    // Store blob reference for logging after clipboard write
+    let capturedBlob: Blob | null = null;
+    
+    // Image promise - pure .then() chain, NO async/await wrapper
     const imagePromise = fetch(proxyUrl, {
       cache: 'no-store',
       credentials: 'omit'
-    }).then(async r => {
+    }).then(r => {
       if (!r.ok) throw new Error('Image fetch failed');
-      const blob = await r.blob();
-      
-      // Log blob size for debugging
-      console.log('XHS Share - Blob size (KB):', (blob.size / 1024).toFixed(1), 'type:', blob.type);
-      
-      if (blob.size > 800 * 1024) {
-        console.warn('Image exceeds 800KB, may be ignored by XHS');
-      }
-      
+      return r.blob();
+    }).then(blob => {
+      capturedBlob = blob;
       return blob;
     });
 
-    // Single atomic clipboard item with JPEG (matches proxy output)
+    // Text blob - created synchronously
+    const textBlob = new Blob([text], { type: 'text/plain' });
+
+    // SINGLE ClipboardItem with BOTH image and text (ShareLah pattern)
     const clipboardItem = new ClipboardItem({
       'image/jpeg': imagePromise,
-      'text/plain': new Blob([text], { type: 'text/plain' }),
+      'text/plain': textBlob,
     });
 
-    // ShareLah pattern: chain .then() with micro-delay before deep link
+    console.log('XHS Share - Starting clipboard write...');
+
+    // ShareLah pattern: chain .then() with 60ms micro-delay before deep link
     navigator.clipboard.write([clipboardItem])
       .then(() => {
-        // 25ms delay after clipboard write completes - allows Safari to commit
+        // Log success with blob details
+        console.log('XHS Share - Clipboard write SUCCESS', {
+          imageType: capturedBlob?.type,
+          imageSize: capturedBlob ? `${(capturedBlob.size / 1024).toFixed(1)}KB` : 'unknown',
+          textLength: text.length,
+          itemCount: 1
+        });
+        
+        // 60ms delay after clipboard write completes - allows Safari to fully commit
         setTimeout(() => {
           const userAgent = navigator.userAgent.toLowerCase();
           const isIOS = /iphone|ipad|ipod/.test(userAgent);
           const isAndroid = /android/.test(userAgent);
+
+          console.log('XHS Share - Opening deep link...', { isIOS, isAndroid });
 
           if (isIOS) {
             window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
@@ -285,10 +297,10 @@ export default function XiaohongshuReview() {
           } else {
             window.open('https://www.xiaohongshu.com/', '_blank');
           }
-        }, 25);
+        }, 60);
       })
       .catch((err) => {
-        console.error('Clipboard write failed:', err);
+        console.error('XHS Share - Clipboard write FAILED:', err);
         toast({
           title: "复制失败",
           description: "请重试",

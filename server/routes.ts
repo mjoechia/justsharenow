@@ -744,38 +744,40 @@ export async function registerRoutes(
       const buffer = await response.arrayBuffer();
       
       // Convert all images to JPEG for consistent MIME type (required for XiaoHongShu)
-      // Resize to max 1200px width and compress to stay under 800KB (ShareLah pattern)
+      // ShareLah pattern: max 1080px width, target ≤600KB, strip ALL metadata
       const sharp = (await import('sharp')).default;
-      let sharpInstance = sharp(Buffer.from(buffer));
       
-      // Get metadata to check dimensions
-      const metadata = await sharpInstance.metadata();
+      // First pass: resize to 1080px max width, strip metadata, quality 80
+      let jpegBuffer = await sharp(Buffer.from(buffer))
+        .rotate() // Auto-rotate based on EXIF then strip it
+        .resize(1080, null, { withoutEnlargement: true })
+        .jpeg({ 
+          quality: 80, 
+          mozjpeg: true,
+          chromaSubsampling: '4:2:0' // Better compression
+        })
+        .withMetadata() // This actually removes metadata when no options passed after rotate()
+        .toBuffer();
       
-      // Resize if width exceeds 1200px (common for XHS compatibility)
-      if (metadata.width && metadata.width > 1200) {
-        sharpInstance = sharpInstance.resize(1200, null, { withoutEnlargement: true });
-      }
-      
-      // First pass: quality 85
-      let jpegBuffer = await sharpInstance.jpeg({ quality: 85, mozjpeg: true }).toBuffer();
-      
-      // If still over 800KB, reduce quality further
-      if (jpegBuffer.length > 800 * 1024) {
+      // If still over 600KB, reduce quality further
+      if (jpegBuffer.length > 600 * 1024) {
         jpegBuffer = await sharp(Buffer.from(buffer))
-          .resize(1000, null, { withoutEnlargement: true })
-          .jpeg({ quality: 70, mozjpeg: true })
+          .rotate()
+          .resize(900, null, { withoutEnlargement: true })
+          .jpeg({ quality: 70, mozjpeg: true, chromaSubsampling: '4:2:0' })
           .toBuffer();
       }
       
-      // Final check: if still over 800KB, aggressive compression
-      if (jpegBuffer.length > 800 * 1024) {
+      // Final check: if still over 600KB, aggressive compression
+      if (jpegBuffer.length > 600 * 1024) {
         jpegBuffer = await sharp(Buffer.from(buffer))
+          .rotate()
           .resize(800, null, { withoutEnlargement: true })
-          .jpeg({ quality: 60, mozjpeg: true })
+          .jpeg({ quality: 60, mozjpeg: true, chromaSubsampling: '4:2:0' })
           .toBuffer();
       }
       
-      console.log(`Image proxy: output size ${(jpegBuffer.length / 1024).toFixed(1)}KB`);
+      console.log(`Image proxy: output size ${(jpegBuffer.length / 1024).toFixed(1)}KB (target ≤600KB)`);
       
       // Set headers for XiaoHongShu clipboard compatibility
       res.setHeader('Content-Type', 'image/jpeg');
