@@ -150,7 +150,7 @@ export default function XiaohongshuReview() {
     selectedReviewTextRef.current = reviews[index];
   };
 
-  const copyToClipboard = async (text: string): Promise<boolean> => {
+  const copyTextToClipboard = async (text: string): Promise<boolean> => {
     try {
       await navigator.clipboard.writeText(text);
       return true;
@@ -194,6 +194,63 @@ export default function XiaohongshuReview() {
     }
   };
 
+  const fetchImageAsBlob = async (imageUrl: string): Promise<Blob | null> => {
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) throw new Error('Failed to fetch image');
+      const blob = await response.blob();
+      
+      if (blob.type === 'image/png') {
+        return blob;
+      }
+      
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((pngBlob) => {
+              resolve(pngBlob);
+            }, 'image/png');
+          } else {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = imageUrl;
+      });
+    } catch (error) {
+      console.error('Failed to fetch image:', error);
+      return null;
+    }
+  };
+
+  const copyImageAndTextToClipboard = async (imageBlob: Blob, text: string): Promise<boolean> => {
+    try {
+      if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+        console.warn('ClipboardItem API not supported');
+        return false;
+      }
+
+      const clipboardItem = new ClipboardItem({
+        'image/png': imageBlob,
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      });
+
+      await navigator.clipboard.write([clipboardItem]);
+      console.log('Successfully copied image and text to clipboard');
+      return true;
+    } catch (error) {
+      console.error('Failed to copy image and text to clipboard:', error);
+      return false;
+    }
+  };
+
   const openXiaohongshuApp = () => {
     const userAgent = navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
@@ -225,8 +282,27 @@ export default function XiaohongshuReview() {
 
     setIsSubmitting(true);
     const postContent = buildPostContent();
-    
-    const clipboardSuccess = await copyToClipboard(postContent);
+    let clipboardSuccess = false;
+
+    if (selectedPhotoIndex !== null && photos[selectedPhotoIndex]) {
+      const photoUrl = photos[selectedPhotoIndex];
+      console.log('Attempting to copy image + text to clipboard...');
+      
+      try {
+        const imageBlob = await fetchImageAsBlob(photoUrl);
+        if (imageBlob) {
+          clipboardSuccess = await copyImageAndTextToClipboard(imageBlob, postContent);
+          console.log('Image + text clipboard result:', clipboardSuccess);
+        }
+      } catch (error) {
+        console.warn('Failed to copy image, falling back to text-only:', error);
+      }
+    }
+
+    if (!clipboardSuccess) {
+      console.log('Falling back to text-only clipboard...');
+      clipboardSuccess = await copyTextToClipboard(postContent);
+    }
     
     if (clipboardSuccess) {
       setCopiedText(postContent);
