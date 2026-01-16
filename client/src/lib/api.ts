@@ -339,3 +339,30 @@ export async function saveTestimonial(data: {
   }
   return response.json();
 }
+
+export async function getUsedReviewTexts(placeId: string): Promise<string[]> {
+  const response = await fetch(`/api/testimonials/${placeId}`, {
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    return [];
+  }
+  const testimonials: Testimonial[] = await response.json();
+  return testimonials
+    .map(t => t.reviewText)
+    .filter((text): text is string => text !== null && text !== undefined && text.length > 0);
+}
+
+export function normalizeReviewText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+export function isReviewUsed(reviewText: string, usedReviews: string[]): boolean {
+  const normalizedReview = normalizeReviewText(reviewText);
+  return usedReviews.some(used => {
+    const normalizedUsed = normalizeReviewText(used);
+    return normalizedReview === normalizedUsed || 
+           normalizedReview.includes(normalizedUsed) || 
+           normalizedUsed.includes(normalizedReview);
+  });
+}

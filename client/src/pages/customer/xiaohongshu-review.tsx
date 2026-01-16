@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { saveTestimonial } from "@/lib/api";
+import { saveTestimonial, getUsedReviewTexts, isReviewUsed } from "@/lib/api";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
 interface PublicConfig {
@@ -76,6 +76,15 @@ export default function XiaohongshuReview() {
   const config = configBySlug?.config;
   const businessName = config?.businessName || configBySlug?.user?.displayName || '';
   
+  // Fetch used reviews to filter out duplicates
+  const placeId = config?.googlePlaceId;
+  const { data: usedReviewTexts = [] } = useQuery<string[]>({
+    queryKey: ['usedReviews', placeId],
+    queryFn: () => placeId ? getUsedReviewTexts(placeId) : Promise.resolve([]),
+    enabled: !!placeId,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+  
   const photos = useMemo(() => {
     const allPhotos = config?.shopPhotos || [];
     return allPhotos.slice(0, 2);
@@ -85,7 +94,21 @@ export default function XiaohongshuReview() {
     return generateXiaohongshuReviews(config?.reviewHashtags || [], businessName);
   }, [config?.reviewHashtags, businessName]);
 
-  const reviews = aiCaptions || defaultReviews;
+  // Filter out already-used reviews to prevent duplicates
+  const filteredDefaultReviews = useMemo(() => {
+    if (usedReviewTexts.length === 0) return defaultReviews;
+    return defaultReviews.filter(review => !isReviewUsed(review, usedReviewTexts));
+  }, [defaultReviews, usedReviewTexts]);
+  
+  const filteredAiCaptions = useMemo(() => {
+    if (!aiCaptions || usedReviewTexts.length === 0) return aiCaptions;
+    return aiCaptions.filter(review => !isReviewUsed(review, usedReviewTexts));
+  }, [aiCaptions, usedReviewTexts]);
+  
+  // Use filtered reviews (fallback to original if all are filtered)
+  const reviews = (filteredAiCaptions && filteredAiCaptions.length > 0) 
+    ? filteredAiCaptions 
+    : (filteredDefaultReviews.length > 0 ? filteredDefaultReviews : defaultReviews);
 
   const handleGenerateNewReviews = async () => {
     if (!businessName) return;

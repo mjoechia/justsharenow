@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { getStoreConfig, trackPlatformClick, saveTestimonial, StoreConfig } from "@/lib/api";
+import { getStoreConfig, trackPlatformClick, saveTestimonial, getUsedReviewTexts, isReviewUsed, StoreConfig } from "@/lib/api";
 
 interface PublicConfig {
   placeId?: string;
@@ -230,6 +230,15 @@ export default function CustomerDrafting() {
   const hasError = slug ? !!slugError : !!authError;
   const config: PublicConfig | StoreConfig | undefined = slug ? configBySlug?.config || undefined : authConfig;
   
+  // Fetch used reviews to filter out duplicates
+  const placeId = config?.googlePlaceId;
+  const { data: usedReviewTexts = [] } = useQuery<string[]>({
+    queryKey: ['usedReviews', placeId],
+    queryFn: () => placeId ? getUsedReviewTexts(placeId) : Promise.resolve([]),
+    enabled: !!placeId,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+  
   const socialLinks = {
     googleReviews: config?.googleReviewsUrl || "",
     googlePlaceId: config?.googlePlaceId || "",
@@ -304,8 +313,17 @@ export default function CustomerDrafting() {
   const baseReviews = generatedReviews.length > 0 
     ? generatedReviews 
     : t.customer.drafting.reviewSets[reviewSetIndex];
+  
+  // Filter out already-used reviews to prevent duplicates
+  const filteredReviews = useMemo(() => {
+    if (usedReviewTexts.length === 0) return baseReviews;
+    return baseReviews.filter(review => !isReviewUsed(review, usedReviewTexts));
+  }, [baseReviews, usedReviewTexts]);
+  
   // Limit all share platforms to 2 review options
-  const currentReviews = (isGoogleReview || isFacebook || isInstagram || isXiaohongshu) ? baseReviews.slice(0, 2) : baseReviews;
+  const currentReviews = (isGoogleReview || isFacebook || isInstagram || isXiaohongshu) 
+    ? (filteredReviews.length > 0 ? filteredReviews : baseReviews).slice(0, 2) 
+    : (filteredReviews.length > 0 ? filteredReviews : baseReviews);
 
   useEffect(() => {
     if (isModalOpen && modalView === 'action' && activePlatform?.id === 'facebook' && selectedReview && !facebookAutoCopied) {

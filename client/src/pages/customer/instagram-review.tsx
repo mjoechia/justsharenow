@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { saveTestimonial } from "@/lib/api";
+import { saveTestimonial, getUsedReviewTexts, isReviewUsed } from "@/lib/api";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
 interface PublicConfig {
@@ -75,6 +75,15 @@ export default function InstagramReview() {
   const config = configBySlug?.config;
   const businessName = config?.businessName || configBySlug?.user?.displayName || '';
   
+  // Fetch used reviews to filter out duplicates
+  const placeId = config?.googlePlaceId;
+  const { data: usedReviewTexts = [] } = useQuery<string[]>({
+    queryKey: ['usedReviews', placeId],
+    queryFn: () => placeId ? getUsedReviewTexts(placeId) : Promise.resolve([]),
+    enabled: !!placeId,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+  
   const photos = useMemo(() => {
     const allPhotos = config?.shopPhotos || [];
     return allPhotos.slice(0, 2);
@@ -84,7 +93,21 @@ export default function InstagramReview() {
     return generateInstagramCaptions(config?.reviewHashtags || [], businessName);
   }, [config?.reviewHashtags, businessName]);
 
-  const captions = aiCaptions || defaultCaptions;
+  // Filter out already-used captions to prevent duplicates
+  const filteredDefaultCaptions = useMemo(() => {
+    if (usedReviewTexts.length === 0) return defaultCaptions;
+    return defaultCaptions.filter(caption => !isReviewUsed(caption, usedReviewTexts));
+  }, [defaultCaptions, usedReviewTexts]);
+  
+  const filteredAiCaptions = useMemo(() => {
+    if (!aiCaptions || usedReviewTexts.length === 0) return aiCaptions;
+    return aiCaptions.filter(caption => !isReviewUsed(caption, usedReviewTexts));
+  }, [aiCaptions, usedReviewTexts]);
+  
+  // Use filtered captions (fallback to original if all are filtered)
+  const captions = (filteredAiCaptions && filteredAiCaptions.length > 0) 
+    ? filteredAiCaptions 
+    : (filteredDefaultCaptions.length > 0 ? filteredDefaultCaptions : defaultCaptions);
 
   const handleGenerateNewCaptions = async () => {
     if (!businessName) return;

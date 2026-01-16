@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { saveTestimonial } from "@/lib/api";
+import { saveTestimonial, getUsedReviewTexts, isReviewUsed } from "@/lib/api";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 
 interface PublicConfig {
@@ -73,14 +73,30 @@ export default function FacebookReview() {
   const config = configBySlug?.config;
   const businessName = config?.businessName || configBySlug?.user?.displayName || '';
   
+  // Fetch used reviews to filter out duplicates
+  const placeId = config?.googlePlaceId;
+  const { data: usedReviewTexts = [] } = useQuery<string[]>({
+    queryKey: ['usedReviews', placeId],
+    queryFn: () => placeId ? getUsedReviewTexts(placeId) : Promise.resolve([]),
+    enabled: !!placeId,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+  
   const photos = useMemo(() => {
     const allPhotos = config?.shopPhotos || [];
     return allPhotos.slice(0, 2);
   }, [config?.shopPhotos]);
 
-  const reviews = useMemo(() => {
+  const generatedReviews = useMemo(() => {
     return generateFacebookReviews(config?.reviewHashtags || [], businessName);
   }, [config?.reviewHashtags, businessName]);
+  
+  // Filter out already-used reviews to prevent duplicates
+  const reviews = useMemo(() => {
+    if (usedReviewTexts.length === 0) return generatedReviews;
+    const filtered = generatedReviews.filter(review => !isReviewUsed(review, usedReviewTexts));
+    return filtered.length > 0 ? filtered : generatedReviews; // Fallback to original if all filtered
+  }, [generatedReviews, usedReviewTexts]);
 
   const trackClick = (platform: string) => {
     if (config?.placeId) {
