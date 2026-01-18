@@ -3,13 +3,20 @@ import { Layout } from "@/components/layout";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useParams } from "wouter";
 import { motion } from "framer-motion";
-import { Check, MapPin, Copy, RefreshCw } from "lucide-react";
+import { Check, MapPin, Copy, RefreshCw, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { saveTestimonial, getUsedReviewTexts, isReviewUsed } from "@/lib/api";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface PublicConfig {
   placeId?: string;
@@ -245,7 +252,34 @@ export default function XiaohongshuReview() {
     return () => controller.abort();
   }, [selectedPhotoIndex, photos, validateJpegHeader]);
 
-  // Clipboard support check
+  // Platform detection helpers for kill-switch
+  const platformInfo = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return { isIOSSafari: false, isDesktop: true, isInWebView: false, canUseWebShare: false };
+    }
+    
+    const ua = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(ua);
+    const isSafari = /safari/.test(ua) && !/chrome|crios|fxios|edgios/.test(ua);
+    const isIOSSafari = isIOS && isSafari;
+    const isDesktop = !isIOS && !/android/.test(ua);
+    
+    // Detect in-app browsers / WebViews
+    const isInWebView = /fbav|fban|instagram|line|wechat|weibo|qq|twitter/.test(ua) ||
+      (isIOS && !isSafari && /safari/.test(ua) === false);
+    
+    // Check Web Share API with files support
+    let canUseWebShare = false;
+    try {
+      canUseWebShare = !!navigator.share && !!navigator.canShare;
+    } catch {
+      canUseWebShare = false;
+    }
+    
+    return { isIOSSafari, isDesktop, isInWebView, canUseWebShare };
+  }, []);
+
+  // Clipboard support check (fallback)
   const isClipboardSupported = useMemo(() => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -256,25 +290,38 @@ export default function XiaohongshuReview() {
     }
   }, []);
 
-  // Can share to XHS - all preflight checks must pass
+  // Can share to XHS - prioritize Web Share API, fallback to clipboard
   const canShareToXhs = useMemo(() => {
     const hasReview = selectedReviewIndex !== null;
     const hasPhoto = selectedPhotoIndex !== null;
     const imageReady = imagePreloadStatus === 'ready' && preloadedImageBlob !== null;
     const imageValid = imageValidation.isJpeg && imageValidation.sizeOk && imageValidation.headerValid;
     const imageFailed = imagePreloadStatus === 'error' || (hasPhoto && !imageValid && imagePreloadStatus !== 'loading');
+    
+    const { isIOSSafari, isDesktop, isInWebView, canUseWebShare } = platformInfo;
+    
+    // Level 1 Hard Block: Desktop or WebView can't use Web Share effectively
+    if (isDesktop || isInWebView) {
+      // Allow text-only fallback on unsupported platforms
+      return hasReview;
+    }
 
     // If no photo selected, we can share text-only
     if (hasReview && !hasPhoto) return true;
     
-    // If photo selected and image ready with all validations, enable sharing
+    // Primary: Web Share API with files (iOS Safari)
+    if (hasReview && hasPhoto && imageReady && imageValid && canUseWebShare && isIOSSafari) {
+      return true;
+    }
+    
+    // Fallback: Clipboard approach (if Web Share unavailable)
     if (hasReview && hasPhoto && imageReady && imageValid && isClipboardSupported) return true;
     
     // If photo selected but image failed validation, allow text-only fallback
     if (hasReview && hasPhoto && imageFailed) return true;
     
     return false;
-  }, [selectedReviewIndex, selectedPhotoIndex, imagePreloadStatus, preloadedImageBlob, imageValidation, isClipboardSupported]);
+  }, [selectedReviewIndex, selectedPhotoIndex, imagePreloadStatus, preloadedImageBlob, imageValidation, isClipboardSupported, platformInfo]);
 
   // Get share button state message
   const getShareButtonState = useCallback(() => {
@@ -300,6 +347,78 @@ export default function XiaohongshuReview() {
   const canShareTextOnly = selectedReviewIndex !== null && 
     selectedPhotoIndex !== null && 
     (imagePreloadStatus === 'error' || !imageValidation.isJpeg || !imageValidation.sizeOk);
+
+  // State for fallback modal (Level 2 and Level 3)
+  const [showFallbackModal, setShowFallbackModal] = useState(false);
+  const [fallbackReason, setFallbackReason] = useState<'share_failed' | 'recovery' | null>(null);
+
+  // Web Share API - PRIMARY method for iOS Safari
+  // CRITICAL: iOS requires files-only in share data (no title/text with files)
+  const shareWithWebShareAPI = async (blob: Blob, text: string): Promise<boolean> => {
+    try {
+      // Step 1: Copy text to clipboard FIRST (XHS will auto-paste when user clicks "Allow Paste")
+      await copyTextToClipboard(text);
+      console.log('XHS Share - Text copied to clipboard');
+
+      // Step 2: Create File object from blob
+      const file = new File([blob], 'xiaohongshu-share.jpg', {
+        type: 'image/jpeg',
+        lastModified: Date.now()
+      });
+
+      // Step 3: Create share data with files ONLY (iOS ignores text when files present)
+      const shareData = { files: [file] };
+
+      // Step 4: Check if sharing files is supported
+      if (!navigator.canShare?.(shareData)) {
+        console.warn('XHS Share - Web Share API does not support this file');
+        return false;
+      }
+
+      console.log('XHS Share - Launching native share sheet...');
+      
+      // Step 5: Trigger native share sheet - user picks XiaoHongShu
+      await navigator.share(shareData);
+      
+      console.log('XHS Share - Share completed successfully');
+      return true;
+      
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        console.log('XHS Share - User cancelled share sheet');
+        return true; // Not a failure, user just cancelled
+      }
+      console.error('XHS Share - Web Share API failed:', err);
+      return false;
+    }
+  };
+
+  // Save image to device (fallback action)
+  const saveImageToDevice = () => {
+    if (!preloadedImageBlob) {
+      toast({
+        title: "图片未加载",
+        description: "请稍候重试",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(preloadedImageBlob);
+    a.download = 'xiaohongshu-share.jpg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    toast({
+      title: "图片已保存",
+      description: "可在小红书中手动选择此图片",
+    });
+    
+    // Revoke URL after a delay
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
 
   const copyTextToClipboard = async (text: string): Promise<boolean> => {
     try {
@@ -426,7 +545,17 @@ export default function XiaohongshuReview() {
     }
   };
 
-  const handleShareToXiaohongshu = () => {
+  /**
+   * ⚠️ XHS sharing is fragile by platform design.
+   * This feature relies on:
+   * - iOS Safari Web Share API with files
+   * - XHS reading from share sheet
+   * - Text pre-copied to clipboard for "Allow Paste"
+   *
+   * DO NOT refactor without re-testing on real devices.
+   * When in doubt, trigger fallback UX.
+   */
+  const handleShareToXiaohongshu = async () => {
     // Hard gate: never proceed if preflight fails
     if (!canShareToXhs) {
       const state = getShareButtonState();
@@ -440,15 +569,55 @@ export default function XiaohongshuReview() {
     }
 
     const postContent = buildPostContent();
+    const { isIOSSafari, isDesktop, isInWebView, canUseWebShare } = platformInfo;
     
-    // If photo is selected and preloaded blob is ready, use SYNC clipboard write
+    // Level 1 Hard Block: Desktop/WebView - offer fallback immediately
+    if (isDesktop || isInWebView) {
+      setCopiedText(postContent);
+      setFallbackReason('share_failed');
+      setShowFallbackModal(true);
+      trackClick('xiaohongshu');
+      return;
+    }
+    
+    // PRIMARY PATH: Web Share API with files (iOS Safari)
+    if (selectedPhotoIndex !== null && preloadedImageBlob && imagePreloadStatus === 'ready' && canUseWebShare && isIOSSafari) {
+      console.log('XHS Share - Using Web Share API (PRIMARY)');
+      
+      const success = await shareWithWebShareAPI(preloadedImageBlob, postContent);
+      
+      if (success) {
+        setCopiedText(postContent);
+        setStep('ready');
+        trackClick('xiaohongshu');
+        
+        // Save testimonial
+        if (config?.googlePlaceId && selectedReviewIndex !== null) {
+          saveTestimonial({
+            placeId: config.googlePlaceId,
+            platform: 'xiaohongshu',
+            rating: 5,
+            reviewText: reviews[selectedReviewIndex],
+            photoUrl: photos[selectedPhotoIndex],
+            language: language,
+          }).catch(err => console.warn("Failed to save testimonial:", err));
+        }
+      } else {
+        // Level 2: Web Share failed - show fallback modal
+        console.log('XHS Share - Web Share failed, showing fallback');
+        setCopiedText(postContent);
+        setFallbackReason('share_failed');
+        setShowFallbackModal(true);
+      }
+      return;
+    }
+    
+    // FALLBACK: Clipboard approach (non-iOS or Web Share unavailable)
     if (selectedPhotoIndex !== null && preloadedImageBlob && imagePreloadStatus === 'ready') {
       toast({
         title: "正在打开小红书...",
         description: '请点击"允许粘贴"',
       });
-      
-      // Use preloaded blob - NO fetch inside ClipboardItem
       copyPreloadedImageAndTextToClipboard(preloadedImageBlob, postContent);
     } else if (canShareTextOnly) {
       // Image failed validation - fall back to text-only
@@ -456,25 +625,22 @@ export default function XiaohongshuReview() {
         title: "图片无法分享",
         description: "仅复制文字内容",
       });
-      copyTextToClipboard(postContent).then(() => {
-        openXiaohongshuApp();
-      });
+      await copyTextToClipboard(postContent);
+      openXiaohongshuApp();
     } else {
       // Text-only share (no photo selected)
-      copyTextToClipboard(postContent).then(() => {
-        toast({
-          title: "正在打开小红书...",
-          description: '文字已复制，请点击"允许粘贴"',
-        });
-        openXiaohongshuApp();
+      await copyTextToClipboard(postContent);
+      toast({
+        title: "正在打开小红书...",
+        description: '文字已复制，请点击"允许粘贴"',
       });
+      openXiaohongshuApp();
     }
 
     setCopiedText(postContent);
     trackClick('xiaohongshu');
     
     if (config?.googlePlaceId && selectedReviewIndex !== null) {
-      // Only record photoUrl if image was actually shared (not text-only fallback)
       const imageWasShared = selectedPhotoIndex !== null && imagePreloadStatus === 'ready' && preloadedImageBlob !== null;
       saveTestimonial({
         placeId: config.googlePlaceId,
@@ -808,6 +974,77 @@ export default function XiaohongshuReview() {
             <img src={justShareNowLogo} alt="JustShareNow" className="h-6" />
           </div>
         )}
+
+        {/* Level 2 & 3 Fallback Modal */}
+        <Dialog open={showFallbackModal} onOpenChange={setShowFallbackModal}>
+          <DialogContent className="max-w-sm mx-auto">
+            <DialogHeader>
+              <DialogTitle className="text-center text-lg">
+                {fallbackReason === 'recovery' ? '需要手动操作' : '分享失败'}
+              </DialogTitle>
+              <DialogDescription className="text-center text-sm">
+                {fallbackReason === 'recovery' 
+                  ? '如果小红书没有自动带上图片，请使用以下方式：'
+                  : '当前浏览器暂不支持自动带图分享到小红书，我们已为你准备替代方式'}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-3 mt-4">
+              {/* Save Image Button */}
+              {preloadedImageBlob && (
+                <Button
+                  onClick={() => {
+                    saveImageToDevice();
+                    setShowFallbackModal(false);
+                  }}
+                  className="w-full h-12 bg-red-500 hover:bg-red-600 text-white"
+                  data-testid="button-save-image"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  保存图片到相册
+                </Button>
+              )}
+              
+              {/* Copy Text Button */}
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const success = await copyTextToClipboard(copiedText);
+                  if (success) {
+                    toast({ title: "文字已复制！" });
+                  }
+                  setShowFallbackModal(false);
+                }}
+                className="w-full h-12"
+                data-testid="button-copy-text-fallback"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                复制文字内容
+              </Button>
+              
+              {/* Instructions */}
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-xs text-muted-foreground">
+                <p className="font-medium mb-1">发布步骤：</p>
+                <ol className="list-decimal list-inside space-y-0.5">
+                  <li>点击「保存图片」将图片存到相册</li>
+                  <li>打开小红书，点击发布</li>
+                  <li>从相册选择刚才保存的图片</li>
+                  <li>点击「允许粘贴」，文字自动填入</li>
+                </ol>
+              </div>
+              
+              {/* Cancel Button */}
+              <Button
+                variant="ghost"
+                onClick={() => setShowFallbackModal(false)}
+                className="w-full"
+                data-testid="button-cancel-fallback"
+              >
+                取消
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
