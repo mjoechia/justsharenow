@@ -1,0 +1,122 @@
+Read this carefully
+
+🧯 Kill-Switch Fallback UX (XHS Sharing)
+Purpose
+Prevent silent failures when:
+* iOS Safari changes clipboard behavior
+* XHS changes clipboard ingestion rules
+* Timing breaks on new iOS versions
+* User is on unsupported platform
+Instead of “nothing happened” → user is guided to a safe alternative.
+
+1. When the Kill-Switch Triggers
+Trigger fallback UX if any of the following is true:
+A. Platform / Environment Guards
+isDesktop ||
+!isIOSSafari ||
+isInWebView ||
+document.hidden
+B. Preflight Validation Fails
+!preloadedImageBlob ||
+blob.type !== 'image/jpeg' ||
+blob.size > 600 * 1024
+C. Runtime Failure Signals
+* navigator.clipboard.write() rejects
+* XHS opens but no image detected (best-effort heuristic)
+* Feature flag remotely disabled
+
+2. Kill-Switch Modes (3 Levels)
+🔴 Level 1 — Hard Block (Before Click)
+Use when sharing cannot possibly work
+UI
+* Disable “Share to Red Note” button
+* Show helper text:
+“此分享方式仅支持 iPhone Safari 浏览器”
+Action
+* Offer fallback CTA:
+    * “Copy Text Only”
+    * “Save Image”
+
+🟠 Level 2 — Soft Fallback (After Clipboard Fail)
+Use when clipboard write fails
+Trigger
+navigator.clipboard.write().catch(...)
+UI (Bottom Sheet / Modal) Title:
+分享失败
+Body:
+当前浏览器暂不支持自动带图分享到小红书 我们已为你准备替代方式
+Buttons:
+* Copy Text
+* Save Image
+* Cancel
+
+🟡 Level 3 — Post-Launch Recovery (XHS Opened, No Image)
+Use when XHS opens but image likely missing
+Because web cannot inspect XHS state, use time-based heuristic:
+setTimeout(() => {
+  showRecoveryPrompt();
+}, 1500);
+UI
+如果小红书没有自动带上图片： 1️⃣ 返回浏览器 2️⃣ 点击「保存图片」 3️⃣ 再重新发布
+Buttons:
+* Save Image
+* Copy Text Again
+* Got it
+
+3. Fallback Actions (Safe & Reliable)
+✅ Copy Text Only
+navigator.clipboard.writeText(text);
+✅ Save Image to Photos
+const a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = 'share.jpg';
+a.click();
+Explain clearly:
+图片将保存到相册，可在小红书中手动选择
+
+4. Kill-Switch Toggle (Remote Config)
+Add a remote flag:
+ENABLE_XHS_CLIPBOARD_SHARE = true | false
+When OFF:
+* Hide auto-share
+* Show fallback UX immediately
+This allows:
+* Emergency shutdown during iOS updates
+* A/B testing
+* Fast recovery without redeploy
+
+5. UX Copy (Chinese – Ready to Use)
+Disabled Button Tooltip
+自动带图分享仅支持 iPhone Safari
+Failure Toast
+自动分享失败，已为你准备替代方式
+Recovery Prompt
+若图片未自动出现，请返回保存图片后重新发布
+
+6. Developer Notes (Put in Code Comments)
+/**
+ * ⚠️ XHS sharing is fragile by platform design.
+ * This feature relies on:
+ * - iOS Safari clipboard quirks
+ * - XHS private clipboard ingestion
+ * - Precise timing
+ *
+ * DO NOT refactor without re-testing on real devices.
+ * When in doubt, trigger fallback UX.
+ */
+
+7. Product Reality (Align Expectations)
+* This feature is best-effort
+* Success rate ~90–95% on supported devices
+* Kill-switch ensures:
+    * No dead clicks
+    * No silent failures
+    * Conversion preserved
+
+Final Recommendation
+✅ Implement kill-switch from Day 1 ✅ Log every fallback trigger ✅ Treat XHS auto-share as progressive enhancement, not guaranteed behavior
+If you want, I can next:
+* Write the exact detection helpers
+* Provide React/Vue components for the fallback modal
+* Design a metrics dashboard (success vs fallback rate)
+Just say the word.
