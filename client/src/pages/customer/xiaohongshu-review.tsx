@@ -354,7 +354,8 @@ export default function XiaohongshuReview() {
 
   // Web Share API - PRIMARY method for iOS Safari
   // CRITICAL: iOS requires files-only in share data (no title/text with files)
-  const shareWithWebShareAPI = async (blob: Blob, text: string): Promise<boolean> => {
+  // Returns: 'success' | 'cancelled' | 'failed'
+  const shareWithWebShareAPI = async (blob: Blob, text: string): Promise<'success' | 'cancelled' | 'failed'> => {
     try {
       // Step 1: Copy text to clipboard FIRST (XHS will auto-paste when user clicks "Allow Paste")
       await copyTextToClipboard(text);
@@ -372,7 +373,7 @@ export default function XiaohongshuReview() {
       // Step 4: Check if sharing files is supported
       if (!navigator.canShare?.(shareData)) {
         console.warn('XHS Share - Web Share API does not support this file');
-        return false;
+        return 'failed';
       }
 
       console.log('XHS Share - Launching native share sheet...');
@@ -381,15 +382,15 @@ export default function XiaohongshuReview() {
       await navigator.share(shareData);
       
       console.log('XHS Share - Share completed successfully');
-      return true;
+      return 'success';
       
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
         console.log('XHS Share - User cancelled share sheet');
-        return true; // Not a failure, user just cancelled
+        return 'cancelled'; // User dismissed - stay on selection screen, no fallback modal
       }
       console.error('XHS Share - Web Share API failed:', err);
-      return false;
+      return 'failed';
     }
   };
 
@@ -584,9 +585,9 @@ export default function XiaohongshuReview() {
     if (selectedPhotoIndex !== null && preloadedImageBlob && imagePreloadStatus === 'ready' && canUseWebShare && isIOSSafari) {
       console.log('XHS Share - Using Web Share API (PRIMARY)');
       
-      const success = await shareWithWebShareAPI(preloadedImageBlob, postContent);
+      const result = await shareWithWebShareAPI(preloadedImageBlob, postContent);
       
-      if (success) {
+      if (result === 'success') {
         setCopiedText(postContent);
         setStep('ready');
         trackClick('xiaohongshu');
@@ -602,6 +603,10 @@ export default function XiaohongshuReview() {
             language: language,
           }).catch(err => console.warn("Failed to save testimonial:", err));
         }
+      } else if (result === 'cancelled') {
+        // User cancelled share sheet - stay on selection screen silently
+        console.log('XHS Share - User cancelled, staying on selection screen');
+        // Don't show fallback modal, don't track analytics
       } else {
         // Level 2: Web Share failed - show fallback modal
         console.log('XHS Share - Web Share failed, showing fallback');
