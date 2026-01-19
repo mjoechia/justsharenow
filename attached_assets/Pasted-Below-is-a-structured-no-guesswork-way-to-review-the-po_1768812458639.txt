@@ -1,0 +1,244 @@
+Below is a **structured, no-guesswork way to review the post-fix console logs**.
+Send this to your developer and walk through it **in order**. Do not skip steps.
+
+---
+
+# 🔍 Post-Fix Console Log Review (Gold Checklist)
+
+## Goal
+
+Confirm:
+
+* ❌ No runtime crash
+* ✅ Correct payload (File, not Blob)
+* ✅ Correct platform branching
+* ✅ Clipboard executed in the user gesture
+* ✅ Share API actually invoked
+
+This isolates **logic bugs vs platform limits**.
+
+---
+
+## 1️⃣ First Gate: Render Stability (Before Any Share)
+
+**Action**
+
+* Load the XHS page
+* Do **nothing**
+
+**Expected Console**
+
+```
+(no errors)
+```
+
+🚨 If you see:
+
+* `ReferenceError`
+* `Cannot read property`
+* `undefined is not a function`
+* React stack trace
+
+👉 **STOP. Fix render first.**
+Sharing results are meaningless until this is clean.
+
+---
+
+## 2️⃣ Share Button Click — Immediate Logs
+
+Add (or verify) this log at the **top** of the click handler:
+
+```js
+console.log('[SHARE CLICK]');
+```
+
+**Expected**
+
+```
+[SHARE CLICK]
+```
+
+🚨 If missing:
+
+* Button handler not wired
+* Overlay intercepting tap
+* Disabled state misfiring
+
+---
+
+## 3️⃣ Payload Integrity Log (MOST IMPORTANT)
+
+You must see **exactly this shape**:
+
+```js
+console.log('[SHARE PAYLOAD]', {
+  isIOS,
+  isFile: file instanceof File,
+  type: file.type,
+  size: file.size,
+  name: file.name
+});
+```
+
+### ✅ Expected (GOOD)
+
+```
+[SHARE PAYLOAD]
+{
+  isIOS: true,
+  isFile: true,
+  type: "image/jpeg",
+  size: 312845,
+  name: "share.jpg"
+}
+```
+
+### ❌ Bad (Auto-fail)
+
+| Log               | Meaning                      |
+| ----------------- | ---------------------------- |
+| `isFile: false`   | You are still passing a Blob |
+| `type: image/png` | XHS / WhatsApp may ignore    |
+| `size > 600000`   | App rejects silently         |
+| `name missing`    | Treated as temp blob         |
+
+If **any field is wrong**, sharing will degrade.
+**Do not test further. Fix this first.**
+
+---
+
+## 4️⃣ Clipboard Confirmation (Silent but Checkable)
+
+Immediately after clipboard call:
+
+```js
+navigator.clipboard.writeText(text);
+console.log('[CLIPBOARD] writeText fired');
+```
+
+**Expected**
+
+```
+[CLIPBOARD] writeText fired
+```
+
+🚨 If missing:
+
+* Clipboard is inside async code
+* Clipboard is after share
+* Clipboard API unavailable (http / iframe)
+
+📌 Note: Clipboard success itself cannot be reliably logged — only invocation.
+
+---
+
+## 5️⃣ Share API Invocation
+
+Immediately before `navigator.share()`:
+
+```js
+console.log('[NATIVE SHARE] invoking');
+```
+
+**Expected**
+
+```
+[NATIVE SHARE] invoking
+```
+
+If this logs but:
+
+* Share sheet does not open → platform restriction
+* Photo picker opens → payload issue (File / iOS text)
+
+---
+
+## 6️⃣ Catch Block MUST Be Silent in Success Case
+
+```js
+.catch(err => {
+  console.error('[SHARE ERROR]', err);
+});
+```
+
+**Expected**
+
+```
+(no output)
+```
+
+🚨 If you see `[SHARE ERROR]`:
+
+* iOS rejected payload
+* Gesture was broken
+* Running inside iframe/webview
+
+---
+
+## 7️⃣ Platform-Specific Confirmation
+
+Add:
+
+```js
+console.log('[PLATFORM]', navigator.userAgent);
+```
+
+Verify:
+
+* iOS Safari (not Chrome iOS, not in-app browser)
+* `window.top === window.self === true`
+
+If false → clipboard & share can break.
+
+---
+
+## 8️⃣ Behavioral Correlation (Final Proof)
+
+### If logs are GOOD and you still see:
+
+| Behavior                | Meaning                |
+| ----------------------- | ---------------------- |
+| Photo picker            | File payload broken    |
+| No paste prompt         | Clipboard order broken |
+| Blank screen            | Runtime error (again)  |
+| Share sheet not opening | Gesture lost           |
+
+Logs tell you which one **without guessing**.
+
+---
+
+## 9️⃣ What a “GREEN” Run Looks Like (Example)
+
+```
+[SHARE CLICK]
+[SHARE PAYLOAD] { isIOS: true, isFile: true, type: "image/jpeg", size: 280123, name: "share.jpg" }
+[CLIPBOARD] writeText fired
+[NATIVE SHARE] invoking
+```
+
+→ Share sheet opens
+→ XHS opens
+→ Image attached
+→ Paste prompt appears
+
+✅ This is the ShareLah-equivalent success state.
+
+---
+
+## 10️⃣ Final Instruction (Important)
+
+> ❗ Do not debug timing
+> ❗ Do not add delays
+> ❗ Do not “try again” loops
+
+**The logs either prove correctness or they don’t.**
+
+---
+
+If you want next:
+
+* Paste your **actual console output** and I’ll interpret it line-by-line
+* I can give you a **one-screen debug overlay** for QA testers
+* Or a **pre-release checklist** you can hand to PMs
+
+Just send the logs.
