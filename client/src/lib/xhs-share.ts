@@ -35,9 +35,121 @@ interface XHSSDKCredentials {
   signature: string;
 }
 
-type XHSShareResult = 'success' | 'cancelled' | 'fallback_required' | 'error';
+export type XHSShareResult = 'success' | 'cancelled' | 'fallback_required' | 'error';
 
 const XHS_SDK_URL = 'https://fe-static.xhscdn.com/biz-static/goten/xhs-1.0.1.js';
+
+// ========== GOLD STANDARD IMPLEMENTATION ==========
+// ShareLah-equivalent native sharing for WhatsApp/XHS
+// DO NOT MODIFY without re-testing on iOS Safari + Android Chrome
+
+/**
+ * Preload and normalize image to File (NON-NEGOTIABLE)
+ * Must be done BEFORE user taps Share
+ */
+export async function preloadImageToFile(imageUrl: string): Promise<File> {
+  const res = await fetch(imageUrl, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Image fetch failed');
+
+  const blob = await res.blob();
+
+  // HARD GUARDS
+  if (blob.type !== 'image/jpeg') {
+    throw new Error('Image must be JPEG');
+  }
+  if (blob.size > 600 * 1024) {
+    throw new Error('Image too large');
+  }
+
+  return new File(
+    [blob],
+    'share.jpg',
+    { type: 'image/jpeg', lastModified: Date.now() }
+  );
+}
+
+/**
+ * Share Button Gate (Fail Fast)
+ * Returns true only if all conditions for native share are met
+ */
+export function canNativeShare(file: File | null, text: string): boolean {
+  return !!(
+    file instanceof File &&
+    file.type === 'image/jpeg' &&
+    file.size <= 600 * 1024 &&
+    typeof text === 'string' &&
+    text.length > 0 &&
+    navigator.share &&
+    navigator.clipboard &&
+    window.top === window.self &&
+    !document.hidden
+  );
+}
+
+/**
+ * Gold Share Handler (DO NOT MODIFY)
+ * - Clipboard FIRST (synchronous, fire-and-forget for gesture)
+ * - iOS: files only, no text
+ * - Android: files + text allowed
+ * - Promise rejection handling via .catch (not await)
+ */
+export function handleGoldNativeShare(
+  file: File,
+  text: string,
+  onSuccess: () => void,
+  onFallback: () => void
+): void {
+  if (!canNativeShare(file, text)) {
+    console.warn('[SHARE] canNativeShare failed, triggering fallback');
+    onFallback();
+    return;
+  }
+
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+  // 🔒 DIAGNOSTIC LOG (DO NOT REMOVE)
+  console.log('[SHARE]', {
+    isIOS,
+    isFile: file instanceof File,
+    type: file.type,
+    size: file.size,
+    name: file.name
+  });
+
+  try {
+    // 1️⃣ Clipboard FIRST (synchronous call, gesture-critical)
+    // Attach .catch to silence errors but not block
+    navigator.clipboard.writeText(text).catch((err) => {
+      console.warn('[SHARE] Clipboard write failed:', err);
+    });
+
+    // 2️⃣ Native share — iOS MUST be files only
+    // The promise is returned synchronously but resolves asynchronously
+    const sharePayload = isIOS 
+      ? { files: [file] } 
+      : { files: [file], text };
+
+    navigator.share(sharePayload)
+      .then(() => {
+        console.log('[SHARE] Native share completed successfully');
+        onSuccess();
+      })
+      .catch((err: Error) => {
+        if (err.name === 'AbortError') {
+          console.log('[SHARE] User cancelled share sheet');
+          // User cancelled - don't trigger fallback, just stay on current screen
+          // This is intentional: cancellation is not a failure
+        } else {
+          console.error('[SHARE] Native share failed:', err);
+          onFallback();
+        }
+      });
+
+  } catch (err) {
+    console.error('[SHARE] Native share sync error:', err);
+    onFallback();
+  }
+}
 
 let sdkLoaded = false;
 let sdkLoadPromise: Promise<boolean> | null = null;
@@ -343,7 +455,7 @@ export function openXHSDeepLink(): void {
 
 export interface ShareToXHSOptions {
   imageUrl: string;
-  imageBlob?: Blob | null;
+  imageBlob?: File | Blob | null; // GOLD STANDARD: File preferred, Blob for backwards compatibility
   text: string;
   title?: string;
   onSuccess?: () => void;

@@ -1,0 +1,103 @@
+We are still going to photo selection and text is not copied. Read notes below and tell me what you will do
+
+This is a good bug report — the symptoms tell us exactly where to look.
+You have two separate failures happening, and they come from two different layers. I’ll break this down clinically so you can direct your developer precisely.
+
+Symptom A
+WhatsApp / XHS opens → forces photo selection
+What this means (100% certainty)
+➡️ The app did NOT receive a file object So it falls back to “pick photo”.
+This is never a timing issue. This is always a payload issue.
+
+Checklist A — Image Path (MOST IMPORTANT)
+1. Confirm navigator.share({ files }) is ACTUALLY being called
+Add this immediately before share:
+console.log('share supported', !!navigator.share);
+console.log('files', imageFile);
+console.log('instanceof File', imageFile instanceof File);
+Required:
+* imageFile instanceof File === true
+* NOT a Blob
+* NOT a base64
+* NOT a URL
+🚨 WhatsApp ignores Blobs 🚨 XHS ignores Blobs 🚨 ShareLah converts Blob → File
+Correct pattern:
+const file = new File(
+  [blob],
+  'share.jpg',
+  { type: 'image/jpeg' }
+);
+If this is wrong → photo picker always appears.
+
+2. iOS restriction: files MUST be the ONLY payload
+This breaks silently on iOS Safari:
+navigator.share({
+  files: [file],
+  text: shareText,   // ❌ breaks file delivery on iOS
+});
+Correct (iOS):
+navigator.share({
+  files: [file],
+});
+📌 This is undocumented but verified.
+If text is present → iOS drops the file → picker opens.
+
+3. File metadata must be clean
+Check:
+file.type === 'image/jpeg'
+file.size <= 600 * 1024
+file.name.endsWith('.jpg')
+If any fail → WhatsApp/XHS ignores file.
+
+Symptom B
+Copied text is NOT pasted
+What this means
+➡️ Clipboard write did not execute inside the same user gesture OR ➡️ Clipboard was overwritten by share call
+
+Checklist B — Clipboard Path
+4. Clipboard MUST run BEFORE navigator.share()
+button.onclick = () => {
+  navigator.clipboard.writeText(text); // must be FIRST
+  navigator.share({ files: [file] });
+};
+If clipboard happens:
+* after share
+* inside .then
+* inside setTimeout
+❌ Paste permission will not appear.
+
+5. Clipboard API availability
+On iOS Safari:
+navigator.clipboard && window.isSecureContext
+If false → clipboard silently fails.
+
+6. iOS will NOT auto-paste without permission prompt
+Expected UX:
+* XHS opens
+* “Allow Paste?” prompt
+* User taps Allow
+* Text appears
+If prompt never appears → clipboard never wrote.
+
+🔥 Most Common Root Cause (90% of cases)
+Developer passed a Blob instead of a File OR included text in navigator.share() on iOS
+This EXACTLY matches:
+* Photo picker opens
+* Text missing
+* No visible errors
+
+What to Ask Your Developer (Copy-Paste)
+1. Log whether we are passing a File, not a Blob
+2. On iOS, remove text from navigator.share() entirely
+3. Confirm clipboard write runs synchronously before share
+4. Log file.type, file.size, and instanceof File
+5. Confirm no async/await between tap → clipboard → share
+
+Reference: ShareLah Behavior (Why They Succeed)
+ShareLah:
+* Uses File
+* Uses navigator.share({ files }) only
+* Copies text separately
+* Accepts iOS paste permission UX
+* Does not try to be clever
+

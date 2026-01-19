@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { saveTestimonial, getUsedReviewTexts, isReviewUsed } from "@/lib/api";
-import { shareToXHS, isXHSSDKSupported } from "@/lib/xhs-share";
+import { shareToXHS, isXHSSDKSupported, preloadImageToFile, canNativeShare, handleGoldNativeShare } from "@/lib/xhs-share";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import {
   Dialog,
@@ -71,12 +71,9 @@ export default function XiaohongshuReview() {
   const [isGenerating, setIsGenerating] = useState(false);
   const selectedReviewTextRef = useRef<string>('');
   
-  // Preflight state for XHS clipboard - preload image when selected
-  const [preloadedImageBlob, setPreloadedImageBlob] = useState<Blob | null>(null);
+  // Preflight state for XHS - preload image as File (NOT Blob) when selected
+  const [preloadedImageFile, setPreloadedImageFile] = useState<File | null>(null);
   const [imagePreloadStatus, setImagePreloadStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  const [imageValidation, setImageValidation] = useState<{ isJpeg: boolean; sizeOk: boolean; headerValid: boolean }>({ 
-    isJpeg: false, sizeOk: false, headerValid: false 
-  });
 
   const { data: configBySlug, isLoading } = useQuery<PublicConfigResponse>({
     queryKey: ['user-config', slug],
@@ -188,23 +185,12 @@ export default function XiaohongshuReview() {
     selectedReviewTextRef.current = reviews[index];
   };
 
-  // Validate JPEG header (FF D8 FF)
-  const validateJpegHeader = useCallback(async (blob: Blob): Promise<boolean> => {
-    try {
-      const buffer = await blob.slice(0, 3).arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      return bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  // Preload and validate image when photo is selected
+  // Preload and validate image as File when photo is selected
+  // GOLD STANDARD: Must be File, not Blob, with JPEG type and <=600KB
   useEffect(() => {
     if (selectedPhotoIndex === null || !photos[selectedPhotoIndex]) {
-      setPreloadedImageBlob(null);
+      setPreloadedImageFile(null);
       setImagePreloadStatus('idle');
-      setImageValidation({ isJpeg: false, sizeOk: false, headerValid: false });
       return;
     }
 
@@ -212,46 +198,32 @@ export default function XiaohongshuReview() {
     const proxyUrl = `/api/public/image-proxy?url=${encodeURIComponent(photoUrl)}`;
 
     setImagePreloadStatus('loading');
-    setPreloadedImageBlob(null);
-    setImageValidation({ isJpeg: false, sizeOk: false, headerValid: false });
+    setPreloadedImageFile(null);
 
     const controller = new AbortController();
 
-    fetch(proxyUrl, { 
-      cache: 'no-store',
-      credentials: 'omit',
-      signal: controller.signal
-    })
-      .then(r => {
-        if (!r.ok) throw new Error('Image fetch failed');
-        return r.blob();
-      })
-      .then(async (blob) => {
-        const isJpeg = blob.type === 'image/jpeg';
-        const sizeOk = blob.size <= 600 * 1024; // ≤600KB
-        const headerValid = await validateJpegHeader(blob);
-
-        console.log('XHS Preflight - Image preloaded:', {
-          type: blob.type,
-          size: `${(blob.size / 1024).toFixed(1)}KB`,
-          isJpeg,
-          sizeOk,
-          headerValid
+    preloadImageToFile(proxyUrl)
+      .then((file) => {
+        // DIAGNOSTIC LOG (DO NOT REMOVE)
+        console.log('[PRELOAD]', {
+          isFile: file instanceof File,
+          type: file.type,
+          size: file.size,
+          name: file.name
         });
 
-        setPreloadedImageBlob(blob);
-        setImageValidation({ isJpeg, sizeOk, headerValid });
-        setImagePreloadStatus(isJpeg && sizeOk && headerValid ? 'ready' : 'error');
+        setPreloadedImageFile(file);
+        setImagePreloadStatus('ready');
       })
       .catch((err) => {
         if (err.name !== 'AbortError') {
-          console.error('XHS Preflight - Image preload failed:', err);
+          console.error('[PRELOAD] Image preload failed:', err);
           setImagePreloadStatus('error');
         }
       });
 
     return () => controller.abort();
-  }, [selectedPhotoIndex, photos, validateJpegHeader]);
+  }, [selectedPhotoIndex, photos]);
 
   // Platform detection helpers for kill-switch
   const platformInfo = useMemo(() => {
@@ -280,49 +252,35 @@ export default function XiaohongshuReview() {
     return { isIOSSafari, isDesktop, isInWebView, canUseWebShare };
   }, []);
 
-  // Clipboard support check (fallback)
-  const isClipboardSupported = useMemo(() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const hasClipboardItem = typeof window !== 'undefined' && 'ClipboardItem' in window;
-      return !!(navigator.clipboard?.write && hasClipboardItem);
-    } catch {
-      return false;
-    }
-  }, []);
+  // REMOVED: isClipboardSupported - gold standard uses navigator.clipboard.writeText only
 
-  // Can share to XHS - prioritize Web Share API, fallback to clipboard
+  // GOLD STANDARD: Can share gate - checks all conditions
   const canShareToXhs = useMemo(() => {
     const hasReview = selectedReviewIndex !== null;
     const hasPhoto = selectedPhotoIndex !== null;
-    const imageReady = imagePreloadStatus === 'ready' && preloadedImageBlob !== null;
-    const imageValid = imageValidation.isJpeg && imageValidation.sizeOk && imageValidation.headerValid;
-    const imageFailed = imagePreloadStatus === 'error' || (hasPhoto && !imageValid && imagePreloadStatus !== 'loading');
+    const imageReady = imagePreloadStatus === 'ready' && preloadedImageFile !== null;
+    const imageFailed = imagePreloadStatus === 'error';
     
-    const { isIOSSafari, isDesktop, isInWebView, canUseWebShare } = platformInfo;
+    const { isDesktop, isInWebView } = platformInfo;
     
-    // Level 1 Hard Block: Desktop or WebView can't use Web Share effectively
+    // Level 1 Hard Block: Desktop or WebView - show fallback modal
     if (isDesktop || isInWebView) {
-      // Allow text-only fallback on unsupported platforms
-      return hasReview;
+      return hasReview; // Text-only fallback
     }
 
-    // If no photo selected, we can share text-only
+    // If no photo selected, allow text-only
     if (hasReview && !hasPhoto) return true;
     
-    // Primary: Web Share API with files (iOS Safari)
-    if (hasReview && hasPhoto && imageReady && imageValid && canUseWebShare && isIOSSafari) {
+    // GOLD STANDARD: File must be valid for native share
+    if (hasReview && hasPhoto && imageReady) {
       return true;
     }
     
-    // Fallback: Clipboard approach (if Web Share unavailable)
-    if (hasReview && hasPhoto && imageReady && imageValid && isClipboardSupported) return true;
-    
-    // If photo selected but image failed validation, allow text-only fallback
+    // If photo selected but image failed, allow text-only fallback
     if (hasReview && hasPhoto && imageFailed) return true;
     
     return false;
-  }, [selectedReviewIndex, selectedPhotoIndex, imagePreloadStatus, preloadedImageBlob, imageValidation, isClipboardSupported, platformInfo]);
+  }, [selectedReviewIndex, selectedPhotoIndex, imagePreloadStatus, preloadedImageFile, platformInfo]);
 
   // Get share button state message
   const getShareButtonState = useCallback(() => {
@@ -333,71 +291,28 @@ export default function XiaohongshuReview() {
       if (imagePreloadStatus === 'loading') {
         return { disabled: true, message: '图片加载中…' };
       }
-      // If image validation failed but we have a review, offer text-only sharing
-      if (imagePreloadStatus === 'error' || !imageValidation.isJpeg || !imageValidation.sizeOk) {
+      // If image failed to load, offer text-only sharing
+      if (imagePreloadStatus === 'error') {
         return { disabled: false, message: null, imageError: true };
-      }
-      if (!isClipboardSupported) {
-        return { disabled: true, message: '当前浏览器不支持分享' };
       }
     }
     return { disabled: false, message: null };
-  }, [selectedReviewIndex, selectedPhotoIndex, imagePreloadStatus, imageValidation, isClipboardSupported]);
+  }, [selectedReviewIndex, selectedPhotoIndex, imagePreloadStatus]);
 
-  // Allow text-only fallback when image fails validation
+  // Allow text-only fallback when image fails
   const canShareTextOnly = selectedReviewIndex !== null && 
     selectedPhotoIndex !== null && 
-    (imagePreloadStatus === 'error' || !imageValidation.isJpeg || !imageValidation.sizeOk);
+    imagePreloadStatus === 'error';
 
   // State for fallback modal (Level 2 and Level 3)
   const [showFallbackModal, setShowFallbackModal] = useState(false);
   const [fallbackReason, setFallbackReason] = useState<'share_failed' | 'recovery' | null>(null);
 
-  // Web Share API - PRIMARY method for iOS Safari
-  // CRITICAL: iOS requires files-only in share data (no title/text with files)
-  // Returns: 'success' | 'cancelled' | 'failed'
-  const shareWithWebShareAPI = async (blob: Blob, text: string): Promise<'success' | 'cancelled' | 'failed'> => {
-    try {
-      // Step 1: Copy text to clipboard FIRST (XHS will auto-paste when user clicks "Allow Paste")
-      await copyTextToClipboard(text);
-      console.log('XHS Share - Text copied to clipboard');
-
-      // Step 2: Create File object from blob
-      const file = new File([blob], 'xiaohongshu-share.jpg', {
-        type: 'image/jpeg',
-        lastModified: Date.now()
-      });
-
-      // Step 3: Create share data with files ONLY (iOS ignores text when files present)
-      const shareData = { files: [file] };
-
-      // Step 4: Check if sharing files is supported
-      if (!navigator.canShare?.(shareData)) {
-        console.warn('XHS Share - Web Share API does not support this file');
-        return 'failed';
-      }
-
-      console.log('XHS Share - Launching native share sheet...');
-      
-      // Step 5: Trigger native share sheet - user picks XiaoHongShu
-      await navigator.share(shareData);
-      
-      console.log('XHS Share - Share completed successfully');
-      return 'success';
-      
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') {
-        console.log('XHS Share - User cancelled share sheet');
-        return 'cancelled'; // User dismissed - stay on selection screen, no fallback modal
-      }
-      console.error('XHS Share - Web Share API failed:', err);
-      return 'failed';
-    }
-  };
+  // REMOVED: Old shareWithWebShareAPI - replaced with handleGoldNativeShare
 
   // Save image to device (fallback action)
   const saveImageToDevice = () => {
-    if (!preloadedImageBlob) {
+    if (!preloadedImageFile) {
       toast({
         title: "图片未加载",
         description: "请稍候重试",
@@ -407,7 +322,7 @@ export default function XiaohongshuReview() {
     }
 
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(preloadedImageBlob);
+    a.href = URL.createObjectURL(preloadedImageFile);
     a.download = 'xiaohongshu-share.jpg';
     document.body.appendChild(a);
     a.click();
@@ -466,66 +381,7 @@ export default function XiaohongshuReview() {
     }
   };
 
-  // Clipboard write using preloaded blob wrapped in Promise for iOS Safari compatibility
-  const copyPreloadedImageAndTextToClipboard = (blob: Blob, text: string): void => {
-    if (!navigator.clipboard?.write || !('ClipboardItem' in window)) {
-      console.warn('ClipboardItem API not supported');
-      toast({
-        title: "复制失败",
-        description: "当前浏览器不支持分享",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const textBlob = new Blob([text], { type: 'text/plain' });
-
-    // CRITICAL FIX: Safari iOS requires Promise-wrapped blobs in ClipboardItem
-    // Even though blob is already resolved, Safari internally expects async materialization
-    // Raw Blob → ❌ intermittent "复制失败"
-    // Promise.resolve(Blob) → ✅ consistent success
-    const clipboardItem = new ClipboardItem({
-      'image/jpeg': Promise.resolve(blob),
-      'text/plain': textBlob,
-    });
-
-    console.log('XHS Share - Starting SYNC clipboard write...', {
-      imageType: blob.type,
-      imageSize: `${(blob.size / 1024).toFixed(1)}KB`,
-      textLength: text.length
-    });
-
-    // Write is synchronous relative to user gesture since blob is preloaded
-    navigator.clipboard.write([clipboardItem])
-      .then(() => {
-        console.log('XHS Share - Clipboard write SUCCESS');
-        
-        // 60ms delay after clipboard write - allows Safari to fully commit
-        setTimeout(() => {
-          const userAgent = navigator.userAgent.toLowerCase();
-          const isIOS = /iphone|ipad|ipod/.test(userAgent);
-          const isAndroid = /android/.test(userAgent);
-
-          console.log('XHS Share - Opening deep link...', { isIOS, isAndroid });
-
-          if (isIOS) {
-            window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
-          } else if (isAndroid) {
-            window.location.href = 'intent://post_note#Intent;scheme=xhsdiscovery;package=com.xingin.xhs;end';
-          } else {
-            window.open('https://www.xiaohongshu.com/', '_blank');
-          }
-        }, 60);
-      })
-      .catch((err) => {
-        console.error('XHS Share - Clipboard write FAILED:', err);
-        toast({
-          title: "复制失败",
-          description: "请重试",
-          variant: "destructive",
-        });
-      });
-  };
+  // REMOVED: copyPreloadedImageAndTextToClipboard - replaced with handleGoldNativeShare
 
   const openXiaohongshuApp = () => {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -547,17 +403,26 @@ export default function XiaohongshuReview() {
     }
   };
 
+  // GOLD STANDARD: Kill-Switch Fallback UX (MANDATORY)
+  const showFallbackUX = () => {
+    const text = buildPostContent();
+    // Best effort clipboard write
+    navigator.clipboard?.writeText?.(text);
+    setCopiedText(text);
+    setFallbackReason('share_failed');
+    setShowFallbackModal(true);
+  };
+
   /**
-   * ⚠️ XHS sharing uses a tiered approach:
+   * ⚠️ GOLD STANDARD XHS SHARING
    * 
-   * 1. XHS Official JS SDK (if configured) - Best UX, image pre-attached
-   * 2. iOS Safari Web Share API with files - Native share sheet
-   * 3. Clipboard + Manual fallback - Desktop/WebView/failures
+   * TIER 1: XHS Official SDK (if configured)
+   * TIER 2: Gold Native Share (handleGoldNativeShare) - clipboard FIRST, files only on iOS
+   * TIER 3: Text-only + deep link OR fallback modal
    *
-   * DO NOT refactor without re-testing on real devices.
-   * When in doubt, trigger fallback UX.
+   * DO NOT MODIFY without re-testing on iOS Safari + Android Chrome
    */
-  const handleShareToXiaohongshu = async () => {
+  const handleShareToXiaohongshu = () => {
     // Hard gate: never proceed if preflight fails
     if (!canShareToXhs) {
       const state = getShareButtonState();
@@ -571,31 +436,29 @@ export default function XiaohongshuReview() {
     }
 
     const postContent = buildPostContent();
-    const { isIOSSafari, isDesktop, isInWebView, canUseWebShare } = platformInfo;
+    const { isDesktop, isInWebView } = platformInfo;
     
-    // Level 1 Hard Block: Desktop/WebView - offer fallback immediately
+    // Level 1 Hard Block: Desktop/WebView - show fallback modal immediately
     if (isDesktop || isInWebView) {
-      setCopiedText(postContent);
-      setFallbackReason('share_failed');
-      setShowFallbackModal(true);
+      showFallbackUX();
       trackClick('xiaohongshu');
       return;
     }
     
-    // Get image URL for SDK (needs server URL, not blob)
+    // Get image URL for SDK (needs server URL, not File)
     const imageUrl = selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null;
     
     // TIER 1: Try XHS Official SDK first (if configured and on mobile)
     if (imageUrl && isXHSSDKSupported()) {
-      console.log('XHS Share - Attempting XHS SDK (TIER 1)');
+      console.log('[SHARE] Attempting XHS SDK (TIER 1)');
       
-      const sdkResult = await shareToXHS({
+      shareToXHS({
         imageUrl,
-        imageBlob: preloadedImageBlob,
+        imageBlob: preloadedImageFile, // Pass File, not Blob
         text: postContent,
         title: businessName || undefined,
         onSuccess: () => {
-          console.log('XHS Share - SDK succeeded');
+          console.log('[SHARE] SDK succeeded');
           setCopiedText(postContent);
           setStep('ready');
           trackClick('xiaohongshu');
@@ -612,60 +475,33 @@ export default function XiaohongshuReview() {
           }
         },
         onCancel: () => {
-          console.log('XHS Share - User cancelled');
-          // Stay on selection screen, don't track
+          console.log('[SHARE] User cancelled');
+          // Stay on selection screen
         },
         onFallback: () => {
-          console.log('XHS Share - SDK fallback triggered');
-          // Continue to fallback below
+          console.log('[SHARE] SDK fallback triggered, trying TIER 2...');
+          attemptGoldNativeShare(postContent);
         },
       });
-      
-      if (sdkResult === 'success' || sdkResult === 'cancelled') {
-        return; // Handled by callbacks
-      }
-      // If 'fallback_required', continue to next tier
+      return; // SDK is async, callbacks handle result
     }
     
-    // TIER 2: Web Share API with files (iOS Safari)
-    if (selectedPhotoIndex !== null && preloadedImageBlob && imagePreloadStatus === 'ready' && canUseWebShare && isIOSSafari) {
-      console.log('XHS Share - Using Web Share API (TIER 2)');
-      
-      const result = await shareWithWebShareAPI(preloadedImageBlob, postContent);
-      
-      if (result === 'success') {
-        setCopiedText(postContent);
-        setStep('ready');
-        trackClick('xiaohongshu');
-        
-        if (config?.googlePlaceId && selectedReviewIndex !== null) {
-          saveTestimonial({
-            placeId: config.googlePlaceId,
-            platform: 'xiaohongshu',
-            rating: 5,
-            reviewText: reviews[selectedReviewIndex],
-            photoUrl: photos[selectedPhotoIndex],
-            language: language,
-          }).catch(err => console.warn("Failed to save testimonial:", err));
-        }
-        return;
-      } else if (result === 'cancelled') {
-        console.log('XHS Share - User cancelled, staying on selection screen');
-        return;
-      }
-      // If 'failed', continue to tier 3
-    }
-    
-    // TIER 3A: Text-only share (no photo selected or image failed)
-    if (selectedPhotoIndex === null || canShareTextOnly) {
-      console.log('XHS Share - Text-only mode (TIER 3A)');
-      await copyTextToClipboard(postContent);
+    // TIER 2: Gold Native Share (no SDK available)
+    attemptGoldNativeShare(postContent);
+  };
+
+  // TIER 2: Gold Standard Native Share
+  const attemptGoldNativeShare = (text: string) => {
+    // If no photo selected, text-only mode
+    if (selectedPhotoIndex === null || !preloadedImageFile) {
+      console.log('[SHARE] Text-only mode (TIER 3A)');
+      navigator.clipboard?.writeText?.(text);
       toast({
-        title: canShareTextOnly ? "图片无法分享" : "正在打开小红书...",
+        title: "正在打开小红书...",
         description: '文字已复制，请点击"允许粘贴"',
       });
       openXiaohongshuApp();
-      setCopiedText(postContent);
+      setCopiedText(text);
       setStep('ready');
       trackClick('xiaohongshu');
       
@@ -681,24 +517,49 @@ export default function XiaohongshuReview() {
       }
       return;
     }
-    
-    // TIER 3B: Photo share failed - Show fallback modal with Save Image + Copy Text
-    console.log('XHS Share - Fallback modal (TIER 3B)');
-    setCopiedText(postContent);
-    setFallbackReason('share_failed');
-    setShowFallbackModal(true);
-    trackClick('xiaohongshu');
-    
-    if (config?.googlePlaceId && selectedReviewIndex !== null) {
-      saveTestimonial({
-        placeId: config.googlePlaceId,
-        platform: 'xiaohongshu',
-        rating: 5,
-        reviewText: reviews[selectedReviewIndex],
-        photoUrl: photos[selectedPhotoIndex!],
-        language: language,
-      }).catch(err => console.warn("Failed to save testimonial:", err));
+
+    // Check if gold native share is possible
+    if (!canNativeShare(preloadedImageFile, text)) {
+      console.warn('[SHARE] canNativeShare failed, showing fallback');
+      showFallbackUX();
+      trackClick('xiaohongshu');
+      return;
     }
+
+    console.log('[SHARE] Using Gold Native Share (TIER 2)');
+    
+    // GOLD STANDARD: handleGoldNativeShare
+    // - Clipboard FIRST (synchronous)
+    // - iOS: files only
+    // - Android: files + text
+    handleGoldNativeShare(
+      preloadedImageFile,
+      text,
+      () => {
+        // onSuccess
+        console.log('[SHARE] Gold Native Share succeeded');
+        setCopiedText(text);
+        setStep('ready');
+        trackClick('xiaohongshu');
+        
+        if (config?.googlePlaceId && selectedReviewIndex !== null) {
+          saveTestimonial({
+            placeId: config.googlePlaceId,
+            platform: 'xiaohongshu',
+            rating: 5,
+            reviewText: reviews[selectedReviewIndex],
+            photoUrl: photos[selectedPhotoIndex!],
+            language: language,
+          }).catch(err => console.warn("Failed to save testimonial:", err));
+        }
+      },
+      () => {
+        // onFallback
+        console.log('[SHARE] Gold Native Share failed, showing fallback modal');
+        showFallbackUX();
+        trackClick('xiaohongshu');
+      }
+    );
   };
 
   const handleOpenXiaohongshu = () => {
