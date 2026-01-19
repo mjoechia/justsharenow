@@ -900,7 +900,7 @@ export default function XiaohongshuReview() {
             
             <div className="space-y-3 mt-4">
               {/* Save Image Button */}
-              {preloadedImageBlob && (
+              {preloadedImageFile && (
                 <Button
                   onClick={() => {
                     saveImageToDevice();
