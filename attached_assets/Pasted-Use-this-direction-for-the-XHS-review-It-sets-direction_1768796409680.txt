@@ -1,0 +1,103 @@
+Use this direction for the XHS review 
+ It sets direction, scope, constraints, and success criteria — no ambiguity, no rabbit holes.
+
+📌 Engineering Directive: XHS Native Share (ShareLah-Parity)
+Context (Why This Matters)
+We have confirmed that ShareLah’s superior XHS sharing UX is NOT due to timing hacks or Web Share API.
+They are using XiaoHongShu’s JS Share SDK deep-link path (js_share_sdk), which allows:
+* Direct jump into XHS post composer
+* Image already attached
+* No photo picker
+* No iOS share sheet
+* Mobile web only (iOS Safari)
+This path works in production today and is commercially worth pursuing.
+Our goal is functional parity with ShareLah, not theoretical correctness.
+
+🎯 Objective (Non-Negotiable)
+Replicate the following UX on iOS Safari:
+Tap “Share to 小红书” → XHS app opens directly to post editor → Image already attached → Text already filled → User taps Post
+If this cannot be achieved, we must explicitly fall back — no silent failure.
+
+🧭 Technical Direction (What to Build)
+1️⃣ Investigate & Integrate XHS JS Share SDK Path
+Specifically:
+* xhsdiscover://js_share_sdk
+* https://oia.xiaohongshu.com/oia
+Evidence:
+* ShareLah includes and invokes xhs-0.1.js
+* SDK generates a share_code via XHS endpoints
+* Deep link is constructed using SDK, not manually
+📌 This is not clipboard-only, and not Web Share API.
+
+2️⃣ Reverse-Engineer the Minimal Required Flow
+From the SDK file, identify:
+* Required parameters for share()
+* Required verification / token / appKey
+* Payload shape for:
+    * images
+    * content text
+    * share type (normal)
+You do NOT need full feature parity — only single-image + text.
+
+3️⃣ Build a Dedicated XHS Share Adapter
+Create a separate module, do NOT mix with clipboard logic.
+shareToXHS({
+  imageUrl,
+  text,
+  onSuccess,
+  onFail
+});
+Rules:
+* iOS Safari only
+* Mobile only
+* Feature-flagged
+* Kill-switch enabled
+
+4️⃣ Fallback Strategy (Mandatory)
+If any of the following occurs:
+* SDK load fails
+* Token verification fails
+* XHS SDK errors
+* User not on supported platform
+Then:
+* Trigger fallback UX:
+    * Copy text
+    * Save image
+    * Show clear instructions
+⚠️ No silent failures. Ever.
+
+🚫 Explicit “Do NOT” List
+Do NOT:
+* Replace this with Web Share API
+* Assume timing hacks can reach 100%
+* Remove clipboard fallback
+* Refactor into “cleaner” abstractions
+* Attempt desktop parity
+This is a platform-specific growth feature, not general web infrastructure.
+
+✅ Success Criteria (How We Judge Completion)
+This is considered DONE when:
+* On iPhone (real device, iOS Safari):
+    * Tap Share → XHS opens directly
+    * Image auto-attached
+    * No picker
+    * No share sheet
+* Matches ShareLah behavior visually and functionally
+* Fallback UX triggers correctly when forced
+* Feature can be remotely disabled
+
+📈 Commercial Rationale (Why This Is Approved)
+* ShareLah already uses this path successfully
+* UX delta is user-visible and conversion-critical
+* Clipboard hacks plateau at ~90%
+* This path is the only one that reaches ShareLah-level reliability
+This is worth the engineering investment.
+
+📝 Final Note (Important)
+This SDK path may be:
+* Semi-official
+* Partner-oriented
+* Poorly documented
+That is acceptable.
+We are not inventing a workaround — we are following a proven production precedent.
+
