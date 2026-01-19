@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { saveTestimonial, getUsedReviewTexts, isReviewUsed } from "@/lib/api";
+import { shareToXHS, isXHSSDKSupported } from "@/lib/xhs-share";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import {
   Dialog,
@@ -547,11 +548,11 @@ export default function XiaohongshuReview() {
   };
 
   /**
-   * ⚠️ XHS sharing is fragile by platform design.
-   * This feature relies on:
-   * - iOS Safari Web Share API with files
-   * - XHS reading from share sheet
-   * - Text pre-copied to clipboard for "Allow Paste"
+   * ⚠️ XHS sharing uses a tiered approach:
+   * 
+   * 1. XHS Official JS SDK (if configured) - Best UX, image pre-attached
+   * 2. iOS Safari Web Share API with files - Native share sheet
+   * 3. Clipboard + Manual fallback - Desktop/WebView/failures
    *
    * DO NOT refactor without re-testing on real devices.
    * When in doubt, trigger fallback UX.
@@ -581,9 +582,54 @@ export default function XiaohongshuReview() {
       return;
     }
     
-    // PRIMARY PATH: Web Share API with files (iOS Safari)
+    // Get image URL for SDK (needs server URL, not blob)
+    const imageUrl = selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null;
+    
+    // TIER 1: Try XHS Official SDK first (if configured and on mobile)
+    if (imageUrl && isXHSSDKSupported()) {
+      console.log('XHS Share - Attempting XHS SDK (TIER 1)');
+      
+      const sdkResult = await shareToXHS({
+        imageUrl,
+        imageBlob: preloadedImageBlob,
+        text: postContent,
+        title: businessName || undefined,
+        onSuccess: () => {
+          console.log('XHS Share - SDK succeeded');
+          setCopiedText(postContent);
+          setStep('ready');
+          trackClick('xiaohongshu');
+          
+          if (config?.googlePlaceId && selectedReviewIndex !== null) {
+            saveTestimonial({
+              placeId: config.googlePlaceId,
+              platform: 'xiaohongshu',
+              rating: 5,
+              reviewText: reviews[selectedReviewIndex],
+              photoUrl: photos[selectedPhotoIndex!],
+              language: language,
+            }).catch(err => console.warn("Failed to save testimonial:", err));
+          }
+        },
+        onCancel: () => {
+          console.log('XHS Share - User cancelled');
+          // Stay on selection screen, don't track
+        },
+        onFallback: () => {
+          console.log('XHS Share - SDK fallback triggered');
+          // Continue to fallback below
+        },
+      });
+      
+      if (sdkResult === 'success' || sdkResult === 'cancelled') {
+        return; // Handled by callbacks
+      }
+      // If 'fallback_required', continue to next tier
+    }
+    
+    // TIER 2: Web Share API with files (iOS Safari)
     if (selectedPhotoIndex !== null && preloadedImageBlob && imagePreloadStatus === 'ready' && canUseWebShare && isIOSSafari) {
-      console.log('XHS Share - Using Web Share API (PRIMARY)');
+      console.log('XHS Share - Using Web Share API (TIER 2)');
       
       const result = await shareWithWebShareAPI(preloadedImageBlob, postContent);
       
@@ -592,7 +638,6 @@ export default function XiaohongshuReview() {
         setStep('ready');
         trackClick('xiaohongshu');
         
-        // Save testimonial
         if (config?.googlePlaceId && selectedReviewIndex !== null) {
           saveTestimonial({
             placeId: config.googlePlaceId,
@@ -603,56 +648,54 @@ export default function XiaohongshuReview() {
             language: language,
           }).catch(err => console.warn("Failed to save testimonial:", err));
         }
+        return;
       } else if (result === 'cancelled') {
-        // User cancelled share sheet - stay on selection screen silently
         console.log('XHS Share - User cancelled, staying on selection screen');
-        // Don't show fallback modal, don't track analytics
-      } else {
-        // Level 2: Web Share failed - show fallback modal
-        console.log('XHS Share - Web Share failed, showing fallback');
-        setCopiedText(postContent);
-        setFallbackReason('share_failed');
-        setShowFallbackModal(true);
+        return;
+      }
+      // If 'failed', continue to tier 3
+    }
+    
+    // TIER 3A: Text-only share (no photo selected or image failed)
+    if (selectedPhotoIndex === null || canShareTextOnly) {
+      console.log('XHS Share - Text-only mode (TIER 3A)');
+      await copyTextToClipboard(postContent);
+      toast({
+        title: canShareTextOnly ? "图片无法分享" : "正在打开小红书...",
+        description: '文字已复制，请点击"允许粘贴"',
+      });
+      openXiaohongshuApp();
+      setCopiedText(postContent);
+      setStep('ready');
+      trackClick('xiaohongshu');
+      
+      if (config?.googlePlaceId && selectedReviewIndex !== null) {
+        saveTestimonial({
+          placeId: config.googlePlaceId,
+          platform: 'xiaohongshu',
+          rating: 5,
+          reviewText: reviews[selectedReviewIndex],
+          photoUrl: null,
+          language: language,
+        }).catch(err => console.warn("Failed to save testimonial:", err));
       }
       return;
     }
     
-    // FALLBACK: Clipboard approach (non-iOS or Web Share unavailable)
-    if (selectedPhotoIndex !== null && preloadedImageBlob && imagePreloadStatus === 'ready') {
-      toast({
-        title: "正在打开小红书...",
-        description: '请点击"允许粘贴"',
-      });
-      copyPreloadedImageAndTextToClipboard(preloadedImageBlob, postContent);
-    } else if (canShareTextOnly) {
-      // Image failed validation - fall back to text-only
-      toast({
-        title: "图片无法分享",
-        description: "仅复制文字内容",
-      });
-      await copyTextToClipboard(postContent);
-      openXiaohongshuApp();
-    } else {
-      // Text-only share (no photo selected)
-      await copyTextToClipboard(postContent);
-      toast({
-        title: "正在打开小红书...",
-        description: '文字已复制，请点击"允许粘贴"',
-      });
-      openXiaohongshuApp();
-    }
-
+    // TIER 3B: Photo share failed - Show fallback modal with Save Image + Copy Text
+    console.log('XHS Share - Fallback modal (TIER 3B)');
     setCopiedText(postContent);
+    setFallbackReason('share_failed');
+    setShowFallbackModal(true);
     trackClick('xiaohongshu');
     
     if (config?.googlePlaceId && selectedReviewIndex !== null) {
-      const imageWasShared = selectedPhotoIndex !== null && imagePreloadStatus === 'ready' && preloadedImageBlob !== null;
       saveTestimonial({
         placeId: config.googlePlaceId,
         platform: 'xiaohongshu',
         rating: 5,
         reviewText: reviews[selectedReviewIndex],
-        photoUrl: imageWasShared ? photos[selectedPhotoIndex] : null,
+        photoUrl: photos[selectedPhotoIndex!],
         language: language,
       }).catch(err => console.warn("Failed to save testimonial:", err));
     }

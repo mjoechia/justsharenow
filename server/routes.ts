@@ -2682,5 +2682,74 @@ Return as JSON array with exactly 2 strings:
     }
   });
 
+  // XHS SDK Signature Generation Endpoint
+  // Requires XHS_APP_KEY and XHS_APP_SECRET environment variables
+  app.post("/api/xhs/signature", async (req, res) => {
+    try {
+      const appKey = process.env.XHS_APP_KEY;
+      const appSecret = process.env.XHS_APP_SECRET;
+      
+      if (!appKey || !appSecret) {
+        // XHS SDK not configured - client should fallback to Web Share API
+        res.status(404).json({ 
+          error: "XHS SDK not configured",
+          fallback: true 
+        });
+        return;
+      }
+      
+      const { imageUrl } = req.body;
+      
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        res.status(400).json({ error: "Image URL is required" });
+        return;
+      }
+      
+      // Generate signature parameters
+      const nonce = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const timestamp = Date.now().toString();
+      
+      // SHA-256 signature: sorted params + secret
+      const crypto = await import('crypto');
+      const params = new Map([
+        ['appKey', appKey],
+        ['nonce', nonce],
+        ['timeStamp', timestamp],
+      ]);
+      
+      // Sort parameters alphabetically
+      const sortedParams = Array.from(params.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([key, value]) => `${key}=${value}`)
+        .join('&');
+      
+      // Append secret and hash
+      const stringToSign = sortedParams + appSecret;
+      const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+      
+      res.json({
+        appKey,
+        nonce,
+        timestamp,
+        signature,
+      });
+    } catch (error) {
+      console.error("Error generating XHS signature:", error);
+      res.status(500).json({ error: "Failed to generate XHS signature" });
+    }
+  });
+
+  // XHS Feature Flag Endpoint - check if XHS SDK is enabled
+  app.get("/api/xhs/status", async (_req, res) => {
+    const appKey = process.env.XHS_APP_KEY;
+    const appSecret = process.env.XHS_APP_SECRET;
+    const killSwitch = process.env.XHS_SDK_DISABLED === 'true';
+    
+    res.json({
+      sdkEnabled: !!appKey && !!appSecret && !killSwitch,
+      killSwitch,
+    });
+  });
+
   return httpServer;
 }
