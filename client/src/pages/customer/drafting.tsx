@@ -416,11 +416,11 @@ export default function CustomerDrafting() {
         targetUrl = socialLinks.googleReviews || "https://www.google.com/maps";
       }
       
-      // Open window SYNCHRONOUSLY to maintain user gesture (avoids popup blockers)
-      // Open with about:blank first, then navigate after clipboard operation
-      const newWindow = window.open('about:blank', '_blank');
+      // iOS Safari Fix: Open target URL DIRECTLY and SYNCHRONOUSLY within user gesture
+      // Do NOT use about:blank → redirect pattern as iOS blocks the secondary navigation
+      window.open(targetUrl, '_blank');
       
-      // Copy review text to clipboard
+      // Copy review text to clipboard AFTER opening the window
       let clipboardSuccess = false;
       if (reviewText) {
         try {
@@ -444,11 +444,6 @@ export default function CustomerDrafting() {
             console.warn("Fallback clipboard also failed:", fallbackErr);
           }
         }
-      }
-      
-      // Navigate the new window to the target URL
-      if (newWindow) {
-        newWindow.location.href = targetUrl;
       }
       
       // Show toast about clipboard status
