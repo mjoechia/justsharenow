@@ -416,13 +416,17 @@ export default function XiaohongshuReview() {
   /**
    * ⚠️ GOLD STANDARD XHS SHARING
    * 
-   * TIER 1: XHS Official SDK (if configured)
+   * BYPASSING SDK - Go directly to Gold Native Share
+   * SDK causes photo picker regression due to async share path
+   * 
    * TIER 2: Gold Native Share (handleGoldNativeShare) - clipboard FIRST, files only on iOS
    * TIER 3: Text-only + deep link OR fallback modal
    *
    * DO NOT MODIFY without re-testing on iOS Safari + Android Chrome
    */
   const handleShareToXiaohongshu = () => {
+    console.log('[SHARE CLICK]'); // Gold checklist diagnostic
+    
     // Hard gate: never proceed if preflight fails
     if (!canShareToXhs) {
       const state = getShareButtonState();
@@ -445,48 +449,9 @@ export default function XiaohongshuReview() {
       return;
     }
     
-    // Get image URL for SDK (needs server URL, not File)
-    const imageUrl = selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null;
-    
-    // TIER 1: Try XHS Official SDK first (if configured and on mobile)
-    if (imageUrl && isXHSSDKSupported()) {
-      console.log('[SHARE] Attempting XHS SDK (TIER 1)');
-      
-      shareToXHS({
-        imageUrl,
-        imageBlob: preloadedImageFile, // Pass File, not Blob
-        text: postContent,
-        title: businessName || undefined,
-        onSuccess: () => {
-          console.log('[SHARE] SDK succeeded');
-          setCopiedText(postContent);
-          setStep('ready');
-          trackClick('xiaohongshu');
-          
-          if (config?.googlePlaceId && selectedReviewIndex !== null) {
-            saveTestimonial({
-              placeId: config.googlePlaceId,
-              platform: 'xiaohongshu',
-              rating: 5,
-              reviewText: reviews[selectedReviewIndex],
-              photoUrl: photos[selectedPhotoIndex!],
-              language: language,
-            }).catch(err => console.warn("Failed to save testimonial:", err));
-          }
-        },
-        onCancel: () => {
-          console.log('[SHARE] User cancelled');
-          // Stay on selection screen
-        },
-        onFallback: () => {
-          console.log('[SHARE] SDK fallback triggered, trying TIER 2...');
-          attemptGoldNativeShare(postContent);
-        },
-      });
-      return; // SDK is async, callbacks handle result
-    }
-    
-    // TIER 2: Gold Native Share (no SDK available)
+    // BYPASSED: XHS SDK causes photo picker regression
+    // Go directly to Gold Native Share (TIER 2)
+    console.log('[SHARE] Bypassing SDK, using Gold Native Share directly');
     attemptGoldNativeShare(postContent);
   };
 
@@ -495,6 +460,7 @@ export default function XiaohongshuReview() {
     // If no photo selected, text-only mode
     if (selectedPhotoIndex === null || !preloadedImageFile) {
       console.log('[SHARE] Text-only mode (TIER 3A)');
+      console.log('[CLIPBOARD] writeText fired'); // Gold checklist diagnostic
       navigator.clipboard?.writeText?.(text);
       toast({
         title: "正在打开小红书...",
@@ -518,6 +484,15 @@ export default function XiaohongshuReview() {
       return;
     }
 
+    // GOLD STANDARD: Payload Integrity Log (MOST IMPORTANT)
+    console.log('[SHARE PAYLOAD]', {
+      isIOS: /iPhone|iPad|iPod/.test(navigator.userAgent),
+      isFile: preloadedImageFile instanceof File,
+      type: preloadedImageFile.type,
+      size: preloadedImageFile.size,
+      name: preloadedImageFile.name
+    });
+
     // Check if gold native share is possible
     if (!canNativeShare(preloadedImageFile, text)) {
       console.warn('[SHARE] canNativeShare failed, showing fallback');
@@ -527,6 +502,7 @@ export default function XiaohongshuReview() {
     }
 
     console.log('[SHARE] Using Gold Native Share (TIER 2)');
+    console.log('[NATIVE SHARE] invoking'); // Gold checklist diagnostic
     
     // GOLD STANDARD: handleGoldNativeShare
     // - Clipboard FIRST (synchronous)

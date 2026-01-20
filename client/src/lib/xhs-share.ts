@@ -119,6 +119,7 @@ export function handleGoldNativeShare(
   try {
     // 1️⃣ Clipboard FIRST (synchronous call, gesture-critical)
     // Attach .catch to silence errors but not block
+    console.log('[CLIPBOARD] writeText fired'); // Gold checklist diagnostic
     navigator.clipboard.writeText(text).catch((err) => {
       console.warn('[SHARE] Clipboard write failed:', err);
     });
