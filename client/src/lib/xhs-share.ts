@@ -44,54 +44,188 @@ const XHS_SDK_URL = 'https://fe-static.xhscdn.com/biz-static/goten/xhs-1.0.1.js'
 // DO NOT MODIFY without re-testing on iOS Safari + Android Chrome
 
 /**
+ * CANONICAL iOS DETECTION (ONE FUNCTION, USED EVERYWHERE)
+ * Case-insensitive regex to avoid mismatches between branches
+ */
+export function isIOS(): boolean {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+/**
  * Preload and normalize image to File (NON-NEGOTIABLE)
  * Must be done BEFORE user taps Share
+ * Returns null if Safari cannot share the file (preflight validation)
  */
-export async function preloadImageToFile(imageUrl: string): Promise<File> {
-  const res = await fetch(imageUrl, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Image fetch failed');
+export async function preloadImageToFile(imageUrl: string): Promise<File | null> {
+  console.log('[PRELOAD] Starting image preload:', imageUrl);
+  
+  try {
+    const res = await fetch(imageUrl, { cache: 'no-store' });
+    if (!res.ok) {
+      console.error('[PRELOAD] Image fetch failed:', res.status);
+      return null;
+    }
 
-  const blob = await res.blob();
+    const blob = await res.blob();
+    console.log('[PRELOAD] Blob received:', { type: blob.type, size: blob.size });
 
-  // HARD GUARDS
-  if (blob.type !== 'image/jpeg') {
-    throw new Error('Image must be JPEG');
+    // Normalize image through canvas for Safari compatibility
+    const normalizedBlob = await normalizeImageForSafari(blob);
+    if (!normalizedBlob) {
+      console.error('[PRELOAD] Image normalization failed');
+      return null;
+    }
+
+    const file = new File(
+      [normalizedBlob],
+      'share.jpg',
+      { type: 'image/jpeg', lastModified: Date.now() }
+    );
+
+    // CRITICAL: Safari preflight validation
+    const canShare = validateFileForIOS(file);
+    console.log('[PRELOAD] canShare preflight =', canShare);
+
+    if (!canShare) {
+      console.warn('[PRELOAD] File rejected by Safari canShare preflight');
+      return null;
+    }
+
+    console.log('[PRELOAD] File ready for sharing:', { 
+      isFile: file instanceof File, 
+      type: file.type, 
+      size: file.size,
+      name: file.name
+    });
+    
+    return file;
+  } catch (err) {
+    console.error('[PRELOAD] Error:', err);
+    return null;
   }
-  if (blob.size > 600 * 1024) {
-    throw new Error('Image too large');
-  }
+}
 
-  return new File(
-    [blob],
-    'share.jpg',
-    { type: 'image/jpeg', lastModified: Date.now() }
-  );
+/**
+ * Normalize image through canvas for Safari compatibility
+ * Ensures JPEG format and reasonable size
+ */
+async function normalizeImageForSafari(blob: Blob): Promise<Blob | null> {
+  try {
+    const img = await createImageBitmap(blob);
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    ctx.drawImage(img, 0, 0);
+    
+    return new Promise((resolve) => {
+      canvas.toBlob(
+        (b) => resolve(b),
+        'image/jpeg',
+        0.85 // Safari-friendly quality
+      );
+    });
+  } catch (err) {
+    console.error('[NORMALIZE] Canvas normalization failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Safari preflight validation
+ * Returns true ONLY if navigator.canShare({ files: [file] }) passes
+ */
+export function validateFileForIOS(file: File): boolean {
+  if (!(file instanceof File)) {
+    console.warn('[VALIDATE] Not a File instance');
+    return false;
+  }
+  if (!file.type.startsWith('image/')) {
+    console.warn('[VALIDATE] Not an image type:', file.type);
+    return false;
+  }
+  if (file.size > 800 * 1024) {
+    console.warn('[VALIDATE] File too large:', file.size);
+    return false;
+  }
+  
+  // CRITICAL: Safari canShare preflight
+  if (navigator.canShare) {
+    const result = navigator.canShare({ files: [file] });
+    console.log('[VALIDATE] navigator.canShare({ files }) =', result);
+    return result;
+  }
+  
+  // If canShare not available, assume file sharing not supported
+  console.warn('[VALIDATE] navigator.canShare not available');
+  return false;
 }
 
 /**
  * Share Button Gate (Fail Fast)
  * Returns true only if all conditions for native share are met
+ * INCLUDES navigator.canShare preflight for iOS
  */
 export function canNativeShare(file: File | null, text: string): boolean {
-  return !!(
-    file instanceof File &&
-    file.type === 'image/jpeg' &&
-    file.size <= 600 * 1024 &&
-    typeof text === 'string' &&
-    text.length > 0 &&
-    navigator.share &&
-    navigator.clipboard &&
-    window.top === window.self &&
-    !document.hidden
-  );
+  // Basic checks
+  if (!(file instanceof File)) {
+    console.log('[CAN NATIVE SHARE] Not a File');
+    return false;
+  }
+  if (!file.type.startsWith('image/')) {
+    console.log('[CAN NATIVE SHARE] Not an image type:', file.type);
+    return false;
+  }
+  if (file.size > 800 * 1024) {
+    console.log('[CAN NATIVE SHARE] File too large:', file.size);
+    return false;
+  }
+  if (typeof text !== 'string' || text.length === 0) {
+    console.log('[CAN NATIVE SHARE] Invalid text');
+    return false;
+  }
+  if (!navigator.share) {
+    console.log('[CAN NATIVE SHARE] navigator.share not available');
+    return false;
+  }
+  if (!navigator.clipboard) {
+    console.log('[CAN NATIVE SHARE] navigator.clipboard not available');
+    return false;
+  }
+  if (window.top !== window.self) {
+    console.log('[CAN NATIVE SHARE] Running in iframe');
+    return false;
+  }
+  if (document.hidden) {
+    console.log('[CAN NATIVE SHARE] Document hidden');
+    return false;
+  }
+  
+  // CRITICAL: Safari canShare preflight (must pass for iOS)
+  if (navigator.canShare) {
+    const canShareFiles = navigator.canShare({ files: [file] });
+    console.log('[CAN SHARE FILES]', canShareFiles);
+    if (!canShareFiles) {
+      console.warn('[CAN NATIVE SHARE] Safari cannot share this file - picker unavoidable');
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 /**
- * Gold Share Handler (DO NOT MODIFY)
- * - Clipboard FIRST (synchronous, fire-and-forget for gesture)
- * - iOS: files only, no text
+ * GOLD SHARE HANDLER (DO NOT MODIFY SHAPE)
+ * 
+ * CRITICAL RULES:
+ * - Clipboard FIRST (fire-and-forget, MUST NOT block)
+ * - iOS: files ONLY payload - NO text, title, or url
  * - Android: files + text allowed
- * - Promise rejection handling via .catch (not await)
+ * - Zero awaits - everything is synchronous with .catch handlers
  */
 export function handleGoldNativeShare(
   file: File,
@@ -99,36 +233,51 @@ export function handleGoldNativeShare(
   onSuccess: () => void,
   onFallback: () => void
 ): void {
-  if (!canNativeShare(file, text)) {
-    console.warn('[SHARE] canNativeShare failed, triggering fallback');
-    onFallback();
-    return;
-  }
+  console.log('[SHARE CLICK] gold handler invoked');
 
-  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  // Use canonical iOS detection
+  const iosDevice = isIOS();
 
   // 🔒 DIAGNOSTIC LOG (DO NOT REMOVE)
-  console.log('[SHARE]', {
-    isIOS,
+  console.log('[SHARE PAYLOAD]', {
+    isIOS: iosDevice,
     isFile: file instanceof File,
     type: file.type,
     size: file.size,
     name: file.name
   });
 
-  try {
-    // 1️⃣ Clipboard FIRST (synchronous call, gesture-critical)
-    // Attach .catch to silence errors but not block
-    console.log('[CLIPBOARD] writeText fired'); // Gold checklist diagnostic
-    navigator.clipboard.writeText(text).catch((err) => {
-      console.warn('[SHARE] Clipboard write failed:', err);
-    });
+  // CRITICAL: iOS file-share preflight (last chance gate)
+  if (navigator.canShare) {
+    const canShareFiles = navigator.canShare({ files: [file] });
+    console.log('[CAN SHARE FILES]', canShareFiles);
+    
+    if (!canShareFiles) {
+      console.warn('[GOLD SHARE] Safari cannot share files - picker unavoidable');
+      onFallback();
+      return;
+    }
+  } else if (iosDevice) {
+    // On iOS without canShare, we cannot proceed
+    console.warn('[GOLD SHARE] navigator.canShare not available on iOS');
+    onFallback();
+    return;
+  }
 
-    // 2️⃣ Native share — iOS MUST be files only
-    // The promise is returned synchronously but resolves asynchronously
-    const sharePayload = isIOS 
+  try {
+    // 1️⃣ Clipboard FIRST (fire-and-forget, MUST NOT block)
+    console.log('[CLIPBOARD] writeText fired');
+    navigator.clipboard.writeText(text)
+      .then(() => console.log('[CLIPBOARD] writeText succeeded'))
+      .catch((err) => console.warn('[CLIPBOARD] writeText failed', err));
+
+    // 2️⃣ Native share — iOS MUST be files ONLY (ABSOLUTE RULE)
+    // NO text, NO title, NO url on iOS
+    const sharePayload = iosDevice 
       ? { files: [file] } 
       : { files: [file], text };
+
+    console.log('[NATIVE SHARE] invoking navigator.share');
 
     navigator.share(sharePayload)
       .then(() => {
@@ -156,19 +305,16 @@ let sdkLoaded = false;
 let sdkLoadPromise: Promise<boolean> | null = null;
 
 export function isXHSSDKSupported(): boolean {
-  const ua = navigator.userAgent.toLowerCase();
-  const isIOS = /iphone|ipad|ipod/.test(ua);
-  const isAndroid = /android/.test(ua);
-  return isIOS || isAndroid;
+  const isAndroid = /android/i.test(navigator.userAgent);
+  return isIOS() || isAndroid;
 }
 
 export function isIOSSafari(): boolean {
   const ua = navigator.userAgent.toLowerCase();
-  const isIOS = /iphone|ipad|ipod/.test(ua);
   const isSafari = /safari/.test(ua) && !/chrome|crios|fxios|edgios/.test(ua);
   const isInWebView = /wv|webview/.test(ua) || 
-    (isIOS && !isSafari && !/safari/.test(ua) === false);
-  return isIOS && isSafari && !isInWebView;
+    (isIOS() && !isSafari && !/safari/.test(ua) === false);
+  return isIOS() && isSafari && !isInWebView;
 }
 
 export function loadXHSSDK(): Promise<boolean> {
@@ -435,11 +581,9 @@ export async function shareViaWebShareAPI(
 }
 
 export function openXHSDeepLink(): void {
-  const ua = navigator.userAgent.toLowerCase();
-  const isIOS = /iphone|ipad|ipod/.test(ua);
-  const isAndroid = /android/.test(ua);
+  const isAndroid = /android/i.test(navigator.userAgent);
   
-  if (isIOS) {
+  if (isIOS()) {
     window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
     setTimeout(() => {
       window.open('https://www.xiaohongshu.com/', '_blank');

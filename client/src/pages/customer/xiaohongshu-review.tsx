@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { saveTestimonial, getUsedReviewTexts, isReviewUsed } from "@/lib/api";
-import { shareToXHS, isXHSSDKSupported, preloadImageToFile, canNativeShare, handleGoldNativeShare } from "@/lib/xhs-share";
+import { shareToXHS, isXHSSDKSupported, preloadImageToFile, canNativeShare, handleGoldNativeShare, isIOS, validateFileForIOS } from "@/lib/xhs-share";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 import {
   Dialog,
@@ -204,16 +204,20 @@ export default function XiaohongshuReview() {
 
     preloadImageToFile(proxyUrl)
       .then((file) => {
-        // DIAGNOSTIC LOG (DO NOT REMOVE)
-        console.log('[PRELOAD]', {
-          isFile: file instanceof File,
-          type: file.type,
-          size: file.size,
-          name: file.name
-        });
-
-        setPreloadedImageFile(file);
-        setImagePreloadStatus('ready');
+        if (file) {
+          console.log('[PRELOAD] Success:', {
+            isFile: file instanceof File,
+            type: file.type,
+            size: file.size,
+            name: file.name
+          });
+          setPreloadedImageFile(file);
+          setImagePreloadStatus('ready');
+        } else {
+          console.warn('[PRELOAD] File validation failed (canShare returned false)');
+          setPreloadedImageFile(null);
+          setImagePreloadStatus('error');
+        }
       })
       .catch((err) => {
         if (err.name !== 'AbortError') {
@@ -232,14 +236,14 @@ export default function XiaohongshuReview() {
     }
     
     const ua = navigator.userAgent.toLowerCase();
-    const isIOS = /iphone|ipad|ipod/.test(ua);
+    const iosDevice = isIOS(); // Use canonical helper
     const isSafari = /safari/.test(ua) && !/chrome|crios|fxios|edgios/.test(ua);
-    const isIOSSafari = isIOS && isSafari;
-    const isDesktop = !isIOS && !/android/.test(ua);
+    const isIOSSafari = iosDevice && isSafari;
+    const isDesktop = !iosDevice && !/android/i.test(navigator.userAgent);
     
     // Detect in-app browsers / WebViews
     const isInWebView = /fbav|fban|instagram|line|wechat|weibo|qq|twitter/.test(ua) ||
-      (isIOS && !isSafari && /safari/.test(ua) === false);
+      (iosDevice && !isSafari && /safari/.test(ua) === false);
     
     // Check Web Share API with files support
     let canUseWebShare = false;
@@ -384,11 +388,9 @@ export default function XiaohongshuReview() {
   // REMOVED: copyPreloadedImageAndTextToClipboard - replaced with handleGoldNativeShare
 
   const openXiaohongshuApp = () => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isIOS = /iphone|ipad|ipod/.test(userAgent);
-    const isAndroid = /android/.test(userAgent);
+    const isAndroid = /android/i.test(navigator.userAgent);
 
-    if (isIOS) {
+    if (isIOS()) {
       window.location.href = 'xhsdiscover://post_note?ignore_draft=true';
       setTimeout(() => {
         window.open('https://www.xiaohongshu.com/', '_blank');
@@ -486,11 +488,12 @@ export default function XiaohongshuReview() {
 
     // GOLD STANDARD: Payload Integrity Log (MOST IMPORTANT)
     console.log('[SHARE PAYLOAD]', {
-      isIOS: /iPhone|iPad|iPod/.test(navigator.userAgent),
+      isIOS: isIOS(),
       isFile: preloadedImageFile instanceof File,
       type: preloadedImageFile.type,
       size: preloadedImageFile.size,
-      name: preloadedImageFile.name
+      name: preloadedImageFile.name,
+      canShareFiles: navigator.canShare ? navigator.canShare({ files: [preloadedImageFile] }) : 'N/A'
     });
 
     // Check if gold native share is possible
