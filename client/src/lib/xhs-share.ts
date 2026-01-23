@@ -52,15 +52,21 @@ export function isIOS(): boolean {
 }
 
 /**
- * Preload and normalize image to File (NON-NEGOTIABLE)
- * Must be done BEFORE user taps Share
+ * NO-CANVAS PRELOAD STRATEGY
+ * 
+ * Core Principle: If the source image is already a valid JPEG/PNG under 800KB, 
+ * NEVER touch it. Canvas is a mutation. Mutation = risk on iOS Safari.
+ * 
+ * Safari may trust the original blob but distrust a canvas-generated blob
+ * even when it passes all validation checks.
+ * 
  * Returns null if Safari cannot share the file (preflight validation)
  */
 export async function preloadImageToFile(imageUrl: string): Promise<File | null> {
-  console.log('[PRELOAD] Starting image preload:', imageUrl);
+  console.log('[PRELOAD] Starting NO-CANVAS preload:', imageUrl);
   
   try {
-    const res = await fetch(imageUrl, { cache: 'no-store' });
+    const res = await fetch(imageUrl, { cache: 'force-cache' });
     if (!res.ok) {
       console.error('[PRELOAD] Image fetch failed:', res.status);
       return null;
@@ -69,22 +75,50 @@ export async function preloadImageToFile(imageUrl: string): Promise<File | null>
     const blob = await res.blob();
     console.log('[PRELOAD] Blob received:', { type: blob.type, size: blob.size });
 
-    // Normalize image through canvas for Safari compatibility
-    const normalizedBlob = await normalizeImageForSafari(blob);
-    if (!normalizedBlob) {
-      console.error('[PRELOAD] Image normalization failed');
-      return null;
+    // Check if original blob is directly usable (no canvas mutation)
+    const isSupportedType = blob.type === 'image/jpeg' || blob.type === 'image/png';
+    const isSizeOk = blob.size <= 800 * 1024;
+
+    let finalBlob: Blob;
+    let usedCanvas = false;
+
+    if (isSupportedType && isSizeOk) {
+      // BEST PATH: Use original blob directly - NO canvas mutation
+      console.log('[PRELOAD] Using ORIGINAL blob (no canvas)');
+      finalBlob = blob;
+    } else if (!isSupportedType) {
+      // Unsupported format (e.g. webp) - must convert via canvas
+      console.log('[PRELOAD] Unsupported format, using canvas fallback');
+      const normalized = await normalizeImageViaCanvas(blob);
+      if (!normalized) {
+        console.error('[PRELOAD] Canvas fallback failed');
+        return null;
+      }
+      finalBlob = normalized;
+      usedCanvas = true;
+    } else {
+      // Supported type but too large - compress via canvas
+      console.log('[PRELOAD] Image too large, compressing via canvas');
+      const normalized = await normalizeImageViaCanvas(blob);
+      if (!normalized) {
+        console.error('[PRELOAD] Canvas compression failed');
+        return null;
+      }
+      finalBlob = normalized;
+      usedCanvas = true;
     }
 
+    // Create File from blob
+    const fileName = finalBlob.type === 'image/png' ? 'share.png' : 'share.jpg';
     const file = new File(
-      [normalizedBlob],
-      'share.jpg',
-      { type: 'image/jpeg', lastModified: Date.now() }
+      [finalBlob],
+      fileName,
+      { type: finalBlob.type, lastModified: Date.now() }
     );
 
     // CRITICAL: Safari preflight validation
     const canShare = validateFileForIOS(file);
-    console.log('[PRELOAD] canShare preflight =', canShare);
+    console.log('[PRELOAD] canShare preflight =', canShare, { usedCanvas });
 
     if (!canShare) {
       console.warn('[PRELOAD] File rejected by Safari canShare preflight');
@@ -95,7 +129,8 @@ export async function preloadImageToFile(imageUrl: string): Promise<File | null>
       isFile: file instanceof File, 
       type: file.type, 
       size: file.size,
-      name: file.name
+      name: file.name,
+      usedCanvas
     });
     
     return file;
@@ -106,11 +141,15 @@ export async function preloadImageToFile(imageUrl: string): Promise<File | null>
 }
 
 /**
- * Normalize image through canvas for Safari compatibility
- * Ensures JPEG format and reasonable size
+ * Canvas fallback - ONLY used when:
+ * 1. Format is unsupported (webp, etc)
+ * 2. Image is too large and needs compression
+ * 
+ * WARNING: Canvas-generated blobs may be distrusted by iOS Safari
  */
-async function normalizeImageForSafari(blob: Blob): Promise<Blob | null> {
+async function normalizeImageViaCanvas(blob: Blob): Promise<Blob | null> {
   try {
+    console.log('[CANVAS] Starting canvas conversion');
     const img = await createImageBitmap(blob);
     
     const canvas = document.createElement('canvas');
@@ -118,19 +157,25 @@ async function normalizeImageForSafari(blob: Blob): Promise<Blob | null> {
     canvas.height = img.height;
     
     const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
+    if (!ctx) {
+      console.error('[CANVAS] Failed to get 2d context');
+      return null;
+    }
     
     ctx.drawImage(img, 0, 0);
     
     return new Promise((resolve) => {
       canvas.toBlob(
-        (b) => resolve(b),
+        (b) => {
+          console.log('[CANVAS] Generated blob:', b ? { type: b.type, size: b.size } : 'null');
+          resolve(b);
+        },
         'image/jpeg',
         0.85 // Safari-friendly quality
       );
     });
   } catch (err) {
-    console.error('[NORMALIZE] Canvas normalization failed:', err);
+    console.error('[CANVAS] Normalization failed:', err);
     return null;
   }
 }

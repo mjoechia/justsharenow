@@ -459,10 +459,10 @@ export default function XiaohongshuReview() {
 
   // TIER 2: Gold Standard Native Share
   const attemptGoldNativeShare = (text: string) => {
-    // If no photo selected, text-only mode
-    if (selectedPhotoIndex === null || !preloadedImageFile) {
-      console.log('[SHARE] Text-only mode (TIER 3A)');
-      console.log('[CLIPBOARD] writeText fired'); // Gold checklist diagnostic
+    // If no photo selected - user intentionally chose text-only
+    if (selectedPhotoIndex === null) {
+      console.log('[SHARE] Text-only mode (no photo selected)');
+      console.log('[CLIPBOARD] writeText fired');
       navigator.clipboard?.writeText?.(text);
       toast({
         title: "正在打开小红书...",
@@ -483,6 +483,25 @@ export default function XiaohongshuReview() {
           language: language,
         }).catch(err => console.warn("Failed to save testimonial:", err));
       }
+      return;
+    }
+    
+    // Photo selected but preload failed - EXPLICIT FAILURE UX
+    if (!preloadedImageFile) {
+      console.warn('[SHARE] Photo selected but preload failed - showing explicit failure UX');
+      toast({
+        title: "图片自动附加不可用",
+        description: isIOS() 
+          ? "iOS Safari 无法自动附加此图片。请保存图片后在小红书中手动添加。" 
+          : "无法自动附加此图片。文字已复制，请在小红书中手动添加图片。",
+        variant: "destructive",
+        duration: 5000,
+      });
+      navigator.clipboard?.writeText?.(text);
+      setCopiedText(text);
+      setStep('ready');
+      trackClick('xiaohongshu');
+      // Don't auto-open XHS - let user decide
       return;
     }
 
@@ -840,11 +859,15 @@ export default function XiaohongshuReview() {
                   </div>
                 ) : canShareTextOnly ? (
                   <div className="flex items-center gap-2">
+                    <span className="text-yellow-200 text-xs">⚠️</span>
                     <span className="font-bold">小红书</span>
-                    分享文字
+                    <span className="text-xs opacity-80">仅文字</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
+                    {selectedPhotoIndex !== null && imagePreloadStatus === 'ready' && (
+                      <span className="text-green-300 text-xs">✓</span>
+                    )}
                     <span className="font-bold">小红书</span>
                     分享到小红书
                   </div>
