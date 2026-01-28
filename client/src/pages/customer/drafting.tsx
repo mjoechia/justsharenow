@@ -85,7 +85,7 @@ const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): stri
   const thirdTag = cleanTags[2] || secondaryTag;
   const allTags = hashtags.slice(0, 5).join(' ');
   
-  // Diverse review templates with different tones, lengths, and styles
+  // 50 unique review templates (25 sets of 2) - diverse tones, lengths, and styles
   const reviewTemplates = [
     // Set 1: Enthusiastic & detailed
     [
@@ -146,6 +146,71 @@ const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): stri
     [
       `Back for my third visit and it just keeps getting better! Consistent quality ${primaryTag} every single time. This is my spot now.`,
       `Regular customer here and proud of it! The ${primaryTag} never disappoints. If you haven't tried them yet, what are you waiting for?`,
+    ],
+    // Set 13: Lifestyle focus
+    [
+      `Made ${primaryTag} part of my self-care routine and I couldn't be happier. This place understands what quality means. Life-changing!`,
+      `The ${primaryTag} here fits perfectly into my lifestyle. Convenient, consistent, and always excellent. My go-to for sure.`,
+    ],
+    // Set 14: Value-oriented
+    [
+      `Great value for money! The ${primaryTag} quality here rivals places twice the price. Smart choice for anyone looking for quality without breaking the bank.`,
+      `Worth every penny. The ${primaryTag} results I got here exceeded what I expected. You get what you pay for, and here you get even more!`,
+    ],
+    // Set 15: Celebratory
+    [
+      `Came here for a special occasion and they made it even more memorable! The ${primaryTag} was perfect. Thank you for making my day extra special.`,
+      `Celebrated my birthday here with ${primaryTag} and it was the best gift I gave myself. The team went above and beyond!`,
+    ],
+    // Set 16: Trust-building
+    [
+      `I can be picky about ${primaryTag}, but this place earned my trust from day one. Honest, reliable, and consistently great. Rare find these days.`,
+      `Trust is everything, and this team has mine completely. Their ${primaryTag} expertise is matched only by their integrity. Highly recommend.`,
+    ],
+    // Set 17: Wellness focus
+    [
+      `Left feeling so relaxed and rejuvenated. The ${primaryTag} here isn't just a service - it's a wellness experience. My stress just melted away.`,
+      `Self-care at its finest! The ${primaryTag} combined with the peaceful ${secondaryTag} atmosphere was exactly what I needed. Pure bliss.`,
+    ],
+    // Set 18: Quick & efficient
+    [
+      `In and out in no time, but the ${primaryTag} quality didn't suffer at all. Perfect for my busy schedule. Efficient and effective!`,
+      `Fast service, amazing results. They respect my time while delivering top-tier ${primaryTag}. Hard combo to find but they nailed it.`,
+    ],
+    // Set 19: Family-friendly
+    [
+      `Brought my family here and everyone loved it! The ${primaryTag} experience was tailored to each of us. Great for all ages!`,
+      `A place where everyone feels welcome. Took my mom here for ${primaryTag} and she's already planning her next visit. Family approved!`,
+    ],
+    // Set 20: Transformative
+    [
+      `I walked out feeling like a completely different person. The ${primaryTag} transformation was incredible. New confidence unlocked!`,
+      `Before and after are like night and day! The ${primaryTag} results exceeded my wildest expectations. Truly transformative experience.`,
+    ],
+    // Set 21: Convenience focus
+    [
+      `Love how easy the whole process is. From booking to ${primaryTag} to payment - smooth sailing all the way. No hassle, just great results.`,
+      `Location is perfect, hours are flexible, and the ${primaryTag} is amazing. They've made it so convenient to look and feel great!`,
+    ],
+    // Set 22: Expert appreciation
+    [
+      `You can tell the team here truly loves what they do. Their passion for ${primaryTag} shows in every detail. Real experts!`,
+      `The expertise here is next level. They explained everything about ${primaryTag} so I understood exactly what to expect. True professionals.`,
+    ],
+    // Set 23: Recommendation style
+    [
+      `Telling everyone about this place! The ${primaryTag} is so good I can't keep it a secret. You need to try this!`,
+      `Already recommended to five friends and counting. The ${primaryTag} here is that good. Don't just take my word for it - go see for yourself!`,
+    ],
+    // Set 24: Repeat visit
+    [
+      `Lost count of how many times I've been here. The ${primaryTag} keeps me coming back. Consistency is their superpower.`,
+      `Loyal customer for over a year now. Every ${primaryTag} session is as good as the first. That's rare and special.`,
+    ],
+    // Set 25: Discovery joy
+    [
+      `Hidden gem alert! Can't believe I just discovered this ${primaryTag} spot. Where have you been all my life?!`,
+      `Stumbled upon this place by accident and it's the best accident ever! The ${primaryTag} is phenomenal. Lucky find!`,
     ],
   ];
   
@@ -389,8 +454,8 @@ export default function CustomerDrafting() {
       setSelectedPhoto(justShareNowLogo);
     }
     
-    // Rotate to next review set
-    const totalSets = generatedReviews.length > 0 ? 3 : t.customer.drafting.reviewSets.length;
+    // Rotate to next review set (25 sets of generated reviews for 50 unique templates)
+    const totalSets = generatedReviews.length > 0 ? 25 : t.customer.drafting.reviewSets.length;
     setReviewSetIndex((prev) => (prev + 1) % totalSets);
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
