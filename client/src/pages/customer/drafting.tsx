@@ -454,9 +454,15 @@ export default function CustomerDrafting() {
       setSelectedPhoto(justShareNowLogo);
     }
     
-    // Rotate to next review set (25 sets of generated reviews for 50 unique templates)
+    // Randomly select a different review set (25 sets of generated reviews for 50 unique templates)
     const totalSets = generatedReviews.length > 0 ? 25 : t.customer.drafting.reviewSets.length;
-    setReviewSetIndex((prev) => (prev + 1) % totalSets);
+    setReviewSetIndex((prev) => {
+      let next = Math.floor(Math.random() * totalSets);
+      while (next === prev && totalSets > 1) {
+        next = Math.floor(Math.random() * totalSets);
+      }
+      return next;
+    });
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setIsModalOpen(false);
