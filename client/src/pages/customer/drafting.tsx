@@ -266,7 +266,7 @@ export default function CustomerDrafting() {
   const slug = params?.slug;
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [reviewSetIndex, setReviewSetIndex] = useState(0);
+  const [reviewSetIndex, setReviewSetIndex] = useState(() => Math.floor(Math.random() * 25));
   const [photoSetIndex, setPhotoSetIndex] = useState(0);
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
   const [facebookRating, setFacebookRating] = useState(0);
