@@ -5,8 +5,6 @@ import { useStore } from "@/lib/store";
 const languages = [
   { code: "en", flag: "🇬🇧", label: "English" },
   { code: "zh", flag: "🇨🇳", label: "中文" },
-  { code: "ta", flag: "🇮🇳", label: "தமிழ்" },
-  { code: "ms", flag: "🇲🇾", label: "Bahasa Melayu" },
 ] as const;
 
 export type LanguageCode = typeof languages[number]["code"];

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type Language = 'en' | 'zh' | 'ta' | 'ms';
+type Language = 'en' | 'zh';
 
 interface CampaignState {
   language: Language;
