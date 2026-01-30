@@ -74,7 +74,7 @@ const openXiaohongshu = (profileUrl?: string) => {
   }
 };
 
-const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): string[] => {
+const generateReviewsFromHashtags = (hashtags: string[], setIndex: number, language: string): string[] => {
   if (hashtags.length === 0) {
     return [];
   }
@@ -86,7 +86,7 @@ const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): stri
   const allTags = hashtags.slice(0, 5).join(' ');
   
   // 50 unique review templates (25 sets of 2) - diverse tones, lengths, and styles
-  const reviewTemplates = [
+  const reviewTemplatesEn = [
     // Set 1: Enthusiastic & detailed
     [
       `Wow! My ${primaryTag} experience here was absolutely incredible. The team really knows their craft and the ${secondaryTag} atmosphere was so welcoming. Already planning my next visit!`,
@@ -214,6 +214,136 @@ const generateReviewsFromHashtags = (hashtags: string[], setIndex: number): stri
     ],
   ];
   
+  // Chinese templates (25 sets of 2)
+  const reviewTemplatesZh = [
+    // Set 1: 热情详细
+    [
+      `太棒了！这里的${primaryTag}体验真的太不可思议了。团队非常专业，${secondaryTag}的氛围让人感觉特别温馨。已经在计划下次再来了！`,
+      `来这里绝对是最正确的决定！${primaryTag}服务一流，感觉被照顾得很好。强烈推荐给大家！`,
+    ],
+    // Set 2: 简短有力
+    [
+      `${primaryTag}太赞了！快速、专业，正是我需要的。满分推荐！`,
+      `终于找到了我心仪的${primaryTag}好去处。氛围好、效果好、人也好！`,
+    ],
+    // Set 3: 故事型
+    [
+      `朋友推荐我来这里体验${primaryTag}，真的太庆幸听了他的话。从预约到完成，一切都很顺畅。${secondaryTag}的专业度让他们与众不同。`,
+      `找了好几个月优质的${primaryTag}，这家完全超出预期。员工真的很用心。`,
+    ],
+    // Set 4: 感性个人
+    [
+      `这次${primaryTag}体验完全改变了我的看法。离开时感觉焕然一新，很感激发现了这个宝藏店铺。`,
+      `体验太棒了！${secondaryTag}的服务方式让一切都不同。从头到尾都感觉被重视。`,
+    ],
+    // Set 5: 轻松友好
+    [
+      `非常满意这次体验！${primaryTag}很棒，员工也超级友好。下次一定还会再来！`,
+      `超喜欢这里！${primaryTag}很棒，氛围轻松，价格也很合理。还能要求什么呢？`,
+    ],
+    // Set 6: 专业风格
+    [
+      `服务质量一流。${primaryTag}的专业水准显而易见，${secondaryTag}的标准无可挑剔。非常专业的团队。`,
+      `细节处理让人印象深刻。他们的${primaryTag}方式非常细致且注重效果。会推荐给朋友。`,
+    ],
+    // Set 7: 感恩温暖
+    [
+      `感谢这次美妙的${primaryTag}体验！团队让我感觉像回到家一样。迫不及待要再来！`,
+      `很庆幸发现了这个地方。${primaryTag}服务正是我需要的。你们又多了一个忠实顾客！`,
+    ],
+    // Set 8: 新手视角
+    [
+      `第一次来这里体验${primaryTag}就爱上了！${secondaryTag}的专业度确实名不虚传。现在终于明白为什么大家都赞不绝口了。`,
+      `虽然是${primaryTag}新手，但团队让一切变得很简单。耐心、专业、真诚。非常适合新手！`,
+    ],
+    // Set 9: 对比风格
+    [
+      `之前试过好几家${primaryTag}，找到这家后发现完全不一样。质量和服务都无可比拟！`,
+      `找了好多年，终于找到最好的${primaryTag}店。${thirdTag}的专注让他们独树一帜。`,
+    ],
+    // Set 10: 简洁有力
+    [
+      `${primaryTag}太出色了。专业团队，完美效果。不多说了！`,
+      `五星好评，毫不犹豫。这是我体验过最好的${primaryTag}。`,
+    ],
+    // Set 11: 描述感官
+    [
+      `一走进来就知道这里不一般。平静的氛围，专业的团队，${primaryTag}的效果不言自明。纯粹的品质。`,
+      `细节处理太到位了！${primaryTag}体验的每个方面都精心打造。从环境到${secondaryTag}技术，都很完美。`,
+    ],
+    // Set 12: 回头客
+    [
+      `这已经是第三次来了，一次比一次好！${primaryTag}的品质始终如一。这里已经成为我的固定选择了。`,
+      `老顾客了，很自豪！${primaryTag}从来没让我失望过。如果你还没来过，还在等什么呢？`,
+    ],
+    // Set 13: 生活方式
+    [
+      `把${primaryTag}变成了我的自我护理日常，太开心了。这里真的懂什么是品质。改变生活！`,
+      `这里的${primaryTag}完美融入我的生活方式。方便、稳定、总是出色。绝对是我的首选。`,
+    ],
+    // Set 14: 价值导向
+    [
+      `性价比超高！${primaryTag}的品质堪比价格翻倍的店。想要高品质又不想花太多钱的人，这里是明智的选择。`,
+      `物超所值。${primaryTag}的效果超出了我的预期。在这里，你得到的比付出的更多！`,
+    ],
+    // Set 15: 庆祝型
+    [
+      `特地来庆祝特殊日子，他们让这一天更加难忘！${primaryTag}太完美了。谢谢让我的日子更加特别。`,
+      `生日来这里体验${primaryTag}，是我送给自己最好的礼物。团队真的竭尽全力！`,
+    ],
+    // Set 16: 建立信任
+    [
+      `我对${primaryTag}很挑剔，但这里从第一天就赢得了我的信任。诚实、可靠、始终如一。现在很难找到这样的了。`,
+      `信任是一切，而这个团队完全拥有我的信任。${primaryTag}的专业水准与诚信并驾齐驱。强烈推荐。`,
+    ],
+    // Set 17: 健康养生
+    [
+      `离开时感觉特别放松和焕然一新。这里的${primaryTag}不只是服务——是养生体验。压力都消失了。`,
+      `最棒的自我护理！${primaryTag}配合宁静的${secondaryTag}氛围，正是我需要的。纯粹的享受。`,
+    ],
+    // Set 18: 快速高效
+    [
+      `很快就完成了，但${primaryTag}的品质丝毫不打折。非常适合我忙碌的日程。高效又有效！`,
+      `服务快，效果棒。他们尊重我的时间，同时提供顶级的${primaryTag}。这种组合很难找到，但他们做到了。`,
+    ],
+    // Set 19: 家庭友好
+    [
+      `带全家来这里，大家都很喜欢！${primaryTag}体验为每个人量身定制。老少皆宜！`,
+      `一个让所有人都感到受欢迎的地方。带妈妈来体验${primaryTag}，她已经在计划下次来了。全家认证！`,
+    ],
+    // Set 20: 蜕变型
+    [
+      `走出来感觉完全变了一个人。${primaryTag}的蜕变太惊艳了。自信满满！`,
+      `前后对比简直判若两人！${primaryTag}的效果超出了我最疯狂的期待。真正的蜕变体验。`,
+    ],
+    // Set 21: 便利性
+    [
+      `整个过程太轻松了。从预约到${primaryTag}到付款——一帆风顺。没有任何麻烦，只有好效果。`,
+      `位置完美，时间灵活，${primaryTag}也很棒。他们让变美变得如此方便！`,
+    ],
+    // Set 22: 专家赞赏
+    [
+      `能感觉到这里的团队真心热爱自己的工作。他们对${primaryTag}的热情体现在每一个细节。真正的专家！`,
+      `这里的专业水平超一流。他们详细解释了${primaryTag}的一切，让我清楚知道会有什么效果。真正的专业人士。`,
+    ],
+    // Set 23: 推荐风格
+    [
+      `逢人就说这个地方！${primaryTag}太好了，我根本藏不住。你们一定要来试试！`,
+      `已经推荐给五个朋友了，还在继续推荐中。这里的${primaryTag}就是这么好。别只听我说——自己来体验吧！`,
+    ],
+    // Set 24: 多次光顾
+    [
+      `都数不清来过多少次了。${primaryTag}让我一直回来。稳定性就是他们的超能力。`,
+      `忠实顾客一年多了。每次${primaryTag}体验都和第一次一样好。这很难得也很特别。`,
+    ],
+    // Set 25: 发现之喜
+    [
+      `宝藏店铺警告！不敢相信我才发现这个${primaryTag}好地方。你之前都藏在哪里了？！`,
+      `无意中发现的这个地方，结果是最美丽的意外！${primaryTag}太惊艳了。太幸运了！`,
+    ],
+  ];
+  
+  const reviewTemplates = language === 'zh' ? reviewTemplatesZh : reviewTemplatesEn;
   const templateSet = reviewTemplates[setIndex % reviewTemplates.length];
   
   return templateSet.map(review => `${review}\n\n${allTags}`);
@@ -343,8 +473,8 @@ export default function CustomerDrafting() {
   }, [shopPhotos, photoSetIndex, hideJustShareNowLogo]);
   
   const generatedReviews = useMemo(() => {
-    return generateReviewsFromHashtags(availableHashtags, reviewSetIndex);
-  }, [availableHashtags, reviewSetIndex]);
+    return generateReviewsFromHashtags(availableHashtags, reviewSetIndex, language);
+  }, [availableHashtags, reviewSetIndex, language]);
   
   const toggleHashtag = (hashtag: string) => {
     setSelectedHashtags(prev => 
