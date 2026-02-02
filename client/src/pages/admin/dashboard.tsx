@@ -161,9 +161,9 @@ export default function AdminDashboard() {
       if (config.businessName) {
         setConfirmedBusinessName(config.businessName);
       }
-      setBusinessNameZh((config as any).businessNameZh || "");
-      setCompanyLogo((config as any).companyLogo || null);
-      setHideJustShareNowLogo((config as any).hideJustShareNowLogo || false);
+      setBusinessNameZh(config.businessNameZh || "");
+      setCompanyLogo(config.companyLogo || null);
+      setHideJustShareNowLogo(config.hideJustShareNowLogo || false);
       setIsDirty(false);
       
       // Auto-fetch verified business info if Place ID is saved
@@ -207,13 +207,14 @@ export default function AdminDashboard() {
       xhsUrl !== (config.xiaohongshuUrl || "") ||
       tiktokUrl !== (config.tiktokUrl || "") ||
       whatsappUrl !== (config.whatsappUrl || "") ||
-      companyLogo !== ((config as any).companyLogo || null)
+      companyLogo !== (config.companyLogo || null) ||
+      businessNameZh !== (config.businessNameZh || "")
     );
   };
 
   useEffect(() => {
     setIsDirty(checkDirty());
-  }, [websiteUrl, googleReviewsUrl, googlePlaceId, fbUrl, igUrl, xhsUrl, tiktokUrl, whatsappUrl, companyLogo, config]);
+  }, [websiteUrl, googleReviewsUrl, googlePlaceId, fbUrl, igUrl, xhsUrl, tiktokUrl, whatsappUrl, companyLogo, businessNameZh, config]);
 
   const updateConfigMutation = useMutation({
     mutationFn: (config: Parameters<typeof updateStoreConfig>[0]) => updateStoreConfig(config, contextUserId),
@@ -1280,7 +1281,7 @@ export default function AdminDashboard() {
                             <div className="grid gap-2">
                                 <div className="flex items-center gap-2">
                                     <Label>Company Logo</Label>
-                                    {(config as any)?.companyLogo && (
+                                    {config?.companyLogo && (
                                         <span className="text-xs text-green-600 flex items-center gap-1">
                                             <CheckCircle2 className="w-3 h-3" />
                                             Saved
@@ -1312,10 +1313,10 @@ export default function AdminDashboard() {
                                             <Image className="w-6 h-6 text-gray-400" />
                                         </div>
                                     )}
-                                    {(config as any)?.companyLogo && (config as any).companyLogo !== companyLogo && (
+                                    {config?.companyLogo && config.companyLogo !== companyLogo && (
                                         <div className="w-12 h-12 relative">
                                             <img 
-                                                src={(config as any).companyLogo} 
+                                                src={config.companyLogo} 
                                                 alt="Saved Logo" 
                                                 className="w-12 h-12 object-contain rounded border bg-gray-50 opacity-60"
                                                 title="Currently saved logo"
@@ -1359,7 +1360,7 @@ export default function AdminDashboard() {
                                             variant="default"
                                             size="sm"
                                             onClick={handleSaveLogo}
-                                            disabled={isSavingLogo || !companyLogo || companyLogo === (config as any)?.companyLogo}
+                                            disabled={isSavingLogo || !companyLogo || companyLogo === config?.companyLogo}
                                             data-testid="button-save-logo"
                                         >
                                             {isSavingLogo ? (

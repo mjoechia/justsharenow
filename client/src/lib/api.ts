@@ -4,6 +4,7 @@ export interface StoreConfig {
   id?: number;
   userId?: number | null;
   businessName?: string | null;
+  businessNameZh?: string | null;
   websiteUrl?: string | null;
   googleReviewsUrl?: string | null;
   googlePlaceId?: string | null;

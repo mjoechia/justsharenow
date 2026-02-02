@@ -14,6 +14,7 @@ import { getStoreConfig, trackPlatformClick, saveTestimonial, getUsedReviewTexts
 interface PublicConfig {
   placeId?: string;
   businessName?: string | null;
+  businessNameZh?: string | null;
   googleReviewsUrl?: string | null;
   googlePlaceId?: string | null;
   facebookUrl?: string | null;
@@ -740,7 +741,7 @@ export default function CustomerDrafting() {
     
     // Copy text to clipboard
     let textToCopy = getReviewWithHashtags();
-    const businessName = config?.businessName || "";
+    const businessName = (language === 'zh' && config?.businessNameZh) ? config.businessNameZh : (config?.businessName || "");
     
     if (platformId === 'facebook' && socialLinks.facebook) {
       // For Facebook, include business name and link
@@ -825,7 +826,7 @@ export default function CustomerDrafting() {
 
   const handleXiaohongshuAction = async () => {
     // Build review text with business name and XHS profile link
-    const businessName = config?.businessName || "";
+    const businessName = (language === 'zh' && config?.businessNameZh) ? config.businessNameZh : (config?.businessName || "");
     const xhsUrl = socialLinks.xiaohongshu || "";
     const reviewText = getReviewWithHashtags();
     const postText = reviewText 
@@ -872,7 +873,7 @@ export default function CustomerDrafting() {
 
   const handleInstagramAction = async () => {
     // Build review text with business name and Instagram profile link
-    const businessName = config?.businessName || "";
+    const businessName = (language === 'zh' && config?.businessNameZh) ? config.businessNameZh : (config?.businessName || "");
     const igUrl = socialLinks.instagram || "";
     const reviewText = getReviewWithHashtags();
     const postText = reviewText 
@@ -973,7 +974,7 @@ export default function CustomerDrafting() {
       
       // Build review text with business name and link
       const reviewText = getReviewWithHashtags();
-      const businessName = config?.businessName || "";
+      const businessName = (language === 'zh' && config?.businessNameZh) ? config.businessNameZh : (config?.businessName || "");
       const postText = reviewText 
         ? `${reviewText}\n\n📍 ${businessName}\n${facebookUrl}`
         : `Check out ${businessName}!\n${facebookUrl}`;
@@ -1078,7 +1079,7 @@ export default function CustomerDrafting() {
       <div className="container max-w-md mx-auto px-4 py-8 pb-32">
         <div className="text-center mb-8 animate-in-slide-up">
           {/* Business Logo and Name */}
-          {(config.companyLogo || config.businessName) && (
+          {(config.companyLogo || config.businessName || config.businessNameZh) && (
             <div className="flex items-center justify-center gap-3 mb-4">
               {config.companyLogo && (
                 <img 
@@ -1088,9 +1089,9 @@ export default function CustomerDrafting() {
                   data-testid="img-drafting-company-logo"
                 />
               )}
-              {config.businessName && (
+              {(config.businessName || config.businessNameZh) && (
                 <span className="text-lg font-semibold text-primary" data-testid="text-drafting-business-name">
-                  {config.businessName}
+                  {language === 'zh' && config.businessNameZh ? config.businessNameZh : config.businessName}
                 </span>
               )}
             </div>
@@ -1347,7 +1348,7 @@ export default function CustomerDrafting() {
                   
                   {/* Preview formatted text */}
                   <div className="bg-white p-3 rounded-lg text-xs text-gray-700 whitespace-pre-line border max-h-32 overflow-y-auto">
-                    {formatForXiaohongshu(selectedReview || '', selectedHashtags, config?.businessName || undefined)}
+                    {formatForXiaohongshu(selectedReview || '', selectedHashtags, (language === 'zh' && config?.businessNameZh) ? config.businessNameZh : (config?.businessName || undefined))}
                   </div>
                 </div>
                 

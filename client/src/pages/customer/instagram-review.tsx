@@ -14,6 +14,7 @@ import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
 interface PublicConfig {
   placeId?: string;
   businessName?: string | null;
+  businessNameZh?: string | null;
   googleReviewsUrl?: string | null;
   googlePlaceId?: string | null;
   facebookUrl?: string | null;
