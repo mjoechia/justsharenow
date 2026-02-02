@@ -125,6 +125,7 @@ export default function AdminDashboard() {
     fromCache?: boolean;
   } | null>(null);
   const [confirmedBusinessName, setConfirmedBusinessName] = useState<string | null>(null);
+  const [businessNameZh, setBusinessNameZh] = useState<string>("");
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [isDiscoveringLogo, setIsDiscoveringLogo] = useState(false);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
@@ -160,6 +161,7 @@ export default function AdminDashboard() {
       if (config.businessName) {
         setConfirmedBusinessName(config.businessName);
       }
+      setBusinessNameZh((config as any).businessNameZh || "");
       setCompanyLogo((config as any).companyLogo || null);
       setHideJustShareNowLogo((config as any).hideJustShareNowLogo || false);
       setIsDirty(false);
@@ -264,6 +266,7 @@ export default function AdminDashboard() {
       reviewHashtags: selectedHashtags,
       companyLogo: companyLogo ?? null,
       hideJustShareNowLogo,
+      businessNameZh: businessNameZh || null,
     });
   };
 
@@ -1254,6 +1257,24 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Chinese Business Name */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="businessNameZh">Chinese Business Name (中文店名)</Label>
+                                <Input
+                                    id="businessNameZh"
+                                    placeholder="输入中文店名（可选）"
+                                    value={businessNameZh}
+                                    onChange={(e) => {
+                                        setBusinessNameZh(e.target.value);
+                                        setIsDirty(true);
+                                    }}
+                                    data-testid="input-business-name-zh"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Optional. When filled, Chinese users will see this name instead of the English name.
+                                </p>
+                            </div>
 
                             {/* Company Logo Section */}
                             <div className="grid gap-2">

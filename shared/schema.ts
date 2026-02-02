@@ -75,6 +75,7 @@ export const storeConfig = pgTable("store_config", {
   userId: integer("user_id"), // References users.id - each user has their own store config
   placeId: text("place_id").unique(),
   businessName: text("business_name"),
+  businessNameZh: text("business_name_zh"),
   websiteUrl: text("website_url"),
   googleReviewsUrl: text("google_reviews_url"),
   googlePlaceId: text("google_place_id"),
