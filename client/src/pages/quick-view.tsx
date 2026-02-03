@@ -6,6 +6,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import justShareNowLogo from "@assets/JustSharenow_logo_1766216638301.png";
+import quickViewPromo from "@assets/IMG_4881_1770091410902.jpeg";
 import { Facebook, Instagram, MapPin, MessageCircle, Download, Link as LinkIcon, RefreshCw, Building2, Camera, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
@@ -217,15 +218,6 @@ export default function QuickView({ embedded = false, contextUserId }: { embedde
                 />
               </div>
 
-              {/* Social Icons Strip */}
-              <div className="flex gap-2 justify-center mb-4">
-                {socialIcons.map((item, i) => (
-                    <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center ${item.color}`}>
-                        {item.icon}
-                    </div>
-                ))}
-              </div>
-
               {/* CTA */}
               <div className="space-y-1 text-center">
                 <h2 className="text-lg font-bold text-foreground">{t.quickView.shareUnlock}</h2>
@@ -239,23 +231,14 @@ export default function QuickView({ embedded = false, contextUserId }: { embedde
                 {t.quickView.startReview}
               </Button>
 
-              {/* Controls */}
-              <div className="w-full flex items-center justify-center gap-2 mt-3">
-                <Button variant="ghost" size="sm" onClick={handleDownload} className="text-xs text-muted-foreground hover:text-primary">
-                   <Download className="w-3 h-3 mr-1" />
-                   {t.quickView.downloadQR}
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleSaveAsImage} 
-                  disabled={isSavingImage}
-                  className="text-xs text-muted-foreground hover:text-primary"
-                  data-testid="button-save-card-image"
-                >
-                   <Camera className="w-3 h-3 mr-1" />
-                   {isSavingImage ? "..." : t.quickView.saveAsImage}
-                </Button>
+              {/* Promo Image */}
+              <div className="w-full mt-4">
+                <img 
+                  src={quickViewPromo} 
+                  alt="JustShareNow - Customer Scans QR, AI Auto-Generate, One-Click Publish" 
+                  className="w-full h-auto rounded-lg"
+                  data-testid="img-quick-view-promo"
+                />
               </div>
 
               {userSlug && (
