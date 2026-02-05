@@ -494,7 +494,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Password must be at least 8 characters" });
       }
 
-      const user = await storage.getUserById(userId);
+      let user;
+      try {
+        user = await storage.getUserById(userId);
+      } catch (dbError: any) {
+        console.error(`[reset-password] Database error fetching user:`, dbError?.message);
+        return res.status(500).json({ error: "Database error fetching user" });
+      }
+      
       if (!user) {
         console.log(`[reset-password] User not found for id=${userId}`);
         return res.status(404).json({ error: "User not found" });
@@ -502,24 +509,40 @@ export async function registerRoutes(
       
       console.log(`[reset-password] Found user: ${user.username}, hashing new password...`);
 
-      const passwordHash = await bcrypt.hash(newPassword, 12);
-      await storage.updatePassword(userId, passwordHash);
+      let passwordHash;
+      try {
+        passwordHash = await bcrypt.hash(newPassword, 12);
+      } catch (hashError: any) {
+        console.error(`[reset-password] Bcrypt hash error:`, hashError?.message);
+        return res.status(500).json({ error: "Error hashing password" });
+      }
+      
+      try {
+        await storage.updatePassword(userId, passwordHash);
+      } catch (updateError: any) {
+        console.error(`[reset-password] Error updating password in database:`, updateError?.message);
+        return res.status(500).json({ error: "Error saving password to database" });
+      }
       
       console.log(`[reset-password] Password updated, logging audit event...`);
       
-      // Log audit event
-      await storage.logPasswordEvent({
-        actorUserId: actorUser.id,
-        targetUserId: userId,
-        action: 'reset',
-        ipAddress: req.ip || null,
-        userAgent: req.headers['user-agent'] || null,
-      });
+      // Log audit event (non-blocking - don't fail if this fails)
+      try {
+        await storage.logPasswordEvent({
+          actorUserId: actorUser.id,
+          targetUserId: userId,
+          action: 'reset',
+          ipAddress: req.ip || null,
+          userAgent: req.headers['user-agent'] || null,
+        });
+      } catch (auditError: any) {
+        console.warn(`[reset-password] Audit logging failed (non-critical):`, auditError?.message);
+      }
       
       console.log(`[reset-password] Success for userId=${userId}`);
       res.json({ success: true });
     } catch (error: any) {
-      console.error("Error resetting password:", error);
+      console.error("Error resetting password:", error?.message);
       console.error("Error stack:", error?.stack);
       res.status(500).json({ error: "Failed to reset password. Please try again." });
     }
