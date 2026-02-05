@@ -662,6 +662,20 @@ export default function CustomerDrafting() {
           variant: "default",
         });
       }
+      
+      // Mark review as used to prevent duplicates
+      if (config?.googlePlaceId && reviewText) {
+        try {
+          await saveTestimonial({
+            placeId: config.googlePlaceId,
+            platform: 'google-reviews',
+            rating: 5,
+            reviewText: reviewText,
+          });
+        } catch (err) {
+          console.warn("Failed to save testimonial:", err);
+        }
+      }
     }
     if (activePlatform?.id) {
       await trackPlatformClick(activePlatform.id);
