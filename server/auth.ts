@@ -40,7 +40,7 @@ export async function getSessionTimeoutMs(): Promise<number> {
     const timeoutMinutes = await storage.getSessionTimeoutMinutes();
     return timeoutMinutes * 60 * 1000; // Convert minutes to milliseconds
   } catch (error) {
-    // Default to 3 minutes if database not ready
+    // Default to 30 minutes if database not ready
     return DEFAULT_SESSION_TIMEOUT_MINUTES * 60 * 1000;
   }
 }
@@ -453,7 +453,7 @@ export const requireMasterAdmin: RequestHandler = requireRole("master_admin");
 export const requireAdmin: RequestHandler = requireRole("master_admin", "admin");
 export const requireApproved: RequestHandler = async (req, res, next) => {
   if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: "Session expired. Please log in again." });
   }
 
   const sessionUser = req.user as Express.User;
@@ -470,6 +470,9 @@ export const requireApproved: RequestHandler = async (req, res, next) => {
   if (!user.isActive) {
     return res.status(403).json({ message: "Account disabled" });
   }
+
+  const reqUser = req.user as Express.User;
+  reqUser.role = user.role;
 
   return next();
 };

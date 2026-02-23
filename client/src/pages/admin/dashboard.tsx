@@ -227,8 +227,9 @@ export default function AdminDashboard() {
         toast({ title: "Saved", description: "Configuration updated successfully." });
       }
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to save configuration.", variant: "destructive" });
+    onError: (error: Error) => {
+      const msg = error.message || "Failed to save configuration.";
+      toast({ title: "Error", description: msg, variant: "destructive" });
     },
   });
 

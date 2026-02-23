@@ -1311,8 +1311,8 @@ export async function registerRoutes(
             return res.status(403).json({ error: "Access denied - user not assigned to you" });
           }
         } else {
-          // Regular users can only access their own config
-          return res.status(403).json({ error: "Access denied" });
+          console.log(`[my-config] Access denied: user id=${authUser.id} role=${authUser.role} tried to access userId=${targetUserId}`);
+          return res.status(403).json({ error: "Access denied - insufficient permissions to view this user's config" });
         }
       }
 
@@ -1391,7 +1391,8 @@ export async function registerRoutes(
             return res.status(403).json({ error: "Access denied - you can only edit demo accounts" });
           }
         } else {
-          return res.status(403).json({ error: "Access denied" });
+          console.log(`[config PUT] Access denied: user id=${authUser.id} role=${authUser.role} tried to update userId=${targetUserId}`);
+          return res.status(403).json({ error: "Access denied - insufficient permissions to update this user's config" });
         }
       }
       

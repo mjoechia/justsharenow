@@ -40,7 +40,13 @@ export async function getStoreConfigByPlaceId(placeId: string): Promise<StoreCon
 export async function getStoreConfig(userId?: number): Promise<StoreConfig> {
   const url = userId ? `/api/admin/my-config?userId=${userId}` : '/api/admin/my-config';
   const response = await fetch(url, { credentials: 'include' });
-  if (!response.ok) throw new Error('Failed to fetch config');
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || data.message || 'Session expired. Please log in again.');
+    }
+    throw new Error('Failed to fetch config');
+  }
   return response.json();
 }
 
@@ -57,7 +63,13 @@ export async function updateStoreConfig(config: Partial<StoreConfig>, userId?: n
     body: JSON.stringify(config),
     credentials: 'include',
   });
-  if (!response.ok) throw new Error('Failed to update config');
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || data.message || 'Session expired. Please log in again.');
+    }
+    throw new Error('Failed to update config');
+  }
   return response.json();
 }
 
