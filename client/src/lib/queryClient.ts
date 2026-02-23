@@ -1,21 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-// Handle session expiration globally - redirect to login
-function handleSessionExpired() {
-  // Clear any cached auth state
-  window.location.href = '/login?expired=1';
-}
-
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    // Handle session expiration (401) by redirecting to login
-    if (res.status === 401) {
-      // Don't redirect if already on login page or public pages
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && !currentPath.match(/^\/[^/]+$/) && currentPath !== '/') {
-        handleSessionExpired();
-      }
-    }
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -61,7 +47,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 30 * 1000, // 30 seconds - allows proper cache invalidation
+      staleTime: 30 * 1000,
       retry: false,
     },
     mutations: {
