@@ -1,8 +1,8 @@
-# ShareLor - Review Sharing Platform
+# Justsharenow - Review Sharing Platform
 
 ## Overview
 
-ShareLor is a multi-view interactive web application designed to help businesses manage and deploy review-sharing campaigns through QR codes. The platform enables customers to select AI-generated reviews and photos, then share them across 6 social media platforms (Google Reviews, Facebook, Instagram, XiaoHongShu, TikTok, WhatsApp). Business owners can track QR code scan analytics, optimize campaigns based on performance data, and download print-ready marketing materials.
+JustShareNow is a multi-view interactive web application designed to help businesses manage and deploy review-sharing campaigns through QR codes. The platform enables customers to select AI-generated reviews and photos, then share them across 6 social media platforms (Google Reviews, Facebook, Instagram, XiaoHongShu, TikTok, WhatsApp). Business owners can track QR code scan analytics, optimize campaigns based on performance data, and download print-ready marketing materials.
 
 The application features a customer-facing flow for review selection and sharing, and an administrative dashboard for campaign management and analytics tracking.
 

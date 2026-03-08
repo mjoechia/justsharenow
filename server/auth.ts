@@ -1,9 +1,6 @@
-import * as client from "openid-client";
-import { Strategy, type VerifyFunction } from "openid-client/passport";
 import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler, Request, Response, NextFunction } from "express";
-import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
@@ -15,32 +12,17 @@ declare global {
     interface User {
       id: number;
       role: UserRole;
-      claims?: any;
-      access_token?: string;
-      refresh_token?: string;
-      expires_at?: number;
     }
   }
 }
 
 const MASTER_ADMIN_USERNAME = "jc141319";
 
-const getOidcConfig = memoize(
-  async () => {
-    return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
-    );
-  },
-  { maxAge: 3600 * 1000 }
-);
-
 export async function getSessionTimeoutMs(): Promise<number> {
   try {
     const timeoutMinutes = await storage.getSessionTimeoutMinutes();
-    return timeoutMinutes * 60 * 1000; // Convert minutes to milliseconds
+    return timeoutMinutes * 60 * 1000;
   } catch (error) {
-    // Default to 30 minutes if database not ready
     return DEFAULT_SESSION_TIMEOUT_MINUTES * 60 * 1000;
   }
 }
@@ -51,7 +33,7 @@ export async function getSession() {
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
-    ttl: Math.floor(sessionTtl / 1000), // ttl is in seconds for pg store
+    ttl: Math.floor(sessionTtl / 1000),
     tableName: "sessions",
   });
   return session({
@@ -59,7 +41,7 @@ export async function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
-    rolling: true, // Reset session expiry on each request
+    rolling: true,
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -67,16 +49,6 @@ export async function getSession() {
       maxAge: sessionTtl,
     },
   });
-}
-
-function updateUserSession(
-  user: any,
-  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
-) {
-  user.claims = tokens.claims();
-  user.access_token = tokens.access_token;
-  user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
 }
 
 export async function initializeMasterAdmin(): Promise<void> {
@@ -88,9 +60,8 @@ export async function initializeMasterAdmin(): Promise<void> {
 
   const passwordHash = await bcrypt.hash(masterAdminPassword, 12);
   const existingMaster = await storage.getUserByUsername(MASTER_ADMIN_USERNAME);
-  
+
   if (existingMaster) {
-    // Update password hash if it changed
     if (existingMaster.passwordHash !== passwordHash) {
       await storage.updatePassword(existingMaster.id, passwordHash);
       console.log("Master admin password updated");
@@ -111,8 +82,6 @@ export async function initializeMasterAdmin(): Promise<void> {
   console.log("Master admin created successfully");
 }
 
-// Middleware to dynamically update session cookie maxAge based on current settings
-// This allows session timeout changes to take effect without server restart
 async function dynamicSessionTimeoutMiddleware(req: Request, res: Response, next: NextFunction) {
   if (req.session && req.session.cookie) {
     try {
@@ -134,74 +103,6 @@ export async function setupAuth(app: Express) {
 
   await initializeMasterAdmin();
 
-  const config = await getOidcConfig();
-
-  const verify: VerifyFunction = async (
-    tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
-    verified: passport.AuthenticateCallback
-  ) => {
-    try {
-      const claims = tokens.claims();
-      if (!claims) {
-        return verified(new Error("No claims in token"));
-      }
-      
-      const googleId = claims.sub;
-      const email = claims["email"] as string | undefined;
-      const firstName = claims["first_name"] as string | undefined;
-      const lastName = claims["last_name"] as string | undefined;
-      const profileImage = claims["profile_image_url"] as string | undefined;
-      
-      let user = await storage.getUserByGoogleId(googleId);
-      
-      if (!user) {
-        user = await storage.createUser({
-          googleId,
-          email: email || null,
-          displayName: [firstName, lastName].filter(Boolean).join(" ") || email || "User",
-          avatarUrl: profileImage || null,
-          role: "admin",
-          approvalStatus: "pending",
-          isActive: true,
-        });
-        console.log(`New admin registered via Google: ${email}`);
-      }
-
-      const sessionUser: Express.User = {
-        id: user.id,
-        role: user.role,
-        claims: claims,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_at: claims["exp"] as number,
-      };
-
-      verified(null, sessionUser);
-    } catch (error) {
-      console.error("Error in verify callback:", error);
-      verified(error as Error);
-    }
-  };
-
-  const registeredStrategies = new Set<string>();
-
-  const ensureStrategy = (domain: string) => {
-    const strategyName = `replitauth:${domain}`;
-    if (!registeredStrategies.has(strategyName)) {
-      const strategy = new Strategy(
-        {
-          name: strategyName,
-          config,
-          scope: "openid email profile offline_access",
-          callbackURL: `https://${domain}/api/callback`,
-        },
-        verify,
-      );
-      passport.use(strategy);
-      registeredStrategies.add(strategyName);
-    }
-  };
-
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
@@ -210,17 +111,16 @@ export async function setupAuth(app: Express) {
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
-      
+
       if (!username || !password) {
         return res.status(400).json({ error: "Username and password required" });
       }
 
-      // Try to find user by username first, then by email
       let user = await storage.getUserByUsername(username);
       if (!user) {
         user = await storage.getUserByEmail(username);
       }
-      
+
       if (!user || !user.passwordHash) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -233,11 +133,9 @@ export async function setupAuth(app: Express) {
       if (!isValid) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
-      
-      // Debug: Log successful login
+
       console.log(`[Login] User logged in: id=${user.id}, username=${user.username}, role=${user.role}`);
 
-      // Master admin bypasses approval check, others must be approved
       if (user.role !== 'master_admin' && user.approvalStatus !== 'approved') {
         if (user.approvalStatus === 'pending') {
           return res.status(403).json({ error: "Account pending approval. Please contact your administrator." });
@@ -255,8 +153,8 @@ export async function setupAuth(app: Express) {
           console.error("Login error:", err);
           return res.status(500).json({ error: "Login failed" });
         }
-        return res.json({ 
-          success: true, 
+        return res.json({
+          success: true,
           user: {
             id: user.id,
             username: user.username,
@@ -271,23 +169,21 @@ export async function setupAuth(app: Express) {
       return res.status(500).json({ error: "Login failed" });
     }
   });
-  
+
   // Legacy route for backward compatibility
-  // Supports login via username OR email
   app.post("/api/auth/master-login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
-      
+
       if (!username || !password) {
         return res.status(400).json({ error: "Username and password required" });
       }
 
-      // Try to find user by username first, then by email
       let user = await storage.getUserByUsername(username);
       if (!user) {
         user = await storage.getUserByEmail(username);
       }
-      
+
       if (!user || !user.passwordHash) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -311,8 +207,8 @@ export async function setupAuth(app: Express) {
           console.error("Login error:", err);
           return res.status(500).json({ error: "Login failed" });
         }
-        return res.json({ 
-          success: true, 
+        return res.json({
+          success: true,
           user: {
             id: user.id,
             username: user.username,
@@ -327,38 +223,9 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  app.get("/api/login", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
-  });
-
-  app.get("/api/callback", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
-    })(req, res, next);
-  });
-
   app.get("/api/logout", (req, res) => {
-    const user = req.user as Express.User | undefined;
-    const isOidcUser = user?.claims;
-    
-    req.logout(async () => {
-      if (isOidcUser) {
-        const config = await getOidcConfig();
-        res.redirect(
-          client.buildEndSessionUrl(config, {
-            client_id: process.env.REPL_ID!,
-            post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-          }).href
-        );
-      } else {
-        res.redirect("/");
-      }
+    req.logout(() => {
+      res.redirect("/");
     });
   });
 
@@ -370,7 +237,7 @@ export async function setupAuth(app: Express) {
     try {
       const sessionUser = req.user as Express.User;
       const user = await storage.getUserById(sessionUser.id);
-      
+
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
@@ -396,27 +263,6 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-
-  const sessionUser = req.user as Express.User;
-  
-  if (sessionUser.expires_at) {
-    const now = Math.floor(Date.now() / 1000);
-    if (now > sessionUser.expires_at) {
-      const refreshToken = sessionUser.refresh_token;
-      if (!refreshToken) {
-        return res.status(401).json({ message: "Session expired" });
-      }
-
-      try {
-        const config = await getOidcConfig();
-        const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-        updateUserSession(sessionUser, tokenResponse);
-      } catch (error) {
-        return res.status(401).json({ message: "Session expired" });
-      }
-    }
-  }
-
   return next();
 };
 
@@ -428,7 +274,7 @@ export const requireRole = (...roles: UserRole[]): RequestHandler => {
 
     const sessionUser = req.user as Express.User;
     const user = await storage.getUserById(sessionUser.id);
-    
+
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
@@ -458,7 +304,7 @@ export const requireApproved: RequestHandler = async (req, res, next) => {
 
   const sessionUser = req.user as Express.User;
   const user = await storage.getUserById(sessionUser.id);
-  
+
   if (!user) {
     return res.status(401).json({ message: "User not found" });
   }
