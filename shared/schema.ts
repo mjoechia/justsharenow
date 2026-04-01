@@ -1,222 +1,237 @@
-import { pgTable, text, serial, integer, timestamp, jsonb, real, boolean } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User Roles
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 export type UserRole = 'master_admin' | 'admin' | 'user';
-
-// Approval Status
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
-
-// Account Type - distinguishes demo accounts from real customers
 export type AccountType = 'demo' | 'customer';
+export type PasswordEventAction = 'create' | 'reset' | 'change';
 
-// Users table - stores all users with roles
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  email: text("email").unique(),
-  username: text("username").unique(),
-  passwordHash: text("password_hash"), // For master admin (username/password login)
-  googleId: text("google_id").unique(), // For Google OAuth (admins)
-  displayName: text("display_name"),
-  avatarUrl: text("avatar_url"),
-  slug: text("slug").unique(), // URL slug for accessing user's shop/quick view (e.g., /carin141319)
-  recentUserIds: jsonb("recent_user_ids").$type<number[]>().default([]), // For admins: last 3 users they viewed
-  role: text("role").$type<UserRole>().notNull().default('user'),
-  approvalStatus: text("approval_status").$type<ApprovalStatus>().notNull().default('pending'),
-  approvedBy: integer("approved_by"), // References users.id of who approved
-  approvedAt: timestamp("approved_at"),
-  isActive: boolean("is_active").notNull().default(true),
-  isDemo: boolean("is_demo").notNull().default(false), // True for demo accounts created with admin
-  accountType: text("account_type").$type<AccountType>().notNull().default('customer'), // 'demo' or 'customer'
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+// ─── User ─────────────────────────────────────────────────────────────────────
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  approvedAt: true,
-});
+export interface User {
+  id: number;
+  email: string | null;
+  username: string | null;
+  passwordHash: string | null;
+  googleId: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  slug: string | null;
+  recentUserIds: number[];
+  role: UserRole;
+  approvalStatus: ApprovalStatus;
+  approvedBy: number | null;
+  approvedAt: Date | null;
+  isActive: boolean;
+  isDemo: boolean;
+  accountType: AccountType;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export interface InsertUser {
+  email?: string | null;
+  username?: string | null;
+  passwordHash?: string | null;
+  googleId?: string | null;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  slug?: string | null;
+  recentUserIds?: number[];
+  role?: UserRole;
+  approvalStatus?: ApprovalStatus;
+  approvedBy?: number | null;
+  approvedAt?: Date | null;
+  isActive?: boolean;
+  isDemo?: boolean;
+  accountType?: AccountType;
+}
 
-// Admin-User Assignments - which users are managed by which admin
-export const adminUserAssignments = pgTable("admin_user_assignments", {
-  id: serial("id").primaryKey(),
-  adminId: integer("admin_id").notNull(), // References users.id (must be role='admin')
-  userId: integer("user_id").notNull(), // References users.id (must be role='user')
-  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
-  assignedBy: integer("assigned_by"), // References users.id of master admin who made assignment
-});
+// ─── Admin-User Assignments ───────────────────────────────────────────────────
 
-export const insertAdminUserAssignmentSchema = createInsertSchema(adminUserAssignments).omit({
-  id: true,
-  assignedAt: true,
-});
+export interface AdminUserAssignment {
+  id: number;
+  adminId: number;
+  userId: number;
+  assignedAt: Date;
+  assignedBy: number | null;
+}
 
-export type InsertAdminUserAssignment = z.infer<typeof insertAdminUserAssignmentSchema>;
-export type AdminUserAssignment = typeof adminUserAssignments.$inferSelect;
+export interface InsertAdminUserAssignment {
+  adminId: number;
+  userId: number;
+  assignedBy?: number | null;
+}
 
-// Sessions table for connect-pg-simple (Replit Auth / Express Session)
-export const sessions = pgTable("sessions", {
-  sid: text("sid").primaryKey(),
-  sess: jsonb("sess").notNull(),
-  expire: timestamp("expire").notNull(),
-});
+// ─── Store Config ─────────────────────────────────────────────────────────────
 
-export type Session = typeof sessions.$inferSelect;
+export interface StoreConfig {
+  id: number;
+  userId: number | null;
+  placeId: string | null;
+  businessName: string | null;
+  businessNameZh: string | null;
+  websiteUrl: string | null;
+  googleReviewsUrl: string | null;
+  googlePlaceId: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  xiaohongshuUrl: string | null;
+  tiktokUrl: string | null;
+  whatsappUrl: string | null;
+  shopPhotos: string[];
+  sliderPhotos: string[];
+  reviewHashtags: string[];
+  companyLogo: string | null;
+  hideJustShareNowLogo: boolean;
+  updatedAt: Date;
+}
 
-// Store Configuration - now scoped by user and business (placeId)
-export const storeConfig = pgTable("store_config", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id"), // References users.id - each user has their own store config
-  placeId: text("place_id").unique(),
-  businessName: text("business_name"),
-  businessNameZh: text("business_name_zh"),
-  websiteUrl: text("website_url"),
-  googleReviewsUrl: text("google_reviews_url"),
-  googlePlaceId: text("google_place_id"),
-  facebookUrl: text("facebook_url"),
-  instagramUrl: text("instagram_url"),
-  xiaohongshuUrl: text("xiaohongshu_url"),
-  tiktokUrl: text("tiktok_url"),
-  whatsappUrl: text("whatsapp_url"),
-  shopPhotos: jsonb("shop_photos").$type<string[]>().default([]),
-  sliderPhotos: jsonb("slider_photos").$type<string[]>().default([]),
-  reviewHashtags: jsonb("review_hashtags").$type<string[]>().default([]),
-  companyLogo: text("company_logo"),
-  hideJustShareNowLogo: boolean("hide_justsharenow_logo").default(false),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertStoreConfigSchema = createInsertSchema(storeConfig).omit({
-  id: true,
-  updatedAt: true,
+export const insertStoreConfigSchema = z.object({
+  userId: z.number().optional().nullable(),
+  placeId: z.string().optional().nullable(),
+  businessName: z.string().optional().nullable(),
+  businessNameZh: z.string().optional().nullable(),
+  websiteUrl: z.string().optional().nullable(),
+  googleReviewsUrl: z.string().optional().nullable(),
+  googlePlaceId: z.string().optional().nullable(),
+  facebookUrl: z.string().optional().nullable(),
+  instagramUrl: z.string().optional().nullable(),
+  xiaohongshuUrl: z.string().optional().nullable(),
+  tiktokUrl: z.string().optional().nullable(),
+  whatsappUrl: z.string().optional().nullable(),
+  shopPhotos: z.array(z.string()).optional(),
+  sliderPhotos: z.array(z.string()).optional(),
+  reviewHashtags: z.array(z.string()).optional(),
+  companyLogo: z.string().optional().nullable(),
+  hideJustShareNowLogo: z.boolean().optional(),
 });
 
 export type InsertStoreConfig = z.infer<typeof insertStoreConfigSchema>;
-export type StoreConfig = typeof storeConfig.$inferSelect;
 
-// Analytics Tracking - now scoped by business (placeId)
-export const analytics = pgTable("analytics", {
-  id: serial("id").primaryKey(),
-  placeId: text("place_id"),
-  platform: text("platform").notNull(),
-  clicks: integer("clicks").default(0).notNull(),
-  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
-});
+// ─── Analytics ────────────────────────────────────────────────────────────────
 
-export const insertAnalyticsSchema = createInsertSchema(analytics).omit({
-  id: true,
-  lastUpdated: true,
-});
+export interface Analytics {
+  id: number;
+  placeId: string | null;
+  platform: string;
+  clicks: number;
+  lastUpdated: Date;
+}
 
-export type InsertAnalytics = z.infer<typeof insertAnalyticsSchema>;
-export type Analytics = typeof analytics.$inferSelect;
+export interface InsertAnalytics {
+  placeId?: string | null;
+  platform: string;
+  clicks?: number;
+}
 
-// Testimonials - customer-submitted reviews
-export const testimonials = pgTable("testimonials", {
-  id: serial("id").primaryKey(),
-  placeId: text("place_id").notNull(),
-  platform: text("platform").notNull(),
-  rating: integer("rating").notNull(),
-  reviewText: text("review_text"),
-  photoUrl: text("photo_url"),
-  language: text("language").default("en"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+// ─── Testimonials ─────────────────────────────────────────────────────────────
 
-export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
-  id: true,
-  createdAt: true,
-});
+export interface Testimonial {
+  id: number;
+  placeId: string;
+  platform: string;
+  rating: number;
+  reviewText: string | null;
+  photoUrl: string | null;
+  language: string | null;
+  createdAt: Date;
+}
 
-export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
-export type Testimonial = typeof testimonials.$inferSelect;
+export interface InsertTestimonial {
+  placeId: string;
+  platform: string;
+  rating: number;
+  reviewText?: string | null;
+  photoUrl?: string | null;
+  language?: string | null;
+}
 
-// Google Reviews
-export const googleReviews = pgTable("google_reviews", {
-  id: serial("id").primaryKey(),
-  authorName: text("author_name").notNull(),
-  authorPhotoUrl: text("author_photo_url"),
-  rating: integer("rating").notNull(),
-  text: text("text"),
-  relativeTime: text("relative_time"),
-  publishTime: timestamp("publish_time"),
-  googleReviewId: text("google_review_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+// ─── Google Reviews ───────────────────────────────────────────────────────────
 
-export const insertGoogleReviewSchema = createInsertSchema(googleReviews).omit({
-  id: true,
-  createdAt: true,
-});
+export interface GoogleReview {
+  id: number;
+  authorName: string;
+  authorPhotoUrl: string | null;
+  rating: number;
+  text: string | null;
+  relativeTime: string | null;
+  publishTime: Date | null;
+  googleReviewId: string | null;
+  createdAt: Date;
+}
 
-export type InsertGoogleReview = z.infer<typeof insertGoogleReviewSchema>;
-export type GoogleReview = typeof googleReviews.$inferSelect;
+export interface InsertGoogleReview {
+  authorName: string;
+  authorPhotoUrl?: string | null;
+  rating: number;
+  text?: string | null;
+  relativeTime?: string | null;
+  publishTime?: Date | null;
+  googleReviewId?: string | null;
+}
 
-// Verified Businesses (cache for Google Places API lookups)
-export const verifiedBusinesses = pgTable("verified_businesses", {
-  id: serial("id").primaryKey(),
-  placeId: text("place_id").notNull().unique(),
-  businessName: text("business_name"),
-  address: text("address"),
-  rating: real("rating"),
-  totalReviews: integer("total_reviews").default(0),
-  website: text("website"),
-  googleMapsUrl: text("google_maps_url"),
-  verifiedAt: timestamp("verified_at").defaultNow().notNull(),
-});
+// ─── Verified Businesses ──────────────────────────────────────────────────────
 
-export const insertVerifiedBusinessSchema = createInsertSchema(verifiedBusinesses).omit({
-  id: true,
-  verifiedAt: true,
-});
+export interface VerifiedBusiness {
+  id: number;
+  placeId: string;
+  businessName: string | null;
+  address: string | null;
+  rating: number | null;
+  totalReviews: number | null;
+  website: string | null;
+  googleMapsUrl: string | null;
+  verifiedAt: Date;
+}
 
-export type InsertVerifiedBusiness = z.infer<typeof insertVerifiedBusinessSchema>;
-export type VerifiedBusiness = typeof verifiedBusinesses.$inferSelect;
+export interface InsertVerifiedBusiness {
+  placeId: string;
+  businessName?: string | null;
+  address?: string | null;
+  rating?: number | null;
+  totalReviews?: number | null;
+  website?: string | null;
+  googleMapsUrl?: string | null;
+}
 
-// Password Event Types
-export type PasswordEventAction = 'create' | 'reset' | 'change';
+// ─── Password Events ──────────────────────────────────────────────────────────
 
-// Password Events - audit trail for password operations
-export const passwordEvents = pgTable("password_events", {
-  id: serial("id").primaryKey(),
-  actorUserId: integer("actor_user_id").notNull(), // Who performed the action
-  targetUserId: integer("target_user_id").notNull(), // Who the action was performed on
-  action: text("action").$type<PasswordEventAction>().notNull(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface PasswordEvent {
+  id: number;
+  actorUserId: number;
+  targetUserId: number;
+  action: PasswordEventAction;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: Date;
+}
 
-export const insertPasswordEventSchema = createInsertSchema(passwordEvents).omit({
-  id: true,
-  createdAt: true,
-});
+export interface InsertPasswordEvent {
+  actorUserId: number;
+  targetUserId: number;
+  action: PasswordEventAction;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}
 
-export type InsertPasswordEvent = z.infer<typeof insertPasswordEventSchema>;
-export type PasswordEvent = typeof passwordEvents.$inferSelect;
+// ─── System Settings ──────────────────────────────────────────────────────────
 
-// System Settings - global configuration (session timeout, etc.)
-export const systemSettings = pgTable("system_settings", {
-  id: serial("id").primaryKey(),
-  key: text("key").notNull().unique(),
-  value: text("value").notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  updatedBy: integer("updated_by"), // References users.id
-});
+export interface SystemSetting {
+  id: number;
+  key: string;
+  value: string;
+  updatedAt: Date;
+  updatedBy: number | null;
+}
 
-export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({
-  id: true,
-  updatedAt: true,
-});
+export interface InsertSystemSetting {
+  key: string;
+  value: string;
+  updatedBy?: number | null;
+}
 
-export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
-export type SystemSetting = typeof systemSettings.$inferSelect;
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-// Default session timeout in minutes
 export const DEFAULT_SESSION_TIMEOUT_MINUTES = 10;

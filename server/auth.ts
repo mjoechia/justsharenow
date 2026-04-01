@@ -34,6 +34,7 @@ export async function getSession() {
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
     ttl: Math.floor(sessionTtl / 1000),
+    schemaName: "app_justsharenow",
     tableName: "sessions",
   });
   return session({
