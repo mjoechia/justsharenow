@@ -4,17 +4,16 @@ import { storage } from "./storage";
 import { insertStoreConfigSchema } from "@shared/schema";
 import { z } from "zod";
 import * as cheerio from "cheerio";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcryptjs";
 import { setupAuth, isAuthenticated, requireMasterAdmin, requireAdmin, requireApproved } from "./auth";
 
-function getOpenAIClient(): OpenAI | null {
-  if (!process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || !process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+function getAnthropicClient(): Anthropic | null {
+  if (!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
     return null;
   }
-  return new OpenAI({
-    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  return new Anthropic({
+    apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
   });
 }
 
@@ -1516,7 +1515,7 @@ export async function registerRoutes(
       const url = new URL(urlString);
 
       // Check OpenAI credentials
-      const openai = getOpenAIClient();
+      const openai = getAnthropicClient();
       if (!openai) {
         res.status(503).json({ error: "AI service is not configured. Please enter social links manually." });
         return;
@@ -1613,12 +1612,10 @@ export async function registerRoutes(
       const pageText = $('body').text().substring(0, 5000);
 
       // Use AI to analyze and find social links + rank images + suggest hashtags
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are a helpful assistant that extracts social media URLs, Google Place IDs, photos, and hashtags from website content.
+      const completion = await openai.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 1024,
+        system: `You are a helpful assistant that extracts social media URLs, Google Place IDs, photos, and hashtags from website content.
 
 Given a list of links, images, and page content from a website (likely a salon/beauty business), identify:
 
@@ -1630,7 +1627,7 @@ Given a list of links, images, and page content from a website (likely a salon/b
      - Google Maps URLs with "!1s" followed by the place ID (e.g., "!1s0x...")
      - search.google.com/local/writereview URLs with "placeid=" parameter
    - If no direct Place ID is found but there's a Google Maps/Business link, extract any identifiable info.
-   
+
 2. Social media and contact URLs for 6 platforms:
    - googleReviews: The Google Reviews/Google Business page URL (we'll use this as fallback)
    - xiaohongshu: The XiaoHongShu (Little Red Book) page of the business
@@ -1652,8 +1649,8 @@ Return a JSON object with:
 - suggestedSliderPhotos: array of objects with { url, reason } - select up to 3 best photos for hero carousel
 - suggestedHashtags: array of 8-12 hashtags (with # prefix)
 
-Only return valid URLs. Do not make up URLs or Place IDs.`
-          },
+Only return valid URLs. Do not make up URLs or Place IDs. Return only valid JSON, no additional text.`,
+        messages: [
           {
             role: "user",
             content: `Website: ${url.toString()}
@@ -1668,11 +1665,9 @@ Page content excerpt:
 ${pageText}`
           }
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.1,
       });
 
-      const aiResponse = completion.choices[0]?.message?.content;
+      const aiResponse = completion.content[0]?.type === 'text' ? completion.content[0].text : null;
       
       let discoveredLinks = {
         googleReviews: null as string | null,
@@ -1765,7 +1760,7 @@ ${pageText}`
 
       const url = new URL(urlString);
 
-      const openai = getOpenAIClient();
+      const openai = getAnthropicClient();
       if (!openai) {
         res.status(503).json({ error: "AI service is not configured" });
         return;
@@ -1851,15 +1846,14 @@ ${pageText}`
       const candidateLogos = logos.slice(0, 10);
 
       // Use AI to pick the best logo
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are an assistant that identifies company logos from a list of image URLs.
+      const completion = await openai.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 256,
+        system: `You are an assistant that identifies company logos from a list of image URLs.
 Given a list of images from a website, identify which one is most likely the company logo.
-Return JSON with: { "logoUrl": "the best logo URL or null", "reason": "why you chose this" }`
-          },
+Return JSON with: { "logoUrl": "the best logo URL or null", "reason": "why you chose this" }
+Return only valid JSON, no additional text.`,
+        messages: [
           {
             role: "user",
             content: `Website: ${url.toString()}
@@ -1868,11 +1862,9 @@ Images found:
 ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.context}`).join('\n')}`
           }
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.1,
       });
 
-      const aiResponse = completion.choices[0]?.message?.content;
+      const aiResponse = completion.content[0]?.type === 'text' ? completion.content[0].text : null;
       let logoUrl: string | null = null;
       let reason = "";
 
@@ -2587,7 +2579,7 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
         return;
       }
 
-      const openai = getOpenAIClient();
+      const openai = getAnthropicClient();
       if (!openai) {
         res.status(503).json({ error: "AI service is not available" });
         return;
@@ -2596,16 +2588,15 @@ ${candidateLogos.map(img => `URL: ${img.url}, Alt: "${img.alt}", Context: ${img.
       const hashtagList = (hashtags || []).slice(0, 5).join(', ') || 'experience, quality, service';
       const platformName = platform === 'facebook' ? 'Facebook' : 'Instagram';
       
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are a social media expert that writes engaging ${platformName} captions for businesses. 
+      const completion = await openai.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 300,
+        system: `You are a social media expert that writes engaging ${platformName} captions for businesses.
 Write short, authentic-sounding customer review captions that feel genuine and relatable.
 Include relevant emojis naturally. Keep captions under 200 characters.
-The tone should be enthusiastic but not over-the-top.`
-          },
+The tone should be enthusiastic but not over-the-top.
+Return only valid JSON, no additional text.`,
+        messages: [
           {
             role: "user",
             content: `Generate 2 unique ${platformName} captions as if a happy customer is reviewing "${businessName}".
@@ -2615,11 +2606,9 @@ Return as JSON array with exactly 2 strings:
 ["caption 1", "caption 2"]`
           }
         ],
-        response_format: { type: "json_object" },
-        max_tokens: 300,
       });
 
-      const content = completion.choices[0]?.message?.content;
+      const content = completion.content[0]?.type === 'text' ? completion.content[0].text : null;
       if (!content) {
         res.status(500).json({ error: "AI did not return a response" });
         return;

@@ -6,3 +6,4 @@ vite.config.ts.*
 *.tar.gz
 # Private notes - never commit
 jcreadme.md
+jc/
